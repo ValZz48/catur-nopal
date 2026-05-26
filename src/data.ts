@@ -4,7 +4,7 @@ export const CHARACTERS: Character[] = [
   {
     id: 'martin',
     name: 'Martin',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Martin',
     difficulty: 'Sangat Mudah',
     elo: 250,
     playstyle: 'Suka Blunder & Sering Melepas Bidak',
@@ -17,7 +17,7 @@ export const CHARACTERS: Character[] = [
   {
     id: 'nelson',
     name: 'Nelson',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nelson',',',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nelson',
     difficulty: 'Sedang',
     elo: 1300,
     playstyle: 'Agresif & Serbuan Ratu Terlalu Dini',
