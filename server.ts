@@ -58,7 +58,7 @@ PANDUAN CHAT MANUSIA ALAMI (ANTI-ROBOTIK):
 
       if (ai) {
         const response = await ai.models.generateContent({
-          model: "gemini-3.5-flash",
+          model: "gemini-2.0-flash",
           contents: systemPrompt,
           config: {
             temperature: 0.95,
