@@ -18,7 +18,8 @@ export default async function handler(req: any, res: any) {
       }
     );
     const data = await response.json();
-    const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "Hmm menarik...";
+console.log('Gemini response:', JSON.stringify(data));
+const text = data.candidates?.[0]?.content?.parts?.[0]?.text || "Hmm menarik...";
     res.json({ text });
   } catch (e: any) {
     res.status(500).json({ error: e.message });
