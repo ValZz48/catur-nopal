@@ -4,7 +4,7 @@ export const CHARACTERS: Character[] = [
   {
     id: 'martin',
     name: 'Martin',
-    avatar: '/src/assets/images/avatar_martin_1779709510230.png',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/',
     difficulty: 'Sangat Mudah',
     elo: 250,
     playstyle: 'Suka Blunder & Sering Melepas Bidak',
@@ -17,7 +17,7 @@ export const CHARACTERS: Character[] = [
   {
     id: 'nelson',
     name: 'Nelson',
-    avatar: '/src/assets/images/nelson_avatar_1779712159293.png',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nelson',',',
     difficulty: 'Sedang',
     elo: 1300,
     playstyle: 'Agresif & Serbuan Ratu Terlalu Dini',
@@ -30,7 +30,7 @@ export const CHARACTERS: Character[] = [
   {
     id: 'wally',
     name: 'Wally',
-    avatar: '/src/assets/images/wally_avatar_1779712178593.png',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Wally',
     difficulty: 'Sulit',
     elo: 1800,
     playstyle: 'Strategis, Posisi Solid & Defensif',
@@ -43,7 +43,7 @@ export const CHARACTERS: Character[] = [
   {
     id: 'magnus',
     name: 'Magnus (Simulated)',
-    avatar: '/src/assets/images/magnus_avatar_1779712198066.png',
+    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Magnus',
     difficulty: 'Sulit',
     elo: 2850,
     playstyle: 'Sempurna, Tanpa Celah & Taktik Mematikan',
