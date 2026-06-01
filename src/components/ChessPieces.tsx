@@ -4,15 +4,30 @@ interface PieceProps {
   type: string; // 'p' | 'r' | 'n' | 'b' | 'q' | 'k'
   color: string; // 'w' | 'b'
   className?: string;
+  skin?: string;
 }
 
-export const ChessPiece: React.FC<PieceProps> = ({ type, color, className = 'w-full h-full' }) => {
+export const ChessPiece: React.FC<PieceProps> = ({ type, color, className = 'w-full h-full', skin = 'standard' }) => {
   const isWhite = color === 'w';
   
   // Custom styled CSS colors with beautiful shadows and gradients
-  const fillClass = isWhite 
+  let fillClass = isWhite 
     ? 'fill-slate-50 stroke-slate-800' 
     : 'fill-slate-800 stroke-slate-900';
+    
+  if (skin === 'wood') {
+    fillClass = isWhite
+      ? 'fill-[#f1d7a8] stroke-[#855329]' // warm maple wood
+      : 'fill-[#5f3f26] stroke-[#2c1c0e]'; // rich espresso walnut wood
+  } else if (skin === 'neon') {
+    fillClass = isWhite
+      ? 'fill-[#1c1c24] stroke-[#00f0ff]' // sci-fi cyan glow
+      : 'fill-[#1c1c24] stroke-[#ff007f]'; // cyberpunk magenta glow
+  } else if (skin === 'gold') {
+    fillClass = isWhite
+      ? 'fill-[#ffd700] stroke-[#917105]' // brilliant royal gold
+      : 'fill-[#252525] stroke-[#ffd700]'; // platinum with gold lining
+  }
     
   // High contrast elegant minimal custom vector paths for chess pieces
   switch (type.toLowerCase()) {
@@ -43,25 +58,33 @@ export const ChessPiece: React.FC<PieceProps> = ({ type, color, className = 'w-f
       );
     case 'n': // Knight
       return (
-        <svg viewBox="0 0 100 100" className={`${className} ${fillClass}`} strokeWidth="4.5" strokeLinecap="round" strokeLinejoin="round">
+        <svg viewBox="0 0 100 100" className={`${className} ${fillClass}`} strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
           <g>
-            {/* The classic flat chess knight silhouette */}
-            <path d="M 33 80
-                     L 67 80
-                     C 70 80, 75 75, 71 67
-                     C 67 59, 63 55, 68 47
-                     C 73 39, 71 27, 63 21
-                     C 55 15, 39 12, 33 24
-                     C 27 32, 29 44, 29 48
-                     C 29 52, 23 54, 21 60
-                     C 19 66, 23 72, 29 72
-                     C 25 75, 25 78, 33 80 Z" />
-            {/* Eye */}
-            <circle cx="46" cy="27" r="3" className={isWhite ? 'fill-slate-800' : 'fill-slate-100'} />
-            {/* Snout outline */}
-            <path d="M 23 44 C 26 40, 31 43, 33 47" fill="none" strokeWidth="2.5" />
-            {/* Mane line */}
-            <path d="M 54 24 C 58 30, 62 40, 59 50" fill="none" strokeWidth="2.5" />
+            {/* Elegant, high-fidelity chess knight horse silhouette */}
+            <path d="M 33 82 
+                     L 67 82 
+                     C 67 82, 70 82, 70 78 
+                     C 70 72, 65 65, 62 61 
+                     C 65 59, 69 52, 70 45 
+                     C 71 35, 66 23, 56 16 
+                     C 52 13, 44 14, 40 18 
+                     C 38 15, 33 13, 31 16 
+                     C 29 19, 31 23, 29 26 
+                     C 25 29, 21 34, 21 40 
+                     C 21 44, 25 45, 23 49 
+                     C 19 55, 20 62, 26 66 
+                     C 29 68, 30 71, 28 75 
+                     C 27 77, 28 82, 33 82 Z" />
+            {/* Stylized mane lines and layered highlights */}
+            <path d="M 46 22 C 48 26, 48 31, 46 36 M 52 26 C 55 31, 55 38, 51 44 M 58 35 C 60 40, 59 47, 54 53" fill="none" strokeWidth="2" className={isWhite ? 'stroke-slate-850' : 'stroke-slate-200'} />
+            {/* Snout outline / nostril detail */}
+            <path d="M 25 38 C 24 35, 27 34, 29 35" fill="none" strokeWidth="2" className={isWhite ? 'stroke-slate-850' : 'stroke-slate-100'} />
+            {/* Mouth / jawline definition */}
+            <path d="M 23 49 C 27 49, 31 46, 32 42" fill="none" strokeWidth="2" className={isWhite ? 'stroke-slate-850' : 'stroke-slate-100'} />
+            {/* Cool majestic sleek eye */}
+            <path d="M 40 30 C 43 28, 45 31, 44 34 Z" className={isWhite ? 'fill-slate-800' : 'fill-slate-100'} />
+            {/* Elegant neck shadow line */}
+            <path d="M 38 78 C 42 62, 49 52, 60 48" fill="none" strokeWidth="2" className={isWhite ? 'stroke-slate-400' : 'stroke-slate-950'} opacity="0.6" />
           </g>
         </svg>
       );

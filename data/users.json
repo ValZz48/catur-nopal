@@ -1,0 +1,71 @@
+{
+  "nopal": {
+    "claimedAchievements": [
+      "2",
+      "1",
+      "10",
+      "9",
+      "8",
+      "7",
+      "6",
+      "5",
+      "4",
+      "3"
+    ],
+    "password": "nopal ganteng",
+    "friends": [
+      "pal"
+    ],
+    "profileAvatar": "/src/assets/images/magnus_avatar_1779712198066.png",
+    "inbox": [],
+    "matchesWon": 276,
+    "friendRequests": [],
+    "xp": 35193,
+    "unlockedThemes": [
+      "classic",
+      "forest",
+      "cosmic"
+    ],
+    "username": "nopal",
+    "elo": 1329,
+    "profileBio": "nopal ganteng ",
+    "registeredAt": 1779964360679,
+    "matchesPlayed": 277
+  },
+  "pal": {
+    "password": "12345678",
+    "profileAvatar": "/src/assets/images/avatar_martin_1779709510230.png",
+    "friends": [
+      "nopal"
+    ],
+    "xp": 0,
+    "friendRequests": [],
+    "matchesWon": 0,
+    "inbox": [],
+    "username": "pal",
+    "unlockedThemes": [
+      "classic"
+    ],
+    "profileBio": "Pecatur sejati pantang menyerah!",
+    "elo": 400,
+    "registeredAt": 1779964320591,
+    "matchesPlayed": 0
+  },
+  "val": {
+    "profileBio": "Pecatur sejati pantang menyerah!",
+    "elo": 400,
+    "registeredAt": 1779964396569,
+    "matchesPlayed": 0,
+    "xp": 0,
+    "friendRequests": [],
+    "inbox": [],
+    "matchesWon": 0,
+    "username": "val",
+    "unlockedThemes": [
+      "classic"
+    ],
+    "password": "nopal ganteng ",
+    "profileAvatar": "/src/assets/images/avatar_martin_1779709510230.png",
+    "friends": []
+  }
+}

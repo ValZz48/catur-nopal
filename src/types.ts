@@ -1,4 +1,4 @@
-export type GameMode = 'menu' | 'select-character' | 'play' | 'puzzles' | 'lessons' | 'store' | 'online-match';
+export type GameMode = 'menu' | 'select-character' | 'play' | 'puzzles' | 'lessons' | 'store' | 'online-match' | 'analysis' | 'local-friend' | 'home' | 'settings' | 'profile';
 
 export type BoardTheme = 'classic' | 'forest' | 'cosmic';
 
@@ -53,3 +53,12 @@ export interface PurchaseableTheme {
   secondaryColor: string;
   bgClass: string;
 }
+
+export interface Achievement {
+  id: string;
+  title: string;
+  description: string;
+  targetType: 'played' | 'won' | 'elo' | 'xp';
+  targetValue: number;
+}
+

@@ -1,15 +1,20 @@
 import { Character, Puzzle, Lesson, PurchaseableTheme } from './types';
 
+import martinAvatar from './assets/images/avatar_martin_1779709510230.png';
+import nelsonAvatar from './assets/images/nelson_avatar_1779712159293.png';
+import wallyAvatar from './assets/images/wally_avatar_1779712178593.png';
+import magnusAvatar from './assets/images/magnus_avatar_1779712198066.png';
+
 export const CHARACTERS: Character[] = [
   {
     id: 'martin',
     name: 'Martin',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Martin',
+    avatar: martinAvatar,
     difficulty: 'Sangat Mudah',
     elo: 250,
     playstyle: 'Suka Blunder & Sering Melepas Bidak',
     bio: 'Martin adalah pelatih pemula paling ramah di catur. Dia senang menyapa semua orang, namun perhitungannya sangat sederhana dan dia tak segan memberimu bidak gratis!',
-    welcomeMsg: 'Halo! Saya Martin. Saya senang sekali bisa bermain catur denganmu hari ini. Semoga beruntung ya! 😊',
+    welcomeMsg: 'Halo! Saya Martin. Saya senang sekali bisa bermain catur denganmu hari ini. Semoga beruntung ya!',
     checkmateMsg: 'Wah! Kamu menskakmat saya? Keren sekali! Permainan yang hebat, selamat ya!',
     blunderMsg: 'Ups, apakah benteng saya baru saja dirampas? Hehehe, tidak apa-apa, mari lanjut!',
     color: 'from-amber-400 to-orange-500'
@@ -17,12 +22,12 @@ export const CHARACTERS: Character[] = [
   {
     id: 'nelson',
     name: 'Nelson',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Nelson',
+    avatar: nelsonAvatar,
     difficulty: 'Sedang',
     elo: 1300,
     playstyle: 'Agresif & Serbuan Ratu Terlalu Dini',
     bio: 'Nelson terkenal sangat agresif dan gemar meluncurkan serangan Ratu langsung sejak langkah kedua. Bersiaplah mengoordinasikan pertahanan sayap raja kamu!',
-    welcomeMsg: 'Waktunya bertanding! Bersiaplah menahan amukan Ratu saya sejak langkah pertama. Pertahankan Rajamu! 🦾',
+    welcomeMsg: 'Waktunya bertanding! Bersiaplah menahan amukan Ratu saya sejak langkah pertama. Pertahankan Rajamu!',
     checkmateMsg: 'Hahaha! Ratu saya berhasil menyusup ke baris belakang dan mengunci Rajamu. Coba lagi!',
     blunderMsg: 'Sial, serangan menteriku terbaca dengan rapi. Tapi pertarungan belum berakhir!',
     color: 'from-yellow-500 to-amber-600'
@@ -30,12 +35,12 @@ export const CHARACTERS: Character[] = [
   {
     id: 'wally',
     name: 'Wally',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Wally',
+    avatar: wallyAvatar,
     difficulty: 'Sulit',
     elo: 1800,
     playstyle: 'Strategis, Posisi Solid & Defensif',
     bio: 'Wally adalah master kawakan dengan kalkulasi posisi yang sangat matang. Dia suka bergurau ramah, namun pertahanannya kokoh terorganisasi tanpa celah.',
-    welcomeMsg: 'Selamat datang di arena. Santai saja ya, tidak perlu grogi. Mari kita lihat koordinasi taktis perwiramu. 😉',
+    welcomeMsg: 'Selamat datang di arena. Santai saja ya, tidak perlu grogi. Mari kita lihat koordinasi taktis perwiramu.',
     checkmateMsg: 'Skakmat. Struktur bidakmu goyah di fase transisi tadi, membuka jalur diagonal Raja.',
     blunderMsg: 'Langkah brilian! Saya kurang cermat memperhitungkan pergerakan gajah silang Anda.',
     color: 'from-blue-500 to-indigo-600'
@@ -43,7 +48,7 @@ export const CHARACTERS: Character[] = [
   {
     id: 'magnus',
     name: 'Magnus (Simulated)',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Magnus',
+    avatar: magnusAvatar,
     difficulty: 'Sulit',
     elo: 2850,
     playstyle: 'Sempurna, Tanpa Celah & Taktik Mematikan',
@@ -70,10 +75,10 @@ export const PUZZLES: Puzzle[] = [
     id: 'p2',
     title: '2. Tusukan Sate Ratu (Skewer)',
     difficulty: 'Mudah',
-    description: 'Ratu dan Raja hitam berdiri segaris horisontal. Serang keduanya menggunakan Gajah putih Anda untuk melancarkan serangan skewer!',
-    fen: 'r3k3/8/8/8/3b4/8/3Q4/4K3 b - - 0 1',
-    solution: ['d4f6'],
-    explanation: 'Gajah bergerak dan memaku rute miring Raja dan Ratu hitam, mematikan salah satu.',
+    description: 'Raja dan Ratu hitam berdiri di diagonal yang sama. Gunakan Gajah putih Anda untuk menskak Raja dan melancarkan serangan sate (skewer) maut!',
+    fen: 'k7/8/8/8/8/1B2K3/8/7q w - - 0 1',
+    solution: ['b3d5'],
+    explanation: 'Gajah putih di b3 meluncur ke d5 memberikan skak langsung ke Raja hitam di a8. Setelah Raja menghindar, Gajah dapat melahap Ratu hitam di h1!',
     points: 25
   },
   {
@@ -111,8 +116,8 @@ export const PUZZLES: Puzzle[] = [
     title: '6. Skakmat Terkunci (Smothered Mate)',
     difficulty: 'Sulit',
     description: 'Raja hitam dikelilingi rapat oleh pasukannya sendiri. Nyatakan skakmat indah menggunakan Kuda ke petak mematikan!',
-    fen: '6rk/5Npp/8/8/8/8/1Q6/4K3 b - - 0 1',
-    solution: ['f7h8'], // dummy but in general Knight checks and wins
+    fen: '6rk/6pp/8/6N1/8/8/1Q6/4K3 w - - 0 1',
+    solution: ['g5f7'],
     explanation: 'Kuda berada di f7 mengurung Raja hitam yang sama sekali tidak bisa menghindar karena terhimpit bidaknya sendiri.',
     points: 100
   }
@@ -130,14 +135,14 @@ export const LESSONS: Lesson[] = [
       {
         title: 'Gerakan Huruf L',
         description: 'Kuda adalah satu-satunya perwira catur yang bisa melompati bidak lain. Kuda berjalan 2 kotak lurus lalu belok 1 kotak ke samping (berbentuk huruf L). Coba jalankan Kuda putih di e4 ke d6!',
-        fen: '8/8/3p4/8/4N3/8/8/8 w - - 0 1',
+        fen: '4k3/8/3p4/8/4N3/8/8/4K3 w - - 0 1',
         highlightSquares: ['e4', 'd6'],
         requiredMove: { from: 'e4', to: 'd6' }
       },
       {
         title: 'Melompati Rintangan',
         description: 'Meskipun dikelilingi oleh bidak sendiri atau lawan, Kuda tetap bisa melompat bebas ke e6! Coba buat lompatan taktis ke e6 untuk menyerang pion hitam.',
-        fen: '8/8/4p3/8/3N4/3PPP2/3PPP2/8 w - - 0 1',
+        fen: '4k3/8/4p3/8/3N4/3PPP2/3PPP2/4K3 w - - 0 1',
         highlightSquares: ['d4', 'e6'],
         requiredMove: { from: 'd4', to: 'e6' }
       }
@@ -243,7 +248,7 @@ export const LESSONS: Lesson[] = [
       {
         title: 'Ratu Turun Tangan',
         description: 'Hitam melangkah Nc6. Sekarang luncurkan Ratu Anda secara mengejutkan ke h5 untuk menumpuk ancaman bersilang pada pion f7. Coba gerakkan Ratu dari d1 ke h5!',
-        fen: 'r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 2 3', // adjusted a bit for representation
+        fen: 'r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/8/PPPP1PPP/RNBQK1NR w KQkq - 2 3',
         highlightSquares: ['d1', 'h5'],
         requiredMove: { from: 'd1', to: 'h5' }
       },
