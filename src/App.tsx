@@ -45,7 +45,10 @@ import {
   BarChart3,
   Mail,
   Calendar,
-  UserMinus
+  UserMinus,
+  Upload,
+  Coins,
+  Gem
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Character, GameMode, Puzzle, Lesson, PurchaseableTheme, BoardTheme, Achievement } from './types';
@@ -57,6 +60,171 @@ import martinAvatar from './assets/images/avatar_martin_1779709510230.png';
 import nelsonAvatar from './assets/images/nelson_avatar_1779712159293.png';
 import wallyAvatar from './assets/images/wally_avatar_1779712178593.png';
 import magnusAvatar from './assets/images/magnus_avatar_1779712198066.png';
+
+interface AvatarFrame {
+  id: string;
+  name: string;
+  costType: 'coin' | 'diamond' | 'free';
+  cost: number;
+  isPremiumExclusive: boolean;
+  themeColor: string;
+  description: string;
+}
+
+const AVATAR_FRAMES: AvatarFrame[] = [
+  {
+    id: 'none',
+    name: 'Tanpa Bingkai',
+    costType: 'free',
+    cost: 0,
+    isPremiumExclusive: false,
+    themeColor: 'text-slate-400',
+    description: 'Bingkai dasar minimalis tanpa kosmetik tambahan.'
+  },
+  {
+    id: 'bronze',
+    name: 'Maju Perunggu',
+    costType: 'coin',
+    cost: 150,
+    isPremiumExclusive: false,
+    themeColor: 'text-amber-600',
+    description: 'Lencana perunggu mengkilap untuk pemula berbakat.'
+  },
+  {
+    id: 'silver',
+    name: 'Challenger Perak',
+    costType: 'coin',
+    cost: 300,
+    isPremiumExclusive: false,
+    themeColor: 'text-slate-300',
+    description: 'Didesain kokoh berserat perak metalik bagi ahli taktik.'
+  },
+  {
+    id: 'gold',
+    name: 'Gladiator Emas',
+    costType: 'coin',
+    cost: 500,
+    isPremiumExclusive: true,
+    themeColor: 'text-yellow-400',
+    description: 'Kemewahan emas murni bersinar dinamis. Gratis untuk Member Premium.'
+  },
+  {
+    id: 'cyber',
+    name: 'Cyber Neon',
+    costType: 'diamond',
+    cost: 15,
+    isPremiumExclusive: false,
+    themeColor: 'text-cyan-400',
+    description: 'Garis digital laser cyan menyala penuh energi teknologi masa depan.'
+  },
+  {
+    id: 'magma',
+    name: 'Magma Berapi',
+    costType: 'diamond',
+    cost: 30,
+    isPremiumExclusive: false,
+    themeColor: 'text-rose-500',
+    description: 'Lava vulkanis mendidih yang terpancar dari keberanian ksatria catur.'
+  },
+  {
+    id: 'cosmic',
+    name: 'Cahaya Kosmik',
+    costType: 'diamond',
+    cost: 50,
+    isPremiumExclusive: false,
+    themeColor: 'text-purple-400',
+    description: 'Keindahan nebula rasi bintang galaksi misterius bertabur berlian.'
+  }
+];
+
+interface AvatarWithFrameProps {
+  src: string;
+  frameId?: string;
+  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl';
+  className?: string;
+  isBot?: boolean;
+}
+
+function AvatarWithFrame({ src, frameId = 'none', size = 'sm', className = '', isBot = false }: AvatarWithFrameProps) {
+  const sizeClasses = {
+    xs: 'w-6 h-6',
+    sm: 'w-8 h-8',
+    md: 'w-12 h-12',
+    lg: 'w-16 h-16',
+    xl: 'w-20 h-20',
+  };
+
+  const ringWidth = {
+    xs: 'ring-[1.5px] ring-offset-[1px]',
+    sm: 'ring-2 ring-offset-[1.5px]',
+    md: 'ring-2.5 ring-offset-[1.5px]',
+    lg: 'ring-[3px] ring-offset-2',
+    xl: 'ring-[4px] ring-offset-[2.5px]',
+  }[size];
+
+  const ringColorMap: Record<string, string> = {
+    none: isBot ? 'ring-slate-500/20 ring-offset-[#262421]' : 'ring-transparent',
+    bronze: 'ring-[#a75a31] border border-[#d68551] ring-offset-[#262421] shadow-amber-950/40',
+    silver: 'ring-[#8c969e] border border-[#cfd4d9] ring-offset-[#262421] shadow-slate-900/30',
+    gold: 'ring-yellow-500 border border-yellow-300 ring-offset-[#262421] shadow-yellow-500/30',
+    cyber: 'ring-cyan-400 border border-teal-300 ring-offset-[#262421] shadow-cyan-400/30',
+    magma: 'ring-rose-600 border border-orange-500 ring-offset-[#262421] shadow-rose-600/35',
+    cosmic: 'ring-fuchsia-500 border-2 border-dashed border-indigo-400 ring-offset-[2px] ring-offset-[#262421]',
+  };
+
+  const getGlowAndAnimateEffect = () => {
+    switch (frameId) {
+      case 'gold':
+        return 'shadow-[0_0_8px_rgba(234,179,8,0.3)] animate-pulse';
+      case 'cyber':
+        return 'shadow-[0_0_12px_rgba(34,211,238,0.6)] animate-pulse duration-1000';
+      case 'magma':
+        return 'shadow-[0_0_12px_rgba(244,63,94,0.45)] animate-pulse duration-700';
+      case 'cosmic':
+        return 'shadow-[0_0_15px_rgba(168,85,247,0.7)] animate-pulse';
+      default:
+        return '';
+    }
+  };
+
+  const fId = frameId || 'none';
+  const frameRing = fId !== 'none' ? `${ringWidth} ${ringColorMap[fId] || ''} ${getGlowAndAnimateEffect()}` : 'border border-[#3c3934]';
+
+  return (
+    <div className={`relative rounded-full select-none ${sizeClasses[size]} ${className} shrink-0`}>
+      <img
+        src={src}
+        alt="Avatar"
+        referrerPolicy="no-referrer"
+        className={`w-full h-full rounded-full object-cover bg-[#262421] ${frameRing} transition-all`}
+      />
+      {size !== 'xs' && (
+        <>
+          {fId === 'gold' && (
+            <div className="absolute -bottom-1 -right-1 bg-yellow-500 text-slate-950 p-[1.5px] rounded-full border border-[#262421] shadow-md flex items-center justify-center scale-90" title="Emas Elite">
+              <Crown className="w-2.5 h-2.5 stroke-[2.5]" />
+            </div>
+          )}
+          {fId === 'cyber' && (
+            <div className="absolute -bottom-1 -right-1 bg-cyan-400 text-slate-900 p-[1.5px] rounded-full border border-[#262421] shadow-md flex items-center justify-center scale-90" title="Cyber Neon">
+              <Sparkles className="w-2.5 h-2.5 stroke-[2.5]" />
+            </div>
+          )}
+          {fId === 'magma' && (
+            <div className="absolute -bottom-1 -right-1 bg-red-500 text-white p-[1.5px] rounded-full border border-[#262421] shadow-md flex items-center justify-center scale-90" title="Magma">
+              <Flame className="w-2.5 h-2.5 stroke-[2.5] fill-white/10" />
+            </div>
+          )}
+          {fId === 'cosmic' && (
+            <div className="absolute -bottom-1 -right-1 bg-gradient-to-br from-fuchsia-600 to-indigo-600 text-white p-[1.5px] rounded-md border border-[#262421] shadow-md flex items-center justify-center scale-95" title="Kosmik">
+              <Trophy className="w-2.5 h-2.5 stroke-[2.5]" />
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
+}
 
 const formatTime = (seconds: number): string => {
   const m = Math.floor(seconds / 60);
@@ -146,6 +314,66 @@ const CHESS_TRIVIA = [
     a: ["Checkmate (Skakmat)", "Stalemate (Remis Pat)", "Gambit", "Tusukan Sate"],
     correct: 1,
     exp: "Stalemate (remis pat) membuat permainan berakhir imbang/draw seketika karena pemain tidak bisa merubah posisi tanpa melanggar aturan catur."
+  },
+  {
+    q: "Ketika seorang pemain mengorbankan materi di awal permainan untuk mendapatkan keunggulan posisi atau perkembangan perwira, taktik ini disebut...",
+    a: ["Rokade", "Gambit", "Fianchetto", "Taktik Pin"],
+    correct: 1,
+    exp: "Gambit adalah taktik pengorbanan pion atau perwira ringan di pembukaan untuk mendapatkan inisiatif menyerang atau ruang kendali."
+  },
+  {
+    q: "Dalam notasi catur standar, tanda baca tanya ganda '??' setelah sebuah langkah melambangkan...",
+    a: ["Langkah Hebat (Great Move)", "Langkah Brilian (Brilliant)", "Kesalahan Fatal (Blunder)", "Langkah Buku (Teori)"],
+    correct: 2,
+    exp: "Tanda '??' digunakan untuk melambangkan kesalahan yang sangat fatal (Blunder) yang dapat merubah jalannya pertandingan secara drastis."
+  },
+  {
+    q: "Langkah pembukaan catur di mana Gajah diposisikan di baris kedua sayap (pada b2, g2, b7, atau g7) disebut...",
+    a: ["Rokade", "Fianchetto", "En Passant", "Oposisi Raja"],
+    correct: 1,
+    exp: "Fianchetto adalah metode menempatkan Gajah pada diagonal terpanjang papan melalui petak b2/g2 untuk putih atau b7/g7 untuk hitam."
+  },
+  {
+    q: "Berapa banyak jumlah pion/pratama yang dimiliki oleh satu pemain di awal pertandingan catur?",
+    a: ["6 Pion", "8 Pion", "10 Pion", "12 Pion"],
+    correct: 1,
+    exp: "Setiap pemain memulai permainan dengan tepat 8 buah pion yang berjejer di baris kedua pertahanan masing-masing."
+  },
+  {
+    q: "Taktik menyerang di mana satu perwira menyerang dua atau lebih perwira lawan secara bersamaan disebut...",
+    a: ["Pin (Pakuan)", "Fork (Garpu)", "Skewer (Tusukan Sate)", "Discovered Attack"],
+    correct: 1,
+    exp: "Fork (garpu) adalah serangan ganda, sangat sering dilakukan oleh Kuda atau Pion, memaksa lawan menghadapi beberapa ancaman sekaligus."
+  },
+  {
+    q: "Siapakah nama pecatur legendaris dunia asal Norwegia yang memegang gelar Juara Dunia Catur Klasik dari tahun 2013 hingga 2023?",
+    a: ["Viswanathan Anand", "Magnus Carlsen", "Hikaru Nakamura", "Ding Liren"],
+    correct: 1,
+    exp: "Magnus Carlsen menjuarai gelar dunia pada 2013 dan terus mempertahankannya hingga ia memutuskan untuk tidak mempertahankan gelarnya pada 2023."
+  },
+  {
+    q: "Metode mengakhiri permainan catur di mana kedua pemain setuju untuk mengakhiri pertandingan tanpa ada pemenang disebut...",
+    a: ["Resign (Menyerah)", "Draw (Remis)", "Timeout (Habis Waktu)", "Skakmat"],
+    correct: 1,
+    exp: "Draw atau Remis adalah hasil seri yang bisa terjadi akibat Stalemate, kesepakatan bersama, aturan 50 langkah, atau pengulangan posisi 3 kali."
+  },
+  {
+    q: "Apa nama taktik catur di mana serangan diluncurkan dengan memindahkan perwira yang sebelumnya menghalangi jalur serangan perwira lainnya?",
+    a: ["Discovered Attack (Serangan Terbuka)", "Double Check (Skak Ganda)", "Windmill (Kincir Angin)", "Overloading"],
+    correct: 0,
+    exp: "Discovered Attack terjadi ketika sebuah perwira melangkah pergi dan membuka jalur serang perwira di belakangnya (seperti Benteng atau Gajah)."
+  },
+  {
+    q: "Dalam turnamen catur resmi, alat apa yang wajib digunakan untuk mengukur dan membatasi sisa waktu berpikir masing-masing pemain?",
+    a: ["Stopwatch", "Jam Catur (Chess Clock)", "Hourglass pasir", "Aplikasi Handphone"],
+    correct: 1,
+    exp: "Jam catur memiliki dua tombol timer yang bergerak bergantian ketika pemain menyelesaikan langkahnya untuk memastikan permainan selesai tepat waktu."
+  },
+  {
+    q: "Sebelum memindahkan perwira catur dalam pertandingan turnamen, mengumumkan status ancaman terhadap Raja lawan disebut dengan istilah...",
+    a: ["Skak (Check)", "Skakmat (Checkmate)", "Serang", "Permisi"],
+    correct: 0,
+    exp: "Skak (Check) adalah situasi ketika Raja berada di bawah ancaman serang langsung dari perwira lawan dan harus melarikan diri pada langkah berikutnya."
   }
 ];
 
@@ -161,6 +389,16 @@ export const getAchievementRewardXp = (achId: string) => {
     '8': 300,
     '9': 50,
     '10': 200,
+    '11': 300,
+    '12': 500,
+    '13': 450,
+    '14': 800,
+    '15': 500,
+    '16': 1000,
+    '17': 2000,
+    '18': 400,
+    '19': 1500,
+    '20': 3000,
   };
   return rewardMap[achId] || 50;
 };
@@ -175,7 +413,17 @@ export const ACHIEVEMENTS: Achievement[] = [
   { id: '7', title: 'Pecatur Elite', description: 'Capai peringkat 600 ELO', targetType: 'elo', targetValue: 600 },
   { id: '8', title: 'Grandmaster Hebat', description: 'Capai peringkat 1000 ELO', targetType: 'elo', targetValue: 1000 },
   { id: '9', title: 'Pengejar XP', description: 'Kumpulkan skor total 150 XP', targetType: 'xp', targetValue: 150 },
-  { id: '10', title: 'Legenda Hidup', description: 'Kumpulkan skor total 500 XP', targetType: 'xp', targetValue: 500 }
+  { id: '10', title: 'Legenda Hidup', description: 'Kumpulkan skor total 500 XP', targetType: 'xp', targetValue: 500 },
+  { id: '11', title: 'Pakar Taktik', description: 'Mainkan 40 pertandingan catur', targetType: 'played', targetValue: 40 },
+  { id: '12', title: 'Master Tempur', description: 'Mainkan 100 pertandingan catur', targetType: 'played', targetValue: 100 },
+  { id: '13', title: 'Penakluk Ulung', description: 'Menangkan 30 pertandingan catur', targetType: 'won', targetValue: 30 },
+  { id: '14', title: 'Raja Kemenangan', description: 'Menangkan 75 pertandingan catur', targetType: 'won', targetValue: 75 },
+  { id: '15', title: 'Pakar ELO Unggul', description: 'Capai peringkat 1200 ELO', targetType: 'elo', targetValue: 1200 },
+  { id: '16', title: 'Guru Besar Catur', description: 'Capai peringkat 1600 ELO', targetType: 'elo', targetValue: 1600 },
+  { id: '17', title: 'Grandmaster Sejati', description: 'Capai peringkat 2200 ELO', targetType: 'elo', targetValue: 2200 },
+  { id: '18', title: 'Kolektor XP Berbakat', description: 'Kumpulkan skor total 1000 XP', targetType: 'xp', targetValue: 1000 },
+  { id: '19', title: 'Sultan XP Arena', description: 'Kumpulkan skor total 10000 XP', targetType: 'xp', targetValue: 10000 },
+  { id: '20', title: 'Legenda Abadi Catur Nopal', description: 'Kumpulkan skor total 35000 XP', targetType: 'xp', targetValue: 35000 }
 ];
 
 export const checkAchievementUnlocked = (ach: Achievement, targetStats: { played: number; won: number; elo: number; xp: number }) => {
@@ -213,6 +461,22 @@ const getActiveUsername = (): string => {
   return 'guest';
 };
 
+const fetchWithTimeout = async (resource: string, options: RequestInit = {}, timeout = 1500): Promise<Response> => {
+  const controller = new AbortController();
+  const id = setTimeout(() => controller.abort(), timeout);
+  try {
+    const response = await fetch(resource, {
+      ...options,
+      signal: controller.signal
+    });
+    clearTimeout(id);
+    return response;
+  } catch (error) {
+    clearTimeout(id);
+    throw error;
+  }
+};
+
 export default function App() {
   // Navigation / Gamification States which persist in localStorage
   const [mode, setMode] = useState<GameMode>(() => {
@@ -221,6 +485,104 @@ export default function App() {
   const [xp, setXp] = useState<number>(() => {
     return Number(localStorage.getItem('xp')) || 0;
   });
+
+  const [coins, setCoins] = useState<number>(() => {
+    return Number(localStorage.getItem('coins')) || 500;
+  });
+  const [diamonds, setDiamonds] = useState<number>(() => {
+    return Number(localStorage.getItem('diamonds')) || 20;
+  });
+
+  const [dailyQuests, setDailyQuests] = useState<any[]>(() => {
+    const saved = localStorage.getItem('dailyQuests');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed;
+        }
+      } catch (e) {
+        console.warn("Error parsing dailyQuests from localStorage:", e);
+      }
+    }
+    return [
+      { id: 'q1', type: 'regular', title: 'Asah Otak Taktis', description: 'Selesaikan 1 teka-teki Puzzle catur', target: 1, current: 0, rewardType: 'coin', rewardAmount: 50, claimed: false },
+      { id: 'q2', type: 'regular', title: 'Ksatria Arena Cepat', description: 'Mainkan 1 pertandingan catur (Bot atau Online)', target: 1, current: 0, rewardType: 'xp', rewardAmount: 30, claimed: false },
+      { id: 'q3', type: 'regular', title: 'Kemenangan Gemilang', description: 'Menangkan 1 pertandingan catur melawan Bot atau Online', target: 1, current: 0, rewardType: 'coin', rewardAmount: 100, claimed: false },
+      
+      { id: 'qp1', type: 'premium', title: 'Spesialis Teka-teki Elite', description: 'Selesaikan 3 teka-teki Puzzle catur', target: 3, current: 0, rewardType: 'diamond', rewardAmount: 5, claimed: false },
+      { id: 'qp2', type: 'premium', title: 'Gladiator Arena Sejati', description: 'Mainkan 3 pertandingan catur (Bot atau Online)', target: 3, current: 0, rewardType: 'diamond', rewardAmount: 10, claimed: false },
+      { id: 'qp3', type: 'premium', title: 'Dominasi Papan Catur', description: 'Menangkan 2 pertandingan catur melawan Bot atau Online', target: 2, current: 0, rewardType: 'diamond', rewardAmount: 15, claimed: false }
+    ];
+  });
+
+  const updateDailyQuestProgress = (questAction: 'puzzle' | 'play' | 'win', value: number = 1) => {
+    setDailyQuests(prev => {
+      const updated = prev.map(q => {
+        let match = false;
+        if (questAction === 'puzzle' && (q.id === 'q1' || q.id === 'qp1')) match = true;
+        if (questAction === 'play' && (q.id === 'q2' || q.id === 'qp2')) match = true;
+        if (questAction === 'win' && (q.id === 'q3' || q.id === 'qp3')) match = true;
+        
+        if (match && !q.claimed) {
+          const nextCurrent = Math.min(q.target, q.current + value);
+          return { ...q, current: nextCurrent };
+        }
+        return q;
+      });
+      localStorage.setItem('dailyQuests', JSON.stringify(updated));
+      return updated;
+    });
+  };
+
+  const claimDailyQuest = (questId: string) => {
+    let questToClaim: any = null;
+    const nextQuests = dailyQuests.map(q => {
+      if (q.id === questId && !q.claimed && q.current >= q.target) {
+        questToClaim = q;
+        return { ...q, claimed: true };
+      }
+      return q;
+    });
+
+    if (questToClaim) {
+      setDailyQuests(nextQuests);
+      localStorage.setItem('dailyQuests', JSON.stringify(nextQuests));
+      triggerAudio('win');
+
+      if (questToClaim.rewardType === 'coin') {
+        const amt = questToClaim.rewardAmount;
+        setCoins(prev => {
+          const next = prev + amt;
+          localStorage.setItem('coins', String(next));
+          return next;
+        });
+        triggerReward(0, `Klaim Berhasil! Anda mendapatkan ${amt} Coin dari quest "${questToClaim.title}"!`, 'success_no_xp');
+      } else if (questToClaim.rewardType === 'diamond') {
+        const amt = questToClaim.rewardAmount;
+        setDiamonds(prev => {
+          const next = prev + amt;
+          localStorage.setItem('diamonds', String(next));
+          return next;
+        });
+        triggerReward(0, `Klaim Berhasil! Anda mendapatkan ${amt} Diamond dari quest "${questToClaim.title}"!`, 'success_no_xp');
+      } else if (questToClaim.rewardType === 'xp') {
+        const amt = questToClaim.rewardAmount;
+        setXp(p => {
+          const n = p + amt;
+          localStorage.setItem('xp', String(n));
+          if (user) {
+            const updatedUser = { ...user, xp: n };
+            localStorage.setItem('user', JSON.stringify(updatedUser));
+            setUser(updatedUser);
+          }
+          return n;
+        });
+        triggerReward(amt, `Klaim Berhasil! Anda mendapatkan +${amt} XP dari quest "${questToClaim.title}"!`);
+      }
+    }
+  };
+
   const [hearts, setHearts] = useState<number>(() => {
     const saved = localStorage.getItem('hearts');
     return saved !== null ? Number(saved) : 5;
@@ -253,6 +615,17 @@ export default function App() {
   });
   const [membershipStatus, setMembershipStatus] = useState<'free' | 'premium'>(() => {
     return (localStorage.getItem('membershipStatus') as 'free' | 'premium') || 'free';
+  });
+
+  const [selectedFrame, setSelectedFrame] = useState<string>(() => {
+    const actUser = getActiveUsername();
+    return localStorage.getItem(`selectedFrame:${actUser}`) || 'none';
+  });
+
+  const [unlockedFrames, setUnlockedFrames] = useState<string[]>(() => {
+    const actUser = getActiveUsername();
+    const saved = localStorage.getItem(`unlockedFrames:${actUser}`);
+    return saved ? JSON.parse(saved) : ['none'];
   });
 
   const [guestMatchesPlayed, setGuestMatchesPlayed] = useState<number>(() => {
@@ -364,7 +737,12 @@ export default function App() {
   const [onlineChats, setOnlineChats] = useState<any[]>([]);
   const [chatInput, setChatInput] = useState<string>('');
   const [searchTime, setSearchTime] = useState<number>(0);
-  const [rankingList, setRankingList] = useState<any[]>([]);
+  const [rankingList, setRankingList] = useState<any[]>(() => [
+    { name: "Magnus Carlsen", elo: 2850, badge: "Grandmaster" },
+    { name: "Hikaru Nakamura", elo: 2820, badge: "Grandmaster" },
+    { name: "Ding Liren", elo: 2780, badge: "Grandmaster" },
+    { name: "Martin Bot", elo: 800, badge: "Pemula Berbakat" },
+  ]);
   const [playerId] = useState(() => {
     let id = localStorage.getItem('playerId');
     if (!id) {
@@ -387,6 +765,7 @@ export default function App() {
   });
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
+  const [showAvatarStudio, setShowAvatarStudio] = useState<boolean>(false);
   const [saveStatus, setSaveStatus] = useState<string>(''); // 'saving', 'saved', or empty
   const [profileEditingBio, setProfileEditingBio] = useState<string>('');
   const [claimedAchievements, setClaimedAchievements] = useState<string[]>(() => {
@@ -416,6 +795,13 @@ export default function App() {
     // Load selected skin
     const savedSelectedSkin = localStorage.getItem(`selectedSkin:${userScope}`) || 'standard';
     setSelectedSkin(savedSelectedSkin);
+
+    // Load avatar frames
+    const savedSelectedFrame = localStorage.getItem(`selectedFrame:${userScope}`) || 'none';
+    setSelectedFrame(savedSelectedFrame);
+
+    const savedUnlockedFrames = localStorage.getItem(`unlockedFrames:${userScope}`);
+    setUnlockedFrames(savedUnlockedFrames ? JSON.parse(savedUnlockedFrames) : ['none']);
 
     // Compute daily claimed & daily index
     const today = new Date().toLocaleDateString('en-CA');
@@ -561,11 +947,14 @@ export default function App() {
         requestPayload.claimedAchievements = claimedAchievements;
       }
 
-      const res = await fetch('/api/auth/sync', {
+      const res = await fetchWithTimeout('/api/auth/sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(requestPayload)
-      });
+      }, 1500);
+      if (!res.ok) {
+        throw new Error(`Server returned status: ${res.status}`);
+      }
       const data = await res.json();
       if (data && data.success && data.user) {
         const synced = {
@@ -590,12 +979,55 @@ export default function App() {
           setSaveStatus('saved');
           setTimeout(() => setSaveStatus(''), 2500);
         }
+      } else {
+        throw new Error(data?.error || "Sync failed on server");
       }
     } catch (e) {
-      console.warn("Stats sync issues:", e);
-      if (updatedBio !== undefined || updatedAvatar !== undefined) {
-        setSaveStatus('error');
-        setTimeout(() => setSaveStatus(''), 2500);
+      console.warn("Stats sync issues, falling back to local updates:", e);
+      if (user) {
+        const nextUserObj = {
+          ...user,
+          elo: updatedElo !== undefined ? updatedElo : (user.elo || 400),
+          xp: updatedXp !== undefined ? updatedXp : (user.xp || 0),
+          unlockedThemes: updatedThemes !== undefined ? updatedThemes : (user.unlockedThemes || ["classic"]),
+          matchesPlayed: updatedPlayed !== undefined ? updatedPlayed : (user.matchesPlayed || 0),
+          matchesWon: updatedWon !== undefined ? updatedWon : (user.matchesWon || 0),
+          profileAvatar: updatedAvatar !== undefined ? updatedAvatar : (user.profileAvatar || martinAvatar),
+          profileBio: updatedBio !== undefined ? updatedBio : (user.profileBio || "Pecatur sejati pantang menyerah!"),
+          claimedAchievements: updatedClaimedAchievements !== undefined ? updatedClaimedAchievements : (claimedAchievements || []),
+          membershipStatus: membershipStatus
+        };
+        setUser(nextUserObj);
+        localStorage.setItem('user', JSON.stringify(nextUserObj));
+        
+        // Save to mock_users cache in localStorage so login with same user works later
+        const mockUsersRaw = localStorage.getItem('mock_users') || '[]';
+        let mockUsers: any[] = [];
+        try {
+          mockUsers = JSON.parse(mockUsersRaw);
+        } catch (pe) {
+          mockUsers = [];
+        }
+        const userIdx = mockUsers.findIndex((u: any) => u.username.toLowerCase() === user.username.toLowerCase());
+        if (userIdx !== -1) {
+          mockUsers[userIdx] = {
+            ...mockUsers[userIdx],
+            elo: nextUserObj.elo,
+            xp: nextUserObj.xp,
+            unlockedThemes: nextUserObj.unlockedThemes,
+            matchesPlayed: nextUserObj.matchesPlayed,
+            matchesWon: nextUserObj.matchesWon,
+            profileAvatar: nextUserObj.profileAvatar,
+            profileBio: nextUserObj.profileBio,
+            claimedAchievements: nextUserObj.claimedAchievements,
+            membershipStatus: nextUserObj.membershipStatus
+          };
+          localStorage.setItem('mock_users', JSON.stringify(mockUsers));
+        }
+        if (updatedBio !== undefined || updatedAvatar !== undefined) {
+          setSaveStatus('saved');
+          setTimeout(() => setSaveStatus(''), 2500);
+        }
       }
     }
   };
@@ -780,6 +1212,14 @@ export default function App() {
     const userScope = username.trim().toLowerCase();
     localStorage.setItem('mode', mode);
     localStorage.setItem('xp', String(xp));
+    localStorage.setItem('coins', String(coins));
+    localStorage.setItem(`coins:${userScope}`, String(coins));
+    localStorage.setItem('diamonds', String(diamonds));
+    localStorage.setItem(`diamonds:${userScope}`, String(diamonds));
+    localStorage.setItem('selectedFrame', selectedFrame);
+    localStorage.setItem(`selectedFrame:${userScope}`, selectedFrame);
+    localStorage.setItem('unlockedFrames', JSON.stringify(unlockedFrames));
+    localStorage.setItem(`unlockedFrames:${userScope}`, JSON.stringify(unlockedFrames));
     localStorage.setItem('hearts', String(hearts));
     localStorage.setItem('streak', String(streak));
     localStorage.setItem(`streak:${userScope}`, String(streak));
@@ -805,7 +1245,7 @@ export default function App() {
     } else {
       localStorage.removeItem('user');
     }
-  }, [mode, xp, hearts, streak, soundEnabled, unlockedThemes, boardTheme, selectedCharacter, onlineRating, onlineHistory, username, user, selectedSkin, unlockedSkins, membershipStatus]);
+  }, [mode, xp, coins, diamonds, selectedFrame, unlockedFrames, hearts, streak, soundEnabled, unlockedThemes, boardTheme, selectedCharacter, onlineRating, onlineHistory, username, user, selectedSkin, unlockedSkins, membershipStatus]);
 
   // Handle automatic background synchronization to the server for logged-in players
   useEffect(() => {
@@ -850,6 +1290,11 @@ export default function App() {
     setXp(nextXp);
     localStorage.setItem('xp', String(nextXp));
 
+    updateDailyQuestProgress('play', 1);
+    if (outcome === 'win') {
+      updateDailyQuestProgress('win', 1);
+    }
+
     if (user) {
       syncUserStats(onlineRating, nextXp, unlockedThemes, nextPlayed, nextWon);
     }
@@ -867,11 +1312,11 @@ export default function App() {
             const localXp = localStorage.getItem('xp') ? Number(localStorage.getItem('xp')) : 0;
 
             // Fetch newest synced stats from the backend by sending only their username
-            const res = await fetch('/api/auth/sync', {
+            const res = await fetchWithTimeout('/api/auth/sync', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ username: parsed.username })
-            });
+            }, 1500);
             const data = await res.json();
             if (data && data.success && data.user) {
               const finalElo = Math.max(data.user.elo ?? 400, localElo);
@@ -905,7 +1350,7 @@ export default function App() {
 
               // If the client had higher values, push them back to the server to consolidate!
               if (finalElo > (data.user.elo ?? 400) || finalXp > (data.user.xp ?? 0)) {
-                await fetch('/api/auth/sync', {
+                await fetchWithTimeout('/api/auth/sync', {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json' },
                   body: JSON.stringify({
@@ -915,7 +1360,7 @@ export default function App() {
                     matchesPlayed: synced.matchesPlayed,
                     matchesWon: synced.matchesWon
                   })
-                });
+                }, 1500);
               }
             }
           }
@@ -953,15 +1398,38 @@ export default function App() {
   // Fetch online leaderboard ranks
   const fetchRankings = async () => {
     try {
-      const res = await fetch('/api/online/leaderboard');
+      const res = await fetchWithTimeout('/api/online/leaderboard', {}, 2000);
       if (res.ok) {
         const seedData = await res.json();
-        const allRanks = [...seedData, { name: `${username.trim() || 'Pecatur'} (Kamu)`, elo: onlineRating, badge: getRatingBadge(onlineRating), isUser: true }]
+        // Exclude the current username from the database entries to prevent duplicate ranking rows
+        const cleanSeedData = (seedData || []).filter((player: any) => {
+          if (!player || !player.name) return false;
+          const playerNormalized = player.name.replace(/\s*\(Kamu\)\s*/gi, '').trim().toLowerCase();
+          const pNameNormalized = (username || '').trim().toLowerCase();
+          return playerNormalized !== pNameNormalized && playerNormalized !== 'pecatur';
+        });
+        const allRanks = [...cleanSeedData, { name: `${username.trim() || 'Pecatur'} (Kamu)`, elo: onlineRating, badge: getRatingBadge(onlineRating), isUser: true }]
           .sort((a, b) => b.elo - a.elo);
         setRankingList(allRanks);
+      } else {
+        throw new Error("HTTP error status: " + res.status);
       }
     } catch (err) {
-      console.warn("Gagal mengambil peringkat leaderboard");
+      console.warn("Gagal mengambil peringkat leaderboard, memuat ranking lokal:", err);
+      const offlineRanks = [
+        { name: "Magnus Carlsen", elo: 2850, badge: "Grandmaster" },
+        { name: "Hikaru Nakamura", elo: 2820, badge: "Grandmaster" },
+        { name: "Ding Liren", elo: 2780, badge: "Grandmaster" },
+        { name: "Martin Bot", elo: 800, badge: "Pemula Berbakat" }
+      ];
+      const cleanOffline = offlineRanks.filter((player: any) => {
+        const playerNormalized = player.name.replace(/\s*\(Kamu\)\s*/gi, '').trim().toLowerCase();
+        const pNameNormalized = (username || '').trim().toLowerCase();
+        return playerNormalized !== pNameNormalized;
+      });
+      const allRanks = [...cleanOffline, { name: `${username.trim() || 'Pecatur'} (Kamu)`, elo: onlineRating, badge: getRatingBadge(onlineRating), isUser: true }]
+        .sort((a, b) => b.elo - a.elo);
+      setRankingList(allRanks);
     }
   };
 
@@ -1440,6 +1908,11 @@ export default function App() {
   const finishOnlineGame = async (outcome: 'win' | 'lose' | 'draw') => {
     setOnlineStatus('game-over');
     setOnlineGameResult(outcome);
+
+    updateDailyQuestProgress('play', 1);
+    if (outcome === 'win') {
+      updateDailyQuestProgress('win', 1);
+    }
 
     let eloChange = 0;
     if (outcome === 'win') {
@@ -2495,6 +2968,7 @@ export default function App() {
         if (nextStepIndex >= activePuzzle.solution.length) {
           // Fully solved!
           setPuzzleStatus('solved');
+          updateDailyQuestProgress('puzzle', 1);
           triggerReward(activePuzzle.points, `Sukses menyelesaikan: ${activePuzzle.title}!`);
         } else {
           // Advance intermediate step
@@ -2610,6 +3084,46 @@ export default function App() {
     }
   };
 
+  const buyAvatarFrame = (frame: AvatarFrame) => {
+    if (unlockedFrames.includes(frame.id)) return;
+
+    if (frame.costType === 'coin' && coins < frame.cost) {
+      triggerAudio('error');
+      triggerReward(0, "Coin Anda tidak cukup untuk membeli bingkai ini!", 'info');
+      return;
+    } else if (frame.costType === 'diamond' && diamonds < frame.cost) {
+      triggerAudio('error');
+      triggerReward(0, "Berlian Anda tidak cukup untuk membeli bingkai ini!", 'info');
+      return;
+    }
+
+    if (frame.costType === 'coin') {
+      setCoins(prev => prev - frame.cost);
+    } else if (frame.costType === 'diamond') {
+      setDiamonds(prev => prev - frame.cost);
+    }
+
+    setUnlockedFrames(prev => {
+      const next = [...prev, frame.id];
+      const userScope = username.trim().toLowerCase();
+      localStorage.setItem(`unlockedFrames:${userScope}`, JSON.stringify(next));
+      return next;
+    });
+
+    triggerAudio('win');
+    triggerReward(0, `Bingkai "${frame.name}" sukses dibeli! Pasang sekarang di menu Profil Anda.`, 'success_no_xp');
+  };
+
+  const equipAvatarFrame = (frameId: string) => {
+    const isPremium = membershipStatus === 'premium';
+    const isUnlocked = unlockedFrames.includes(frameId) || frameId === 'none' || (isPremium && AVATAR_FRAMES.find(f => f.id === frameId)?.isPremiumExclusive);
+    
+    if (!isUnlocked) return;
+
+    setSelectedFrame(frameId);
+    triggerAudio('move');
+  };
+
   // Daily login reward claiming
   const handleClaimDailyReward = () => {
     const today = new Date().toLocaleDateString('en-CA');
@@ -2718,6 +3232,22 @@ export default function App() {
               </span>
             </div>
 
+            {/* IN-GAME COINS */}
+            <div className="flex items-center gap-0.5 xs:gap-1 bg-[#262421] px-1.5 py-1 min-[400px]:px-2.5 min-[400px]:py-1.5 rounded-full border border-[#3c3934] shrink-0" title="Koin Utama Arena">
+              <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#81b64c]" />
+              <span className="text-[10px] sm:text-xs font-black text-white">
+                {coins} <span className="text-[8px] font-semibold text-slate-400 hidden min-[450px]:inline">Coin</span>
+              </span>
+            </div>
+
+            {/* IN-GAME DIAMONDS */}
+            <div className="flex items-center gap-0.5 xs:gap-1 bg-[#262421] px-1.5 py-1 min-[400px]:px-2.5 min-[400px]:py-1.5 rounded-full border border-[#3c3934] shrink-0" title="Berlian Eksklusif (Premium)">
+              <Gem className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" />
+              <span className="text-[10px] sm:text-xs font-black text-white">
+                {diamonds} <span className="text-[8px] font-semibold text-slate-400 hidden min-[450px]:inline">Berlian</span>
+              </span>
+            </div>
+
             {/* SOUND SELECTOR */}
             <button
               id="sound-toggle-btn"
@@ -2741,11 +3271,10 @@ export default function App() {
                   className="flex items-center gap-1.5 sm:gap-2 cursor-pointer hover:bg-[#3c3934]/50 p-1 rounded-xl transition-all shrink-0 min-w-0"
                   title="Lihat Profil & Statistik Catur Anda"
                 >
-                  <img 
+                  <AvatarWithFrame 
                     src={user.profileAvatar || martinAvatar} 
-                    alt="Avatar" 
-                    referrerPolicy="no-referrer"
-                    className="w-6 h-6 sm:w-8 sm:h-8 rounded-full border border-[#81b64c]/55 object-cover" 
+                    frameId={selectedFrame} 
+                    size="sm" 
                   />
                   <div className="flex flex-col text-right hidden min-[500px]:flex">
                     <span className="text-white text-[11px] sm:text-xs font-bold leading-tight truncate max-w-[70px] sm:max-w-[125px] flex items-center justify-end gap-0.5">
@@ -2966,22 +3495,22 @@ export default function App() {
                 setAuthLoading(true);
                 try {
                   const endpoint = authTab === 'login' ? '/api/auth/login' : '/api/auth/register';
-                  const response = await fetch(endpoint, {
+                  const response = await fetchWithTimeout(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ username: authUsername, password: authPassword })
-                  });
+                  }, 1500);
                   const data = await response.json();
                   if (!response.ok || data.error) {
                     setAuthError(data.error || 'Terjadi gangguan koneksi');
                   } else if (data.success && data.user) {
                     const authenticatedUser = {
                       username: data.user.username,
-                      elo: data.user.elo || 400,
-                      xp: data.user.xp || 0,
+                      elo: data.user.elo !== undefined ? data.user.elo : 400,
+                      xp: data.user.xp !== undefined ? data.user.xp : 0,
                       unlockedThemes: data.user.unlockedThemes || ["classic"],
-                      matchesPlayed: data.user.matchesPlayed || 0,
-                      matchesWon: data.user.matchesWon || 0,
+                      matchesPlayed: data.user.matchesPlayed !== undefined ? data.user.matchesPlayed : 0,
+                      matchesWon: data.user.matchesWon !== undefined ? data.user.matchesWon : 0,
                       profileAvatar: data.user.profileAvatar || martinAvatar,
                       profileBio: data.user.profileBio || "Pecatur sejati pantang menyerah!",
                       claimedAchievements: data.user.claimedAchievements || [],
@@ -3032,11 +3561,11 @@ export default function App() {
                     if (match) {
                       const authenticatedUser = {
                         username: match.username,
-                        elo: match.elo || 1200,
-                        xp: match.xp || 100,
+                        elo: match.elo !== undefined ? match.elo : 400,
+                        xp: match.xp !== undefined ? match.xp : 0,
                         unlockedThemes: match.unlockedThemes || ["classic"],
-                        matchesPlayed: match.matchesPlayed || 4,
-                        matchesWon: match.matchesWon || 2,
+                        matchesPlayed: match.matchesPlayed !== undefined ? match.matchesPlayed : 0,
+                        matchesWon: match.matchesWon !== undefined ? match.matchesWon : 0,
                         profileAvatar: match.profileAvatar || martinAvatar,
                         profileBio: match.profileBio || "Pecatur sejati (Akun Lokal Vercel)!",
                         claimedAchievements: match.claimedAchievements || [],
@@ -3240,34 +3769,8 @@ export default function App() {
                       Kustomisasi Akun saya
                     </h3>
                     
-                    {/* AVATAR CHOOSER PANEL */}
-                    <div>
-                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2">Pilih Avatar Kehormatan:</span>
-                      <div className="grid grid-cols-4 gap-2 mb-4">
-                        {[
-                          { name: 'Martin', src: martinAvatar, color: 'bg-amber-500' },
-                          { name: 'Nelson', src: nelsonAvatar, color: 'bg-red-500' },
-                          { name: 'Wally', src: wallyAvatar, color: 'bg-blue-500' },
-                          { name: 'Magnus', src: magnusAvatar, color: 'bg-purple-500' }
-                        ].map((av) => (
-                          <button
-                            key={av.name}
-                            type="button"
-                            onClick={() => {
-                              syncUserStats(undefined, undefined, undefined, undefined, undefined, av.src);
-                              triggerAudio('move');
-                            }}
-                            className={`p-1.5 rounded-xl bg-[#211f1d] border-2 transition-all cursor-pointer flex flex-col items-center gap-1 hover:scale-105 active:scale-95 ${user.profileAvatar === av.src ? 'border-[#81b64c] shadow-md shadow-[#81b64c]/10' : 'border-[#3c3934] opacity-75 hover:opacity-100'}`}
-                          >
-                            <img src={av.src} alt={av.name} className="w-10 h-10 rounded-full object-cover" />
-                            <span className="text-[9px] font-bold text-slate-300">{av.name}</span>
-                          </button>
-                        ))}
-                      </div>
-                    </div>
-
                     {/* BIO STATUS CHANGER */}
-                    <div>
+                    <div className="mb-3.5">
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Ubah Motto/Bio catur:</span>
                       <div className="flex gap-2">
                         <input
@@ -3290,6 +3793,40 @@ export default function App() {
                           {saveStatus === 'saving' ? 'Proses...' : saveStatus === 'saved' ? 'Sukses! ✓' : saveStatus === 'error' ? 'Gagal ✗' : 'Simpan'}
                         </button>
                       </div>
+                    </div>
+
+                    {/* UPLOAD AVATAR FROM GALLERY */}
+                    <div>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Unggah Foto Profil dari Galeri:</span>
+                      <label className="flex items-center gap-2.5 px-3.5 py-2.5 bg-[#211f1d] border-2 border-dashed border-[#3c3934] hover:border-[#81b64c] rounded-xl cursor-pointer transition-all hover:bg-[#262421] group">
+                        <Upload className="w-4 h-4 text-slate-400 group-hover:text-[#81b64c] transition-colors" />
+                        <span className="text-xs text-slate-300 font-bold group-hover:text-white transition-colors truncate">
+                          Pilih Foto Galeri...
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              if (file.size > 2 * 1024 * 1024) {
+                                alert("Ukuran berkas melebihi batas (maksimal 2MB)");
+                                return;
+                              }
+                              const reader = new FileReader();
+                              reader.onload = async (event) => {
+                                const dataUrl = event.target?.result as string;
+                                if (dataUrl) {
+                                  await syncUserStats(undefined, undefined, undefined, undefined, undefined, dataUrl);
+                                  triggerAudio('win');
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
                     </div>
                   </div>
 
@@ -3376,6 +3913,8 @@ export default function App() {
           </div>
         )}
       </AnimatePresence>
+
+
 
       {/* LOCAL & ONLINE FRIEND MODE CONFIGURATION MODAL */}
       <AnimatePresence>
@@ -3539,15 +4078,11 @@ export default function App() {
               </div>
               <div className="flex flex-col sm:flex-row items-center gap-5 text-center sm:text-left z-10">
                 <div className="relative">
-                  <img 
-                    src={user?.profileAvatar || martinAvatar}
-                    alt="Avatar" 
-                    referrerPolicy="no-referrer"
-                    className="w-16 h-16 sm:w-20 sm:h-20 rounded-full border-4 border-[#81b64c]/70 object-cover shadow-lg bg-[#262421]" 
+                  <AvatarWithFrame 
+                    src={user?.profileAvatar || martinAvatar} 
+                    frameId={selectedFrame} 
+                    size="xl" 
                   />
-                  {membershipStatus === 'premium' && (
-                    <span className="absolute -top-1 -right-1 bg-yellow-500 text-slate-900 rounded-full p-1 border border-[#312e2b] flex items-center justify-center"><Crown className="w-3 h-3 text-[#312e2b] fill-current" /></span>
-                  )}
                 </div>
                 <div>
                   <span className="text-[10px] font-black tracking-widest text-[#81b64c] uppercase block">
@@ -3865,6 +4400,186 @@ export default function App() {
               })()}
             </div>
 
+            {/* DAILY QUESTS PANEL */}
+            <div className="bg-[#312e2b] rounded-3xl p-6 border border-[#3c3934] shadow-md">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-[#3c3934]/60 pb-3 mb-5">
+                <div>
+                  <h3 className="text-sm font-black text-white flex items-center gap-2 uppercase tracking-tight">
+                    <Target className="w-4 h-4 text-[#81b64c]" /> Misi Harian / Daily Quests
+                  </h3>
+                  <p className="text-[11px] text-slate-400 mt-1">Selesaikan misi untuk mendapatkan koin, XP, dan berlian!</p>
+                </div>
+                {membershipStatus !== 'premium' && (
+                  <div className="bg-yellow-950/25 border border-yellow-900/35 rounded-xl py-1.5 px-3 text-[10px] text-yellow-400 font-extrabold flex items-center gap-1.5">
+                    <Crown className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500/20" /> Upgrade Premium untuk Misi Khusus Berlian
+                  </div>
+                )}
+              </div>
+
+              {/* QUESTS CONTAINER */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                {/* Regular Quests Column */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-1.5 border-b border-[#3c3934]/30 pb-1.5">
+                    <Award className="w-4 h-4 text-[#81b64c]" />
+                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Misi Biasa (Semua Akun)</span>
+                  </div>
+
+                  {dailyQuests.filter(q => q.type === 'regular').map(q => {
+                    const progressPercent = Math.min(100, (q.current / q.target) * 100);
+                    const isCompleted = q.current >= q.target;
+                    
+                    return (
+                      <div key={q.id} className="bg-[#262421] rounded-2xl p-4 border border-[#3c3934]/60 flex flex-col justify-between gap-3 relative overflow-hidden">
+                        <div>
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <h4 className="text-xs font-black text-white">{q.title}</h4>
+                              <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed">{q.description}</p>
+                            </div>
+                            
+                            {/* Reward Tag */}
+                            <div className="flex items-center gap-1 bg-[#1c1a18] px-2 py-1 rounded-lg border border-[#3c3934]">
+                              {q.rewardType === 'coin' ? (
+                                <>
+                                  <Coins className="w-3 h-3 text-[#81b64c]" />
+                                  <span className="text-[9px] font-black text-[#81b64c] font-mono">+{q.rewardAmount}</span>
+                                </>
+                              ) : q.rewardType === 'xp' ? (
+                                <>
+                                  <Sparkles className="w-3 h-3 text-yellow-400" />
+                                  <span className="text-[9px] font-black text-yellow-400 font-mono">+{q.rewardAmount}</span>
+                                </>
+                              ) : (
+                                <>
+                                  <Gem className="w-3 h-3 text-cyan-400" />
+                                  <span className="text-[9px] font-black text-cyan-400 font-mono">+{q.rewardAmount}</span>
+                                </>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Progress bar */}
+                          <div className="mt-3">
+                            <div className="flex items-center justify-between text-[9px] text-[#8a8883] font-bold mb-1">
+                              <span>Progres</span>
+                              <span>{q.current} / {q.target}</span>
+                            </div>
+                            <div className="w-full bg-[#1c1a18] h-1.5 rounded-full overflow-hidden border border-[#3c3934]/40">
+                              <div 
+                                className="bg-[#81b64c] h-full transition-all duration-300" 
+                                style={{ width: `${progressPercent}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex justify-end mt-1">
+                          {q.claimed ? (
+                            <span className="text-[9px] text-slate-500 font-black tracking-wider uppercase bg-[#1c1a18] px-3 py-1.5 rounded-lg border border-[#3c3934] flex items-center gap-1 font-sans">
+                              <Check className="w-3 h-3 text-emerald-500 stroke-[3]" /> Sudah Diklaim
+                            </span>
+                          ) : isCompleted ? (
+                            <button
+                              onClick={() => claimDailyQuest(q.id)}
+                              className="px-3.5 py-1.5 bg-[#81b64c] hover:bg-[#92ca5a] text-white text-[9px] font-black uppercase rounded-lg shadow-[0_2.5px_0_0_#5d8a32] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer font-sans"
+                            >
+                              Klaim Hadiah
+                            </button>
+                          ) : (
+                            <span className="text-[9px] text-slate-500 font-black tracking-wider uppercase bg-[#1c1a18]/40 px-3 py-1.5 rounded-lg border border-[#3c3934]/30 font-sans">
+                              Dalam Proses
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* Premium Quests Column */}
+                <div className="space-y-3">
+                  <div className="flex items-center gap-1.5 border-b border-[#3c3934]/30 pb-1.5">
+                    <Crown className="w-4 h-4 text-yellow-500 fill-yellow-400/10" />
+                    <span className="text-[10px] font-black uppercase text-yellow-500 tracking-wider">Misi Premium (Khusus Akun Premium)</span>
+                  </div>
+
+                  {dailyQuests.filter(q => q.type === 'premium').map(q => {
+                    const progressPercent = Math.min(100, (q.current / q.target) * 100);
+                    const isCompleted = q.current >= q.target;
+                    const isPremium = membershipStatus === 'premium';
+                    
+                    return (
+                      <div key={q.id} className={`rounded-2xl p-4 border flex flex-col justify-between gap-3 relative overflow-hidden ${
+                        isPremium 
+                          ? 'bg-[#2a261f] border-yellow-600/30' 
+                          : 'bg-[#262421]/60 border-[#3c3934]/40 opacity-70'
+                      }`}>
+                        
+                        {/* Overlay with Lock if not Premium */}
+                        {!isPremium && (
+                          <div className="absolute inset-0 bg-black/65 backdrop-blur-[1px] flex flex-col items-center justify-center p-4 z-10 text-center">
+                            <Lock className="w-4.5 h-4.5 text-yellow-500" />
+                            <span className="text-[10px] font-black text-yellow-500 uppercase tracking-widest mt-1">Eksklusif Premium</span>
+                          </div>
+                        )}
+
+                        <div>
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <h4 className="text-xs font-black text-white">{q.title}</h4>
+                              <p className="text-[10px] text-slate-400 mt-0.5 leading-relaxed">{q.description}</p>
+                            </div>
+                            
+                            {/* Reward Tag */}
+                            <div className="flex items-center gap-1 bg-[#1a1815] px-2 py-1 rounded-lg border border-yellow-700/20">
+                              <Gem className="w-3 h-3 text-cyan-400" />
+                              <span className="text-[9px] font-black text-cyan-400 font-mono">+{q.rewardAmount}</span>
+                            </div>
+                          </div>
+
+                          {/* Progress bar */}
+                          <div className="mt-3">
+                            <div className="flex items-center justify-between text-[9px] text-[#aa9e8a] font-bold mb-1">
+                              <span>Progres</span>
+                              <span>{q.current} / {q.target}</span>
+                            </div>
+                            <div className="w-full bg-[#1c1a18] h-1.5 rounded-full overflow-hidden border border-yellow-850/20">
+                              <div 
+                                className="bg-yellow-500 h-full transition-all duration-300" 
+                                style={{ width: `${progressPercent}%` }}
+                              />
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* Action buttons */}
+                        <div className="flex justify-end mt-1 font-sans">
+                          {q.claimed ? (
+                            <span className="text-[9px] text-[#aa9e8a] font-black tracking-wider uppercase bg-[#1a1815] px-3 py-1.5 rounded-lg border border-yellow-600/20 flex items-center gap-1">
+                              <Check className="w-3 h-3 text-yellow-500 stroke-[3]" /> Sudah Diklaim
+                            </span>
+                          ) : isCompleted ? (
+                            <button
+                              onClick={() => claimDailyQuest(q.id)}
+                              className="px-3.5 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-slate-900 text-[9px] font-black uppercase rounded-lg shadow-[0_2.5px_0_0_#b27b12] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer font-sans"
+                            >
+                              Klaim Berlian
+                            </button>
+                          ) : (
+                            <span className="text-[9px] text-[#aa9e8a]/70 font-black tracking-wider uppercase bg-[#1a1815]/40 px-3 py-1.5 rounded-lg border border-yellow-750/10">
+                              Dalam Proses
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
             {/* INBOX & FRIENDS HUB - INTEGRATED ON HOME SCREEN */}
             <div className="lg:col-span-12 mt-6">
               <div className="bg-[#312e2b] rounded-3xl p-6 border border-[#3c3934] shadow-md">
@@ -4061,18 +4776,12 @@ export default function App() {
               <div className="space-y-6">
                 {/* PRIMARY AVATAR DETAILS CARD */}
                 <div className="p-5 bg-[#312e2b] rounded-3xl border border-[#3c3934] flex flex-col sm:flex-row items-center gap-5 shadow-lg">
-                  <div className="relative w-24 h-24 rounded-full bg-gradient-to-tr from-[#81b64c] to-emerald-400 p-0.5 shadow-md shrink-0">
-                    <img 
+                  <div className="shrink-0 relative">
+                    <AvatarWithFrame 
                       src={user.profileAvatar || martinAvatar} 
-                      alt="Avatar" 
-                      referrerPolicy="no-referrer"
-                      className="w-full h-full rounded-full object-cover bg-[#312e2b]"
+                      frameId={selectedFrame} 
+                      size="xl" 
                     />
-                    {membershipStatus === 'premium' && (
-                      <div className="absolute -top-1 -right-1 bg-yellow-500 text-[#312e2b] p-1 rounded-full border border-[#262421] shadow-md flex items-center justify-center animate-pulse" title="Premium Member">
-                        <Crown className="w-2.5 h-2.5 fill-current" />
-                      </div>
-                    )}
                   </div>
                   <div className="flex-1 text-center sm:text-left space-y-2">
                     <div className="flex items-center justify-center sm:justify-start gap-2 flex-wrap">
@@ -4099,37 +4808,11 @@ export default function App() {
                 </div>
 
                 {/* EDITING INTERFACES */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  {/* AVATAR SELECTION */}
-                  <div className="p-6 bg-[#312e2b] rounded-3xl border border-[#3c3934] shadow-md">
-                    <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-4">Ganti Avatar Kehormatan:</span>
-                    <div className="grid grid-cols-4 gap-3">
-                      {[
-                        { name: 'Martin', src: martinAvatar },
-                        { name: 'Nelson', src: nelsonAvatar },
-                        { name: 'Wally', src: wallyAvatar },
-                        { name: 'Magnus', src: magnusAvatar }
-                      ].map((av) => (
-                        <button
-                          key={av.name}
-                          type="button"
-                          onClick={() => {
-                            syncUserStats(undefined, undefined, undefined, undefined, undefined, av.src);
-                            triggerAudio('move');
-                          }}
-                          className={`p-2 rounded-2xl bg-[#211f1d] border-2 transition-all cursor-pointer flex flex-col items-center gap-1.5 hover:scale-105 active:scale-95 ${user.profileAvatar === av.src ? 'border-[#81b64c] shadow-md shadow-[#81b64c]/10' : 'border-[#3c3934] opacity-75 hover:opacity-100'}`}
-                        >
-                          <img src={av.src} alt={av.name} className="w-12 h-12 rounded-full object-cover bg-[#312e2b]" />
-                          <span className="text-[9px] font-black text-slate-300">{av.name}</span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto w-full">
                   {/* EDIT MOTTO/BIO STATUS */}
                   <div className="p-6 bg-[#312e2b] rounded-3xl border border-[#3c3934] shadow-md flex flex-col justify-between">
                     <div>
-                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-2">Ubah Motto/Bio Personal:</span>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Ubah Motto/Bio Personal:</span>
                       <p className="text-[11px] text-[#9babaf] leading-normal mb-3 font-semibold">Tulis motto catur inspiratifmu untuk ditampilkan di halaman profil utama!</p>
                     </div>
                     <div className="flex gap-2.5">
@@ -4152,6 +4835,107 @@ export default function App() {
                       >
                         {saveStatus === 'saving' ? 'Proses...' : saveStatus === 'saved' ? 'Sukses! ✓' : saveStatus === 'error' ? 'Gagal ✗' : 'Simpan'}
                       </button>
+                    </div>
+                  </div>
+
+                  {/* UPLOAD AVATAR FROM GALLERY */}
+                  <div className="p-6 bg-[#312e2b] rounded-3xl border border-[#3c3934] shadow-md flex flex-col justify-between">
+                    <div>
+                      <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Unggah Foto Profil dari Galeri:</span>
+                      <p className="text-[11px] text-[#9babaf] leading-normal mb-3 font-semibold">Pilih file gambar dari galeri handphone atau komputermu sebagai avatar utama!</p>
+                    </div>
+                    <div>
+                      <label className="flex items-center justify-center gap-2.5 px-4 py-3 bg-[#211f1d] border-2 border-dashed border-[#3c3934] hover:border-[#81b64c] rounded-xl cursor-pointer transition-all hover:bg-[#262421] group">
+                        <Upload className="w-4 h-4 text-slate-400 group-hover:text-[#81b64c] transition-colors" />
+                        <span className="text-xs text-slate-300 font-bold group-hover:text-white transition-colors truncate">
+                          Pilih Foto Galeri...
+                        </span>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="hidden"
+                          onChange={async (e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              if (file.size > 2 * 1024 * 1024) {
+                                alert("Ukuran berkas melebihi batas (maksimal 2MB)");
+                                return;
+                              }
+                              const reader = new FileReader();
+                              reader.onload = async (event) => {
+                                const dataUrl = event.target?.result as string;
+                                if (dataUrl) {
+                                  await syncUserStats(undefined, undefined, undefined, undefined, undefined, dataUrl);
+                                  triggerAudio('win');
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                  </div>
+                </div>
+
+                {/* SET AVATAR FRAMES PANEL */}
+                <div id="unlocked-frames-panel" className="p-6 bg-[#312e2b] rounded-3xl border border-[#3c3934] shadow-md space-y-4">
+                  <div>
+                    <h3 className="text-xs font-black text-slate-300 uppercase tracking-wider">
+                      Koleksi Bingkai Avatar Anda
+                    </h3>
+                    <p className="text-[10px] text-slate-400 font-semibold mt-1 font-sans">
+                      Ketuk pada bingkai catur elit yang telah Anda kumpulkan untuk langsung memasangnya!
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3.5">
+                    {AVATAR_FRAMES.map((frame) => {
+                      const isUnlocked = unlockedFrames.includes(frame.id) || frame.id === 'none' || (membershipStatus === 'premium' && frame.isPremiumExclusive);
+                      const isActive = selectedFrame === frame.id;
+
+                      if (!isUnlocked) return null;
+
+                      return (
+                        <div 
+                          key={frame.id}
+                          onClick={() => equipAvatarFrame(frame.id)}
+                          className={`p-3.5 rounded-2xl border transition-all cursor-pointer flex flex-col justify-between items-center text-center select-none ${
+                            isActive 
+                              ? 'bg-[#262421] border-[#81b64c] shadow-md shadow-[#81b64c]/10 scale-[1.02]' 
+                              : 'bg-[#262421] border-[#3c3934]/60 hover:border-slate-500'
+                          }`}
+                        >
+                          <div className="relative mb-2 shrink-0">
+                            <AvatarWithFrame 
+                              src={user.profileAvatar || martinAvatar} 
+                              frameId={frame.id} 
+                              size="md" 
+                            />
+                          </div>
+
+                          <div className="space-y-1">
+                            <h4 className={`font-bold text-[11px] leading-tight ${frame.themeColor}`}>{frame.name}</h4>
+                            <span className={`text-[8px] px-1.5 py-0.5 font-black rounded-md uppercase border ${
+                              isActive 
+                                ? 'bg-emerald-950 text-[#81b64c] border-emerald-900/60' 
+                                : 'bg-[#312e2b] text-slate-400 border-[#3c3934]'
+                            }`}>
+                              {isActive ? 'Aktif' : 'Gunakan'}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+
+                    {/* Quick Link Card to the Store if they want more */}
+                    <div 
+                      onClick={() => { setMode('store'); triggerAudio('move'); }}
+                      className="p-3.5 rounded-2xl border border-dashed border-[#3c3934] hover:border-[#81b64c] bg-[#1e1c1a]/55 hover:bg-[#2d2b27]/30 transition-all cursor-pointer flex flex-col items-center justify-center text-center min-h-[110px]"
+                    >
+                      <ShoppingBag className="w-5 h-5 text-slate-500 mb-1.5" />
+                      <span className="text-[10px] text-slate-300 font-extrabold uppercase">Cari Lebih</span>
+                      <span className="text-[8px] text-slate-500 font-bold mt-0.5">Beli di Toko</span>
                     </div>
                   </div>
                 </div>
@@ -4850,9 +5634,17 @@ export default function App() {
                 {/* OPPONENT NAME PLATE */}
                 <div className="flex items-center justify-between mb-2 px-2 pb-1 border-b border-white/5">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full overflow-hidden border border-white/20">
-                      <img src={selectedCharacter.avatar} alt="Opponent" referrerPolicy="no-referrer" className="w-full h-full object-cover" />
-                    </div>
+                    <AvatarWithFrame 
+                      src={selectedCharacter.avatar} 
+                      frameId={
+                        selectedCharacter.name.toLowerCase().includes('martin') ? 'none' :
+                        selectedCharacter.name.toLowerCase().includes('nelson') ? 'bronze' :
+                        selectedCharacter.name.toLowerCase().includes('wally') ? 'silver' :
+                        'cosmic'
+                      } 
+                      size="xs" 
+                      isBot={true}
+                    />
                     <span className="text-white text-xs font-black tracking-wide uppercase">{selectedCharacter.name} (AI)</span>
                     {isAiThinking && (
                       <span className="flex gap-0.5 items-center ml-1">
@@ -4886,14 +5678,11 @@ export default function App() {
                 {/* PLAYER BOTTOM NAME PLATE */}
                 <div className="flex items-center justify-between mt-2 px-2 pt-1 border-t border-white/5">
                   <div className="flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full overflow-hidden border border-white/20 bg-[#262421] flex items-fit shrink-0 select-none">
-                      <img 
-                        src={user?.profileAvatar || martinAvatar} 
-                        alt="Avatar" 
-                        referrerPolicy="no-referrer"
-                        className="w-full h-full object-cover rounded-full" 
-                      />
-                    </div>
+                    <AvatarWithFrame 
+                      src={user?.profileAvatar || martinAvatar} 
+                      frameId={selectedFrame} 
+                      size="xs" 
+                    />
                     <div className="flex items-center gap-1">
                       {membershipStatus === 'premium' && (
                         <Crown className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400/10 shrink-0" />
@@ -5988,37 +6777,67 @@ export default function App() {
 
                   {/* HISTORY MATCH LIST */}
                   <div className="bg-white rounded-3xl p-6 border-2 border-[#E5E5E5] shadow-sm">
-                    <h3 className="text-lg font-black text-[#4B4B4B] mb-3 flex items-center gap-2 uppercase tracking-wide">
-                      <History className="w-5 h-5 text-[#81b64c] shrink-0" /> Riwayat Duel Terakhir
-                    </h3>
+                    <div className="flex items-center justify-between mb-3 border-b border-[#E5E5E5]/60 pb-2">
+                      <h3 className="text-lg font-black text-[#4B4B4B] flex items-center gap-2 uppercase tracking-wide">
+                        <History className="w-5 h-5 text-[#81b64c] shrink-0" /> Riwayat Duel Terakhir
+                      </h3>
+                      {membershipStatus === 'premium' ? (
+                        <span className="px-2 py-0.5 bg-yellow-500/10 border border-yellow-500/25 text-yellow-600 rounded text-[9px] font-black uppercase tracking-wider flex items-center gap-1">
+                          <Crown className="w-3 h-3 text-yellow-500" /> Premium Unlimited
+                        </span>
+                      ) : (
+                        <span className="px-2 py-0.5 bg-slate-100 border border-slate-200 text-slate-500 rounded text-[9px] font-extrabold uppercase tracking-wider">
+                          Batas 10 Game
+                        </span>
+                      )}
+                    </div>
                     {onlineHistory.length === 0 ? (
                       <div className="py-8 my-1 text-center border-2 border-dashed border-[#E5E5E5] rounded-2xl">
                         <span className="text-slate-400 font-bold text-sm">Belum ada pertandingan online tercatat. Mulai duel pertamamu!</span>
                       </div>
                     ) : (
-                      <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
-                        {onlineHistory.map((h: any, i: number) => (
-                          <div key={i} className="p-3 bg-slate-50 rounded-xl border-2 border-slate-100 flex items-center justify-between gap-4">
-                            <div className="flex items-center gap-3">
-                              <span className={`text-md p-1.5 rounded-lg border leading-none font-bold shrink-0 ${
-                                h.outcome === 'win' ? 'bg-green-100 border-green-200 text-green-700' :
-                                h.outcome === 'lose' ? 'bg-red-100 border-red-200 text-red-700' :
-                                'bg-gray-100 border-gray-200 text-gray-700'
-                              }`}>
-                                {h.outcome === 'win' ? 'M' : h.outcome === 'lose' ? 'K' : 'S'}
-                              </span>
-                              <div>
-                                <h4 className="font-extrabold text-xs text-slate-700">Lawan: {h.opponent} <span className="text-[9px] font-mono text-slate-400">({h.opponentElo} ELO)</span></h4>
-                                <p className="text-[9px] font-mono text-slate-400">Selesai pada: {h.date} | {h.movesCount} Langkah</p>
+                      <div className="space-y-3">
+                        <div className="space-y-3 max-h-56 overflow-y-auto pr-1">
+                          {(membershipStatus === 'premium' ? onlineHistory : onlineHistory.slice(0, 10)).map((h: any, i: number) => (
+                            <div key={i} className="p-3 bg-slate-50 rounded-xl border-2 border-slate-100 flex items-center justify-between gap-4">
+                              <div className="flex items-center gap-3">
+                                <span className={`text-md p-1.5 rounded-lg border leading-none font-bold shrink-0 ${
+                                  h.outcome === 'win' ? 'bg-green-100 border-green-200 text-green-700' :
+                                  h.outcome === 'lose' ? 'bg-red-100 border-red-200 text-red-700' :
+                                  'bg-gray-100 border-gray-200 text-gray-700'
+                                }`}>
+                                  {h.outcome === 'win' ? 'M' : h.outcome === 'lose' ? 'K' : 'S'}
+                                </span>
+                                <div>
+                                  <h4 className="font-extrabold text-xs text-slate-700">Lawan: {h.opponent} <span className="text-[9px] font-mono text-slate-400">({h.opponentElo} ELO)</span></h4>
+                                  <p className="text-[9px] font-mono text-slate-400">Selesai pada: {h.date} | {h.movesCount} Langkah</p>
+                                </div>
                               </div>
+                              <span className={`font-mono text-sm font-black ${
+                                h.eloDiff >= 0 ? 'text-green-600' : 'text-red-500'
+                              }`}>
+                                {h.eloDiff >= 0 ? `+${h.eloDiff}` : h.eloDiff} ELO
+                              </span>
                             </div>
-                            <span className={`font-mono text-sm font-black ${
-                              h.eloDiff >= 0 ? 'text-green-600' : 'text-red-500'
-                            }`}>
-                              {h.eloDiff >= 0 ? `+${h.eloDiff}` : h.eloDiff} ELO
+                          ))}
+                        </div>
+
+                        {membershipStatus !== 'premium' && onlineHistory.length > 10 && (
+                          <div className="mt-3 p-3 bg-yellow-500/5 hover:bg-yellow-500/10 border-2 border-dashed border-yellow-500/25 rounded-2xl text-center transition-all">
+                            <span className="block text-[10px] font-extrabold text-[#AF7E00] uppercase tracking-wide mb-1 flex items-center justify-center gap-1">
+                              <Crown className="w-3.5 h-3.5 text-yellow-500 fill-yellow-400/10" /> Sembunyikan {onlineHistory.length - 10} Pertandingan Terlama
                             </span>
+                            <p className="text-[9px] text-[#777777] font-semibold leading-relaxed">
+                              Gabung Keanggotaan Premium Elite untuk melihat seluruh riwayat pertandingan tanpa batas!
+                            </p>
+                            <button
+                              onClick={() => { setMode('store'); triggerAudio('move'); }}
+                              className="mt-2 text-[9px] font-bold uppercase text-yellow-600 hover:text-yellow-700 underline tracking-wider cursor-pointer"
+                            >
+                              Tingkatkan Sekarang ➜
+                            </button>
                           </div>
-                        ))}
+                        )}
                       </div>
                     )}
                   </div>
@@ -6349,14 +7168,11 @@ export default function App() {
                     {/* YOU BOTTOM INFO CARD */}
                     <div className="flex items-center justify-between mt-2.5 px-2">
                       <div className="flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full overflow-hidden border border-white/20 bg-[#262421] flex items-fit shrink-0 select-none">
-                          <img 
-                            src={user?.profileAvatar || martinAvatar} 
-                            alt="Avatar" 
-                            referrerPolicy="no-referrer"
-                            className="w-full h-full object-cover rounded-full" 
-                          />
-                        </div>
+                        <AvatarWithFrame 
+                          src={user?.profileAvatar || martinAvatar} 
+                          frameId={selectedFrame} 
+                          size="xs" 
+                        />
                         <div className="flex items-center gap-1">
                           {membershipStatus === 'premium' && (
                             <Crown className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400/10 shrink-0" />
@@ -6817,6 +7633,112 @@ export default function App() {
                                 className="px-4 py-2 bg-[#312e2b] hover:bg-[#3c3934] text-white font-extrabold text-[10px] uppercase rounded-lg border border-[#3c3934] shadow-[0_3px_0_0_#211f1d] active:translate-y-0.5 active:shadow-none cursor-pointer"
                               >
                                 Gunakan
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                {/* BUY NEW AVATAR BORDERS / FRAMES */}
+                <div id="avatar-borders-shop" className="bg-[#312e2b] rounded-3xl p-6 border border-[#3c3934] shadow-md">
+                  <div className="flex flex-col sm:flex-row gap-3 justify-between items-start sm:items-center mb-4">
+                    <div>
+                      <h3 className="font-extrabold text-white text-md uppercase tracking-wide">Katalog Bingkai Avatar</h3>
+                      <p className="text-[10px] sm:text-xs text-slate-400 mt-0.5">Hiasi avatar Anda dengan bingkai bergengsi yang bersinar!</p>
+                    </div>
+                    <div className="flex gap-3 items-center bg-[#211f1d] px-3.5 py-1.5 rounded-2xl text-xs font-black self-end sm:self-auto">
+                      <span className="flex items-center gap-1 text-yellow-500 font-mono">
+                        <Coins className="w-4 h-4 text-yellow-400" /> {coins}
+                      </span>
+                      <span className="flex items-center gap-1 text-cyan-400 font-mono">
+                        <Gem className="w-4 h-4 text-cyan-400" /> {diamonds}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {AVATAR_FRAMES.map((frame) => {
+                      const isUnlocked = unlockedFrames.includes(frame.id) || (membershipStatus === 'premium' && frame.isPremiumExclusive);
+                      const isActive = selectedFrame === frame.id;
+                      
+                      return (
+                        <div 
+                          key={frame.id}
+                          className={`p-4 rounded-2xl border transition-all flex flex-col justify-between h-48 ${
+                            isActive 
+                              ? 'bg-[#262421] border-[#81b64c] shadow-lg shadow-[#81b64c]/10' 
+                              : 'bg-[#262421] border-[#3c3934] hover:border-slate-600'
+                          }`}
+                        >
+                          <div>
+                            <div className="flex justify-between items-start gap-1">
+                              <div>
+                                <h4 className={`font-extrabold text-sm ${frame.themeColor}`}>{frame.name}</h4>
+                                {frame.isPremiumExclusive && (
+                                  <span className="text-[7.5px] font-black px-1 py-0.5 bg-yellow-400/20 text-yellow-400 rounded-md border border-yellow-500/35 uppercase flex items-center gap-0.5 w-fit mt-0.5 font-sans">
+                                    <Crown className="w-2 h-2" /> PREMIUM
+                                  </span>
+                                )}
+                              </div>
+                              {isUnlocked ? (
+                                <span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-emerald-955 text-[#81b64c] rounded-lg border border-emerald-900 uppercase">Terbuka</span>
+                              ) : (
+                                <span className="text-[8px] font-extrabold px-1.5 py-0.5 bg-zinc-800 text-zinc-400 rounded-lg uppercase">Terkunci</span>
+                              )}
+                            </div>
+                            
+                            <p className="text-[9.5px] sm:text-[10px] text-slate-400 font-semibold mt-1 mb-2.5 h-10 overflow-hidden line-clamp-2 leading-relaxed">
+                              {frame.description}
+                            </p>
+                            
+                            {/* Live preview section */}
+                            <div className="flex items-center gap-2.5">
+                              <AvatarWithFrame 
+                                src={user?.profileAvatar || martinAvatar} 
+                                frameId={frame.id} 
+                                size="md" 
+                              />
+                              <span className="text-[10px] text-slate-450 italic">Pratinjau Anda</span>
+                            </div>
+                          </div>
+
+                          <div className="flex items-center justify-between mt-3 gap-1">
+                            {!isUnlocked ? (
+                              <div className="flex items-center gap-1 font-extrabold text-sm font-mono">
+                                {frame.costType === 'coin' ? (
+                                  <span className="text-yellow-450 flex items-center gap-1">
+                                    <Coins className="w-3.5 h-3.5 text-yellow-400" /> {frame.cost}
+                                  </span>
+                                ) : (
+                                  <span className="text-cyan-450 flex items-center gap-1">
+                                    <Gem className="w-3.5 h-3.5 text-cyan-400" /> {frame.cost}
+                                  </span>
+                                )}
+                              </div>
+                            ) : (
+                              <span className="text-[#9babaf] text-[10px] font-semibold">Siap Digunakan</span>
+                            )}
+                            
+                            {!isUnlocked ? (
+                              <button
+                                onClick={() => buyAvatarFrame(frame)}
+                                className="px-4 py-1.5 bg-[#FFC800] hover:bg-yellow-450 text-black font-black text-[9px] uppercase rounded-lg shadow-[0_2.5px_0_0_#b38b00] active:translate-y-0.5 active:shadow-none cursor-pointer transition-all"
+                              >
+                                Beli
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => equipAvatarFrame(frame.id)}
+                                className={`px-4 py-1.5 font-bold text-[9px] uppercase rounded-lg cursor-pointer transition-all ${
+                                  isActive
+                                    ? 'bg-[#81b64c] text-white shadow-[0_2.5px_0_0_#5b8c34]'
+                                    : 'bg-[#312e2b] hover:bg-[#3c3934] text-slate-350 border border-[#3c3934] shadow-[0_2.5px_0_0_#211f1d] active:translate-y-0.5 active:shadow-none'
+                                }`}
+                              >
+                                {isActive ? 'Dipasang' : 'Gunakan'}
                               </button>
                             )}
                           </div>
