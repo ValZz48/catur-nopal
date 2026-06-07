@@ -23,10 +23,18 @@ export const ChessPiece: React.FC<PieceProps> = ({ type, color, className = 'w-f
     fillClass = isWhite
       ? 'fill-[#1c1c24] stroke-[#00f0ff]' // sci-fi cyan glow
       : 'fill-[#1c1c24] stroke-[#ff007f]'; // cyberpunk magenta glow
+  } else if (skin === 'royal') {
+    fillClass = isWhite
+      ? 'fill-[#e0f2fe] stroke-[#0369a1]' // royal silver frost blue
+      : 'fill-[#1e3a8a] stroke-[#0ea5e9]'; // deep navy royal blue
   } else if (skin === 'gold') {
     fillClass = isWhite
       ? 'fill-[#ffd700] stroke-[#917105]' // brilliant royal gold
       : 'fill-[#252525] stroke-[#ffd700]'; // platinum with gold lining
+  } else if (skin === 'singularity') {
+    fillClass = isWhite
+      ? 'fill-[#090514] stroke-[#ff007f]' // cosmic magenta singularity
+      : 'fill-[#120024] stroke-[#a855f7]'; // deep space purple ultraviolet
   }
     
   // High contrast elegant minimal custom vector paths for chess pieces

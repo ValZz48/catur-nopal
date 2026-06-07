@@ -105,6 +105,37 @@ async function startServer() {
     }
   };
 
+  // --- SERVER-TIME ENDPOINT (UN-CHEAT-ABLE) ---
+  app.get("/api/server-time", (req, res) => {
+    try {
+      const now = new Date();
+      // Get the current date in Asia/Jakarta (WIB, UTC+7) timezone
+      const formatter = new Intl.DateTimeFormat('id-ID', {
+        timeZone: 'Asia/Jakarta',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit'
+      });
+      
+      const parts = formatter.formatToParts(now);
+      const day = parts.find(p => p.type === 'day')?.value || "01";
+      const month = parts.find(p => p.type === 'month')?.value || "01";
+      const year = parts.find(p => p.type === 'year')?.value || "2026";
+      const jakartaDate = `${year}-${month}-${day}`; // Format YYYY-MM-DD
+      
+      // Calculate absolute days since epoch based on Jakarta Time (UTC+7)
+      const epochDays = Math.floor((now.getTime() + 7 * 60 * 60 * 1000) / 86400000);
+      
+      return res.json({
+        timestamp: now.getTime(),
+        dateString: jakartaDate,
+        epochDays: epochDays
+      });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message || "Gagal mendapatkan waktu server" });
+    }
+  });
+
   // Auth endpoints
   app.post("/api/auth/register", async (req, res) => {
     try {
@@ -314,35 +345,7 @@ async function startServer() {
       if (!selfUser) return res.status(404).json({ error: "User asal tidak ditemukan." });
 
       if (!friendUser) {
-        // Dynamically bootstrap a simulated friend account so playing and testing is always functional!
-        const randomAvatars = [
-          "/src/assets/images/avatar_martin_1779709510230.png",
-          "/src/assets/images/nelson_avatar_1779712159293.png",
-          "/src/assets/images/wally_avatar_1779712178593.png"
-        ];
-        const randomAvatar = randomAvatars[Math.floor(Math.random() * randomAvatars.length)];
-        
-        friendUser = {
-          username: friendUsername.trim(),
-          elo: Math.floor(Math.random() * (1600 - 600 + 1)) + 600,
-          xp: Math.floor(Math.random() * 400) + 15,
-          profileAvatar: randomAvatar,
-          profileBio: "Saya pemain catur lokal yang siap tanding!",
-          friends: [selfUser.username],
-          friendRequests: [],
-          inbox: []
-        };
-        usersDb[friendKey] = friendUser;
-
-        ensureSocialProps(selfUser);
-        if (!selfUser.friends.includes(friendUser.username)) {
-          selfUser.friends.push(friendUser.username);
-        }
-        
-        saveUsersDb();
-        await saveUserToFirestore(selfUser.username);
-        await saveUserToFirestore(friendUser.username);
-        return res.json({ success: true, message: `Berhasil berteman dengan @${friendUser.username}!` });
+        return res.status(404).json({ error: "Pecatur dengan username tersebut tidak ditemukan atau belum terdaftar." });
       }
 
       ensureSocialProps(selfUser);
@@ -1017,14 +1020,7 @@ PANDUAN CHAT MANUSIA ALAMI (ANTI-ROBOTIK):
 
   // Seeded Online leaderboard merged with real registered user accounts
   app.get("/api/online/leaderboard", (req, res) => {
-    const seed = [
-      { name: "Magnus_Carlsen_Fans", elo: 2192, badge: "Grandmaster" },
-      { name: "Siti_Catur_Ayunda", elo: 1845, badge: "Master Nasional" },
-      { name: "RajaTaktik99", elo: 1620, badge: "Pakar" },
-      { name: "Wira_Ksatria", elo: 1422, badge: "Pakar" },
-      { name: "Duo_Owl_Hunter", elo: 1350, badge: "Pakar" },
-      { name: "Kasparov_Pioneer", elo: 1250, badge: "Pemula Berbakat" },
-    ];
+    const seed: any[] = [];
     
     try {
       const realUsers = Object.values(usersDb).map(user => ({
@@ -1035,14 +1031,7 @@ PANDUAN CHAT MANUSIA ALAMI (ANTI-ROBOTIK):
                (user.elo || 400) >= 1200 ? "Pakar" : "Pecatur Berbakat"
       }));
 
-      // Combine and eliminate duplicates (prioritize real users if clean conflict)
       const combined = [...realUsers];
-      for (const s of seed) {
-        if (!combined.some(u => u.name.toLowerCase() === s.name.toLowerCase())) {
-          combined.push(s);
-        }
-      }
-
       combined.sort((a, b) => b.elo - a.elo);
       return res.json(combined);
     } catch (e) {

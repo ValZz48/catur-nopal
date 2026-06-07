@@ -6,6 +6,8 @@ import {
   Trophy, 
   BookOpen, 
   Sparkles, 
+  Gift,
+  LineChart, 
   RotateCcw, 
   HelpCircle, 
   Volume2, 
@@ -48,13 +50,20 @@ import {
   UserMinus,
   Upload,
   Coins,
-  Gem
+  Gem,
+  Activity,
+  Menu,
+  X
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Character, GameMode, Puzzle, Lesson, PurchaseableTheme, BoardTheme, Achievement } from './types';
 import { CHARACTERS, PUZZLES, LESSONS, THEMES } from './data';
 import { ChessPiece } from './components/ChessPieces';
 import { playSound, toSquare, fromSquare, getAIMove, evaluateMoveQuality } from './utils';
+import { Features17to25 } from './components/Features17to25';
+import { Features26to30 } from './components/Features26to30';
+import { Features31to40 } from './components/Features31to40';
+import { Features41to50 } from './components/Features41to50';
 
 import martinAvatar from './assets/images/avatar_martin_1779709510230.png';
 import nelsonAvatar from './assets/images/nelson_avatar_1779712159293.png';
@@ -135,6 +144,37 @@ const AVATAR_FRAMES: AvatarFrame[] = [
     themeColor: 'text-purple-400',
     description: 'Keindahan nebula rasi bintang galaksi misterius bertabur berlian.'
   }
+];
+
+interface LevelReward {
+  level: number;
+  xpRequired: number;
+  coins: number;
+  diamonds: number;
+  otherGift?: string;
+  frameReward?: string; // e.g. 'bronze', 'silver', 'gold' etc
+}
+
+const LEVEL_REWARDS: LevelReward[] = [
+  { level: 2, xpRequired: 100, coins: 150, diamonds: 5 },
+  { level: 3, xpRequired: 200, coins: 250, diamonds: 10 },
+  { level: 4, xpRequired: 300, coins: 350, diamonds: 15 },
+  { level: 5, xpRequired: 400, coins: 500, diamonds: 20 },
+  { level: 6, xpRequired: 500, coins: 650, diamonds: 25 },
+  { level: 7, xpRequired: 600, coins: 800, diamonds: 30 },
+  { level: 8, xpRequired: 700, coins: 1000, diamonds: 35 },
+  { level: 9, xpRequired: 800, coins: 1200, diamonds: 40 },
+  { level: 10, xpRequired: 900, coins: 1500, diamonds: 100 },
+  { level: 11, xpRequired: 1000, coins: 1700, diamonds: 55 },
+  { level: 12, xpRequired: 1100, coins: 1900, diamonds: 60 },
+  { level: 13, xpRequired: 1200, coins: 2100, diamonds: 70 },
+  { level: 14, xpRequired: 1300, coins: 2300, diamonds: 80 },
+  { level: 15, xpRequired: 1400, coins: 2500, diamonds: 100 },
+  { level: 16, xpRequired: 1500, coins: 2700, diamonds: 110 },
+  { level: 17, xpRequired: 1600, coins: 3000, diamonds: 120 },
+  { level: 18, xpRequired: 1700, coins: 3300, diamonds: 130 },
+  { level: 19, xpRequired: 1800, coins: 3600, diamonds: 140 },
+  { level: 20, xpRequired: 1900, coins: 4000, diamonds: 150 }
 ];
 
 interface AvatarWithFrameProps {
@@ -235,10 +275,10 @@ const formatTime = (seconds: number): string => {
 const EVALUATION_LABELS: Record<string, { label: string; bg: string; text: string; icon: string }> = {
   brilliant: { label: 'Brilian', bg: 'bg-emerald-600 border-emerald-500', text: 'text-white font-extrabold', icon: '!!' },
   great: { label: 'Hebat', bg: 'bg-blue-600 border-blue-500', text: 'text-white font-extrabold', icon: '!' },
-  best: { label: 'Terbaik', bg: 'bg-[#81b64c] border-[#81b64c]', text: 'text-white font-extrabold', icon: '★' },
-  excellent: { label: 'Sangat Baik', bg: 'bg-teal-600 border-teal-500', text: 'text-white font-bold', icon: '★' },
-  good: { label: 'Baik', bg: 'bg-sky-600 border-sky-500', text: 'text-white font-semibold', icon: '✓' },
-  book: { label: 'Teori Buku', bg: 'bg-amber-600 border-amber-500', text: 'text-white font-semibold', icon: '✎' },
+  best: { label: 'Terbaik', bg: 'bg-[#81b64c] border-[#81b64c]', text: 'text-white font-extrabold', icon: '' },
+  excellent: { label: 'Sangat Baik', bg: 'bg-teal-600 border-teal-500', text: 'text-white font-bold', icon: '' },
+  good: { label: 'Baik', bg: 'bg-sky-600 border-sky-500', text: 'text-white font-semibold', icon: '' },
+  book: { label: 'Teori Buku', bg: 'bg-amber-600 border-amber-500', text: 'text-white font-semibold', icon: '' },
   inaccuracy: { label: 'Kurang Tepat', bg: 'bg-zinc-650 border-zinc-500', text: 'text-white font-semibold', icon: '?!' },
   mistake: { label: 'Kesalahan', bg: 'bg-orange-600 border-orange-500', text: 'text-white font-extrabold', icon: '?' },
   blunder: { label: 'Blunder', bg: 'bg-red-600 border-red-500', text: 'text-white font-extrabold', icon: '??' }
@@ -479,6 +519,8 @@ const fetchWithTimeout = async (resource: string, options: RequestInit = {}, tim
 
 export default function App() {
   // Navigation / Gamification States which persist in localStorage
+  const [isNavDrawerOpen, setIsNavDrawerOpen] = useState<boolean>(false);
+  const [activeHubTab, setActiveHubTab] = useState<'replay' | 'social' | 'rank' | 'pass'>('replay');
   const [mode, setMode] = useState<GameMode>(() => {
     return (localStorage.getItem('mode') as GameMode) || 'home';
   });
@@ -493,12 +535,57 @@ export default function App() {
     return Number(localStorage.getItem('diamonds')) || 20;
   });
 
+  // --- LIFTED STATES FOR PERFECT SYNC CORRESPONDING TO FEATURES 17-25 ---
+  const [passLevel, setPassLevel] = useState<number>(() => {
+    return Number(localStorage.getItem('seasonPassLevel')) || 1;
+  });
+  const [passXp, setPassXp] = useState<number>(() => {
+    return Number(localStorage.getItem('seasonPassXp')) || 0;
+  });
+  const [passStatus, setPassStatus] = useState<'free' | 'premium' | 'deluxe'>(() => {
+    return (localStorage.getItem('seasonPassStatus') as any) || 'free';
+  });
+  const [claimedPassRewards, setClaimedPassRewards] = useState<string[]>(() => {
+    const saved = localStorage.getItem('claimedPassRewards');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [claimedRankRewards, setClaimedRankRewards] = useState<string[]>(() => {
+    const saved = localStorage.getItem('claimedRankRewards');
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [diamondSavings, setDiamondSavings] = useState<number>(() => {
+    return Number(localStorage.getItem('chessDiamondSavings')) || 0;
+  });
+  const [profileActiveTab, setProfileActiveTab] = useState<'profile' | 'replay' | 'social' | 'stats'>('profile');
+  const [storeActiveTab, setStoreActiveTab] = useState<'shop' | 'gacha' | 'flash_sale'>('shop');
+  const [homeActiveTab, setHomeActiveTab] = useState<'dashboard' | 'community' | 'forum'>('dashboard');
+
+  // Synchronize state hooks to localStorage
+  useEffect(() => {
+    localStorage.setItem('seasonPassLevel', String(passLevel));
+    localStorage.setItem('seasonPassXp', String(passXp));
+    localStorage.setItem('seasonPassStatus', passStatus);
+    localStorage.setItem('claimedPassRewards', JSON.stringify(claimedPassRewards));
+  }, [passLevel, passXp, passStatus, claimedPassRewards]);
+
+  useEffect(() => {
+    localStorage.setItem('claimedRankRewards', JSON.stringify(claimedRankRewards));
+  }, [claimedRankRewards]);
+
+  useEffect(() => {
+    localStorage.setItem('chessDiamondSavings', String(diamondSavings));
+  }, [diamondSavings]);
+
   const [dailyQuests, setDailyQuests] = useState<any[]>(() => {
     const saved = localStorage.getItem('dailyQuests');
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
         if (Array.isArray(parsed) && parsed.length > 0) {
+          // Ensure qp_playtime exists in parsed dailyQuests
+          if (!parsed.some(q => q.id === 'qp_playtime')) {
+            parsed.push({ id: 'qp_playtime', type: 'premium', title: 'Manajemen Waktu Premium', description: 'Bermain catur selama 30 menit tanding (dapat tambahan +1 Diamond per menit bermain setelahnya!)', target: 30, current: 0, rewardType: 'diamond', rewardAmount: 0, claimed: false, isPlaytimeQuest: true });
+          }
           return parsed;
         }
       } catch (e) {
@@ -512,7 +599,8 @@ export default function App() {
       
       { id: 'qp1', type: 'premium', title: 'Spesialis Teka-teki Elite', description: 'Selesaikan 3 teka-teki Puzzle catur', target: 3, current: 0, rewardType: 'diamond', rewardAmount: 5, claimed: false },
       { id: 'qp2', type: 'premium', title: 'Gladiator Arena Sejati', description: 'Mainkan 3 pertandingan catur (Bot atau Online)', target: 3, current: 0, rewardType: 'diamond', rewardAmount: 10, claimed: false },
-      { id: 'qp3', type: 'premium', title: 'Dominasi Papan Catur', description: 'Menangkan 2 pertandingan catur melawan Bot atau Online', target: 2, current: 0, rewardType: 'diamond', rewardAmount: 15, claimed: false }
+      { id: 'qp3', type: 'premium', title: 'Dominasi Papan Catur', description: 'Menangkan 2 pertandingan catur melawan Bot atau Online', target: 2, current: 0, rewardType: 'diamond', rewardAmount: 15, claimed: false },
+      { id: 'qp_playtime', type: 'premium', title: 'Manajemen Waktu Premium', description: 'Bermain catur selama 30 menit tanding (dapat tambahan +1 Diamond per menit bermain setelahnya!)', target: 30, current: 0, rewardType: 'diamond', rewardAmount: 0, claimed: false, isPlaytimeQuest: true }
     ];
   });
 
@@ -617,6 +705,10 @@ export default function App() {
     return (localStorage.getItem('membershipStatus') as 'free' | 'premium') || 'free';
   });
 
+  // --- SERVER TIME & DATE STATES (TO ENFORCE COMPLIANCE & AVOID DATE MANIPULATION) ---
+  const [serverDate, setServerDate] = useState<string>("");
+  const [serverEpochDays, setServerEpochDays] = useState<number>(0);
+
   const [selectedFrame, setSelectedFrame] = useState<string>(() => {
     const actUser = getActiveUsername();
     return localStorage.getItem(`selectedFrame:${actUser}`) || 'none';
@@ -634,6 +726,16 @@ export default function App() {
 
   const [guestMatchesWon, setGuestMatchesWon] = useState<number>(() => {
     return Number(localStorage.getItem('guestMatchesWon') || '0');
+  });
+
+  const [claimedLevelRewards, setClaimedLevelRewards] = useState<number[]>(() => {
+    const actUser = getActiveUsername();
+    try {
+      const saved = localStorage.getItem(`claimedLevelRewards:${actUser}`);
+      return saved ? JSON.parse(saved) : [];
+    } catch {
+      return [];
+    }
   });
 
   const [dailyClaimed, setDailyClaimed] = useState<boolean>(() => {
@@ -679,6 +781,13 @@ export default function App() {
   const [timerLimit, setTimerLimit] = useState<number>(() => {
     return Number(localStorage.getItem('timerLimit')) || 600; // 10 minutes default
   });
+  const [isCasualMatch, setIsCasualMatch] = useState<boolean>(() => {
+    return localStorage.getItem('casual_match_mode') === 'true';
+  });
+  const [gameSpeedType, setGameSpeedType] = useState<'blitz' | 'bullet' | 'rapid'>(() => {
+    const limit = Number(localStorage.getItem('timerLimit')) || 600;
+    return limit === 60 ? 'bullet' : limit === 180 ? 'blitz' : 'rapid';
+  });
   const [playerTime, setPlayerTime] = useState<number>(600);
   const [aiTime, setAiTime] = useState<number>(600);
   
@@ -714,7 +823,7 @@ export default function App() {
   const [showRewardModal, setShowRewardModal] = useState<boolean>(false);
   const [rewardAmount, setRewardAmount] = useState<number>(0);
   const [rewardMessage, setRewardMessage] = useState<string>('');
-  const [rewardType, setRewardType] = useState<'reward' | 'premium' | 'info' | 'success_no_xp'>('reward');
+  const [rewardType, setRewardType] = useState<'reward' | 'premium' | 'info' | 'success_no_xp' | 'level_up'>('reward');
 
   // --- ONLINE MULTIPLAYER MATCHMAKING STATE & LOGIC ---
   const [onlineStatus, setOnlineStatus] = useState<'idle' | 'searching' | 'playing' | 'game-over'>('idle');
@@ -766,6 +875,90 @@ export default function App() {
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
   const [showAvatarStudio, setShowAvatarStudio] = useState<boolean>(false);
+
+  // --- SOCIAL, FRIENDS & INBOX STATE (DECLARE BEFORE GIFTS) ---
+  const [friendsList, setFriendsList] = useState<any[]>([]);
+  
+  // --- INBOX RECEIVED GIFTS STATE (EMOJI FREE) ---
+  const [rawReceivedGifts, setReceivedGifts] = useState<any[]>(() => {
+    try {
+      const saved = localStorage.getItem('raw_received_gifts') || localStorage.getItem('received_gifts');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [
+      { id: 'rg1', from: 'Isna_Cantiq', giftName: 'Piala Kristal Master', msg: 'Permainan bagus kemarin di Arena Klub! Ini hadiah untukmu.', isPremium: true, cashValueCoins: 150, cashValueDiamonds: 5, affinityPoints: 100 },
+      { id: 'rg2', from: 'Nelson_Pro', giftName: 'Paket Kopi Hangat', msg: 'Tetap semangat mengasah taktik pembukaan!', isPremium: false, cashValueCoins: 30, cashValueDiamonds: 0, affinityPoints: 50 },
+      { id: 'rg3', from: 'Martin_Pratama', giftName: 'Bidak Perak Solid', msg: 'Terima kasih atas bimbingannya di arena kausal.', isPremium: true, cashValueCoins: 250, cashValueDiamonds: 8, affinityPoints: 150 }
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('raw_received_gifts', JSON.stringify(rawReceivedGifts));
+  }, [rawReceivedGifts]);
+
+  // Filter out any messages of players not added to the user's friend list to strictly remove bots!
+  const receivedGifts = useMemo(() => {
+    return rawReceivedGifts.map(gift => {
+      // Re-route dummy default items to actual friends if any are active
+      if (friendsList && friendsList.length > 0 && !friendsList.some(f => f.username.toLowerCase() === gift.from.toLowerCase())) {
+        return { ...gift, from: friendsList[0].username };
+      }
+      return gift;
+    }).filter(gift => friendsList && friendsList.some(f => f.username.toLowerCase() === gift.from.toLowerCase()));
+  }, [rawReceivedGifts, friendsList]);
+
+  const [showGiftInboxModal, setShowGiftInboxModal] = useState<boolean>(false);
+  const [showFriendListModal, setShowFriendListModal] = useState<boolean>(false);
+  const [inboxActiveTab, setInboxActiveTab] = useState<'gifts' | 'invites'>('gifts');
+
+  // Gifting transaction cashout action
+  const handleCashOutGiftInApp = (gift: any, cashType: 'coins' | 'diamonds') => {
+    if (cashType === 'coins') {
+      const rewardAmt = gift.cashValueCoins > 0 ? gift.cashValueCoins : 50;
+      setCoins(c => {
+        const next = c + rewardAmt;
+        localStorage.setItem('coins', String(next));
+        return next;
+      });
+      triggerReward(0, `Berhasil mencairkan ${gift.giftName} dari ${gift.from} menjadi +${rewardAmt} Koin ke saldo utama Anda!`, 'success_no_xp');
+    } else {
+      const rewardAmt = gift.cashValueDiamonds > 0 ? gift.cashValueDiamonds : 3;
+      setDiamonds(d => {
+        const next = d + rewardAmt;
+        localStorage.setItem('diamonds', String(next));
+        return next;
+      });
+      triggerReward(0, `Berhasil mencairkan ${gift.giftName} dari ${gift.from} menjadi +${rewardAmt} Berlian ke saldo utama Anda!`, 'success_no_xp');
+    }
+    setReceivedGifts(prev => prev.filter(g => g.id !== gift.id));
+    triggerAudio('win');
+  };
+
+  const handleOpenOrdinaryGiftInApp = (gift: any) => {
+    try {
+      const savedAff = localStorage.getItem('friend_affinities') || '{}';
+      const affMap = JSON.parse(savedAff);
+      if (!affMap[gift.from]) {
+        affMap[gift.from] = { points: 0, level: 1 };
+      }
+      affMap[gift.from].points += gift.affinityPoints;
+      
+      const nextLvlReq = affMap[gift.from].level * 100;
+      if (affMap[gift.from].points >= nextLvlReq) {
+        affMap[gift.from].points -= nextLvlReq;
+        affMap[gift.from].level += 1;
+        triggerReward(0, `Peringkat Afinitas dengan ${gift.from} naik ke Tingkat ${affMap[gift.from].level}!`, 'success_no_xp');
+      } else {
+        triggerReward(0, `Membuka bingkisan pertemanan! Afinitas dengan ${gift.from} bertambah +${gift.affinityPoints} poin.`, 'success_no_xp');
+      }
+      localStorage.setItem('friend_affinities', JSON.stringify(affMap));
+      window.dispatchEvent(new Event('storage'));
+    } catch (e) {}
+
+    setReceivedGifts(prev => prev.filter(g => g.id !== gift.id));
+    triggerAudio('win');
+  };
+
   const [saveStatus, setSaveStatus] = useState<string>(''); // 'saving', 'saved', or empty
   const [profileEditingBio, setProfileEditingBio] = useState<string>('');
   const [claimedAchievements, setClaimedAchievements] = useState<string[]>(() => {
@@ -781,7 +974,7 @@ export default function App() {
     return [];
   });
 
-  const loadUserScopedStats = (targetUser: string) => {
+  const loadUserScopedStats = (targetUser: string, customServerDate?: string) => {
     const userScope = targetUser.trim().toLowerCase();
     
     // Load streak
@@ -803,8 +996,12 @@ export default function App() {
     const savedUnlockedFrames = localStorage.getItem(`unlockedFrames:${userScope}`);
     setUnlockedFrames(savedUnlockedFrames ? JSON.parse(savedUnlockedFrames) : ['none']);
 
+    // Load claimed level rewards
+    const savedLvlClaimed = localStorage.getItem(`claimedLevelRewards:${userScope}`);
+    setClaimedLevelRewards(savedLvlClaimed ? JSON.parse(savedLvlClaimed) : []);
+
     // Compute daily claimed & daily index
-    const today = new Date().toLocaleDateString('en-CA');
+    const today = customServerDate || serverDate;
     const lastClaim = localStorage.getItem(`lastClaimDate:${userScope}`);
     const isClaimedToday = lastClaim === today;
     setDailyClaimed(isClaimedToday);
@@ -815,7 +1012,7 @@ export default function App() {
       if (lastClaim === today) {
         finalIdx = savedIdx ? parseInt(savedIdx, 10) : 0;
       } else {
-        const d = new Date();
+        const d = new Date(today + 'T00:00:00');
         d.setDate(d.getDate() - 1);
         const yesterday = d.toLocaleDateString('en-CA');
         if (lastClaim === yesterday) {
@@ -877,7 +1074,6 @@ export default function App() {
   const [isAnalyzingPositionWithAI, setIsAnalyzingPositionWithAI] = useState<boolean>(false);
 
   // --- SOCIAL, FRIENDS & INBOX STATE ---
-  const [friendsList, setFriendsList] = useState<any[]>([]);
   const [selectedFriendForDetail, setSelectedFriendForDetail] = useState<any | null>(null);
   const [friendRequests, setFriendRequests] = useState<string[]>([]);
   const [inboxMessages, setInboxMessages] = useState<any[]>([]);
@@ -1235,6 +1431,7 @@ export default function App() {
     localStorage.setItem('onlineRating', String(onlineRating));
     localStorage.setItem('onlineHistory', JSON.stringify(onlineHistory));
     localStorage.setItem('username', username);
+    localStorage.setItem(`claimedLevelRewards:${userScope}`, JSON.stringify(claimedLevelRewards));
     if (selectedCharacter) {
       localStorage.setItem('selectedCharacter', JSON.stringify(selectedCharacter));
     } else {
@@ -1245,7 +1442,28 @@ export default function App() {
     } else {
       localStorage.removeItem('user');
     }
-  }, [mode, xp, coins, diamonds, selectedFrame, unlockedFrames, hearts, streak, soundEnabled, unlockedThemes, boardTheme, selectedCharacter, onlineRating, onlineHistory, username, user, selectedSkin, unlockedSkins, membershipStatus]);
+  }, [mode, xp, coins, diamonds, selectedFrame, unlockedFrames, hearts, streak, soundEnabled, unlockedThemes, boardTheme, selectedCharacter, onlineRating, onlineHistory, username, user, selectedSkin, unlockedSkins, membershipStatus, claimedLevelRewards]);
+
+  // Synchronously monitor XP changes to detect LEVEL UP events!
+  const lastCheckedLevel = useRef<number | null>(null);
+  useEffect(() => {
+    if (xp === undefined) return;
+    const currentLevel = Math.floor(xp / 100) + 1;
+    if (lastCheckedLevel.current === null) {
+      lastCheckedLevel.current = currentLevel;
+      return;
+    }
+    if (currentLevel > lastCheckedLevel.current) {
+      const fromLvl = lastCheckedLevel.current;
+      const toLvl = currentLevel;
+      lastCheckedLevel.current = toLvl;
+      
+      triggerAudio('win');
+      triggerReward(0, `Spesial LEVEL UP! Kamu naik ke Level ${toLvl}! Yuk ambil koin & berlian hadiah naik levelmu di menu Profil -> Perjalanan Level! Bintang`, 'level_up');
+    } else if (currentLevel < lastCheckedLevel.current) {
+      lastCheckedLevel.current = currentLevel;
+    }
+  }, [xp]);
 
   // Handle automatic background synchronization to the server for logged-in players
   useEffect(() => {
@@ -1372,28 +1590,90 @@ export default function App() {
     initSync();
   }, []);
 
-  // Check and update streak validity on mount
+  // Check and update streak, quest line resets, and daily claim states using un-cheat-able server time
   useEffect(() => {
-    const actUser = getActiveUsername();
-    const todayStr = new Date().toLocaleDateString('en-CA');
-    const lastStreakDate = localStorage.getItem(`lastStreakDate:${actUser}`);
-    if (lastStreakDate) {
-      const lastDate = new Date(lastStreakDate + 'T00:00:00');
-      const todayDate = new Date(todayStr + 'T00:00:00');
-      const diffTime = todayDate.getTime() - lastDate.getTime();
-      const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-      
-      if (diffDays > 1) {
-        // Reset streak to 0 since yesterday was missed
-        setStreak(0);
-        localStorage.setItem(`streak:${actUser}`, '0');
+    let isMounted = true;
+    const fetchServerTime = async () => {
+      try {
+        const res = await fetch('/api/server-time');
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.dateString && isMounted) {
+            const dateStr = data.dateString;
+            const daysEpoch = data.epochDays;
+            
+            setServerDate(dateStr);
+            setServerEpochDays(daysEpoch);
+            
+            // Re-sync correct streak, daily indices, check-ins, and quests with the validated server date
+            const userScope = username.trim().toLowerCase();
+            
+            // Today claim check
+            const lastClaim = localStorage.getItem(`lastClaimDate:${userScope}`);
+            const isClaimedToday = lastClaim === dateStr;
+            setDailyClaimed(isClaimedToday);
+            
+            // Index offset calculation
+            const savedIdx = localStorage.getItem(`dailyIndex:${userScope}`);
+            let finalIdx = 0;
+            if (lastClaim) {
+              if (lastClaim === dateStr) {
+                finalIdx = savedIdx ? parseInt(savedIdx, 10) : 0;
+              } else {
+                const d = new Date(dateStr + 'T00:00:00');
+                d.setDate(d.getDate() - 1);
+                const yesterday = d.toLocaleDateString('en-CA');
+                if (lastClaim === yesterday) {
+                  finalIdx = savedIdx ? parseInt(savedIdx, 10) : 0;
+                }
+              }
+            }
+            setDailyIndex(finalIdx);
+
+            // Streak check validity
+            const lastStreakDate = localStorage.getItem(`lastStreakDate:${userScope}`);
+            if (lastStreakDate) {
+              const lastDate = new Date(lastStreakDate + 'T00:00:00');
+              const todayDate = new Date(dateStr + 'T00:00:00');
+              const diffTime = todayDate.getTime() - lastDate.getTime();
+              const diffDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+              if (diffDays > 1) {
+                setStreak(0);
+                localStorage.setItem(`streak:${userScope}`, '0');
+              }
+            } else {
+              setStreak(0);
+              localStorage.setItem(`streak:${userScope}`, '0');
+            }
+
+            // Daily Quest reset checked against verified server date (resetting every 24 hours verified)
+            const lastQuestReset = localStorage.getItem(`lastQuestResetDate:${userScope}`);
+            if (lastQuestReset !== dateStr) {
+              const defaultQuests = [
+                { id: 'q1', type: 'regular', title: 'Asah Otak Taktis', description: 'Selesaikan 1 teka-teki Puzzle catur', target: 1, current: 0, rewardType: 'coin', rewardAmount: 50, claimed: false },
+                { id: 'q2', type: 'regular', title: 'Ksatria Arena Cepat', description: 'Mainkan 1 pertandingan catur (Bot atau Online)', target: 1, current: 0, rewardType: 'xp', rewardAmount: 30, claimed: false },
+                { id: 'q3', type: 'regular', title: 'Kemenangan Gemilang', description: 'Menangkan 1 pertandingan catur melawan Bot atau Online', target: 1, current: 0, rewardType: 'coin', rewardAmount: 100, claimed: false },
+                
+                { id: 'qp1', type: 'premium', title: 'Spesialis Teka-teki Elite', description: 'Selesaikan 3 teka-teki Puzzle catur', target: 3, current: 0, rewardType: 'diamond', rewardAmount: 5, claimed: false },
+                { id: 'qp2', type: 'premium', title: 'Gladiator Arena Sejati', description: 'Mainkan 3 pertandingan catur (Bot atau Online)', target: 3, current: 0, rewardType: 'diamond', rewardAmount: 10, claimed: false },
+                { id: 'qp3', type: 'premium', title: 'Dominasi Papan Catur', description: 'Menangkan 2 pertandingan catur melawan Bot atau Online', target: 2, current: 0, rewardType: 'diamond', rewardAmount: 15, claimed: false }
+              ];
+              setDailyQuests(defaultQuests);
+              localStorage.setItem('dailyQuests', JSON.stringify(defaultQuests));
+              localStorage.setItem(`lastQuestResetDate:${userScope}`, dateStr);
+            }
+          }
+        }
+      } catch (err) {
+        console.warn("Failed to retrieve un-manipulated server date, using system clock fallback:", err);
       }
-    } else {
-      // First time
-      setStreak(0);
-      localStorage.setItem(`streak:${actUser}`, '0');
-    }
-  }, []);
+    };
+    
+    fetchServerTime();
+    return () => {
+      isMounted = false;
+    };
+  }, [username]);
 
   // Fetch online leaderboard ranks
   const fetchRankings = async () => {
@@ -1416,12 +1696,7 @@ export default function App() {
       }
     } catch (err) {
       console.warn("Gagal mengambil peringkat leaderboard, memuat ranking lokal:", err);
-      const offlineRanks = [
-        { name: "Magnus Carlsen", elo: 2850, badge: "Grandmaster" },
-        { name: "Hikaru Nakamura", elo: 2820, badge: "Grandmaster" },
-        { name: "Ding Liren", elo: 2780, badge: "Grandmaster" },
-        { name: "Martin Bot", elo: 800, badge: "Pemula Berbakat" }
-      ];
+      const offlineRanks: any[] = [];
       const cleanOffline = offlineRanks.filter((player: any) => {
         const playerNormalized = player.name.replace(/\s*\(Kamu\)\s*/gi, '').trim().toLowerCase();
         const pNameNormalized = (username || '').trim().toLowerCase();
@@ -1680,7 +1955,7 @@ export default function App() {
               let friendlyMsg = "";
               if (chess.isCheck()) {
                 const checkChats = [
-                  "Skakmat sudah dekat! Eh, ternyata cuma skak biasa 🤭",
+                  "Skakmat sudah dekat! Eh, ternyata cuma skak biasa ",
                   "Awas Rajamu terancam! Bisa hindari skak ini?",
                   "Skak! Hehehe, haruskah kamu menutup diagonal itu?",
                   "Ada celah taktis di sekitar sistem koordinat Rajamu!",
@@ -1701,7 +1976,7 @@ export default function App() {
                    "Langkah yang kokoh dari Anda!",
                    "Waduh, pertahanan menterimu tangguh sekali.",
                    "Hmm, haruskah saya rokade atau menyerang di sayap menteri?",
-                   "Ini benar-benar pertandingan yang menakjubkan! 👍",
+                   "Ini benar-benar pertandingan yang menakjubkan! Mantap",
                    "Permainan yang seru! Tetap berkonsentrasi ya.",
                    "Langkah taktis yang rapi, asli saya terkejut melihatnya.",
                    "Keren langkahmu! Saya harus berpikir cukup keras di giliran ini.",
@@ -1729,6 +2004,42 @@ export default function App() {
       return () => clearTimeout(timeoutId);
     }
   }, [mode, onlineStatus, onlineOpponent, board]);
+
+  // Active match play-time tracking (for Feature 26 & Feature 27 premium playtime quest)
+  useEffect(() => {
+    let intervalId: any = null;
+
+    const isPlayingActiveMatch = mode === 'play' || (mode === 'online-match' && onlineStatus === 'playing');
+
+    if (isPlayingActiveMatch) {
+      intervalId = setInterval(() => {
+        setDailyQuests(prev => {
+          const updated = prev.map(q => {
+            if (q.id === 'qp_playtime') {
+              const nextVal = q.current + 1;
+              if (nextVal > 30) {
+                // Award +1 diamond per minute beyond 30 minutes to SAVINGS Bank!
+                setDiamondSavings(s => {
+                  const nextS = Math.min(150, s + 1);
+                  return nextS;
+                });
+                triggerAudio('win');
+                triggerReward(0, "Bonus Playtime: +1 Berlian dimasukkan ke dalam Tabungan Diamond Anda!", 'success_no_xp');
+              }
+              return { ...q, current: nextVal };
+            }
+            return q;
+          });
+          localStorage.setItem('dailyQuests', JSON.stringify(updated));
+          return updated;
+        });
+      }, 60000); // Ticks every 60 seconds
+    }
+
+    return () => {
+      if (intervalId) clearInterval(intervalId);
+    };
+  }, [mode, onlineStatus]);
 
   // Chess Clock Countdown Effect (VS AI Mode)
   useEffect(() => {
@@ -1776,7 +2087,7 @@ export default function App() {
             setGameResult('win-time');
             triggerAudio('win');
             if (selectedCharacter) {
-              setAiSpeech(`Aduh! Aku terlalu lama menghitung kalkulasi langkah hingga kehabisan waktu caturku. Selamat, kamu menang! 🎉`);
+              setAiSpeech(`Aduh! Aku terlalu lama menghitung kalkulasi langkah hingga kehabisan waktu caturku. Selamat, kamu menang! `);
               triggerReward(40, `Kamu mengalahkan ${selectedCharacter.name} secara waktu!`);
             }
             return 0;
@@ -1914,6 +2225,19 @@ export default function App() {
       updateDailyQuestProgress('win', 1);
     }
 
+    // FEATURE 35: CASUAL MATCH CHECK
+    const isCasual = localStorage.getItem('casual_match_mode') === 'true';
+    if (isCasual) {
+      setOnlineEloChange(0);
+      triggerAudio(outcome === 'win' ? 'win' : 'lose');
+      triggerReward(20, `Pertandingan Kausal Selesai! Pertandingan ini dikonfigurasi tanpa kontribusi perubahan ELO atau statistik rating secara resmi.`, 'info');
+      
+      const currentPlayed = user ? (user.matchesPlayed || 0) : guestMatchesPlayed;
+      setGuestMatchesPlayed(currentPlayed + 1);
+      localStorage.setItem('guestMatchesPlayed', String(currentPlayed + 1));
+      return;
+    }
+
     let eloChange = 0;
     if (outcome === 'win') {
       eloChange = 15 + Math.floor(Math.random() * 8);
@@ -1947,6 +2271,17 @@ export default function App() {
     setXp(nextXp);
     localStorage.setItem('xp', String(nextXp));
 
+    // Play matches gives direct diamonds to main wallet instead of savings
+    const baseDiamondsEarned = outcome === 'win' ? 5 : 2;
+    const passSavingsMult = passStatus === 'deluxe' ? 2.0 : (passStatus === 'premium' ? 1.5 : 1.0);
+    const finalDiamondsEarned = Math.round(baseDiamondsEarned * passSavingsMult);
+    setDiamonds(prev => {
+      const nextD = prev + finalDiamondsEarned;
+      localStorage.setItem('diamonds', String(nextD));
+      return nextD;
+    });
+    triggerReward(0, `Hasil tanding: +${finalDiamondsEarned} Berlian langsung masuk ke saldo utama Anda!`, 'success_no_xp');
+
     if (user) {
       syncUserStats(nextElo, nextXp, unlockedThemes, nextPlayed, nextWon);
     }
@@ -1958,7 +2293,8 @@ export default function App() {
       outcome,
       eloDiff: eloChange,
       date: new Date().toLocaleDateString('id-ID'),
-      movesCount: chessRef.current.history().length
+      movesCount: chessRef.current.history().length,
+      moves: chessRef.current.history()
     };
     setOnlineHistory(prev => [newHistoryEntry, ...prev]);
 
@@ -2116,7 +2452,7 @@ export default function App() {
   const triggerReward = (
     amount: number, 
     message: string, 
-    type: 'reward' | 'premium' | 'info' | 'success_no_xp' = 'reward'
+    type: 'reward' | 'premium' | 'info' | 'success_no_xp' | 'level_up' = 'reward'
   ) => {
     setXp(prev => prev + amount);
     setRewardAmount(amount);
@@ -2212,10 +2548,10 @@ export default function App() {
       "Permainan yang seru! Tetap berkonsentrasi ya, jangan sampai lengah.",
       "Langkah yang sangat cerdas! Saya harus banyak belajar dari caramu berpikir.",
       "Hehehe, bagaimana kalau saya taruh kuda saya di sini? Keren kan?",
-      "Aduh sorry banget, tadi saya ketiduran bentar pas mikir langkah, peace! ✌️",
+      "Aduh sorry banget, tadi saya ketiduran bentar pas mikir langkah, peace! Sip",
       "Wah wah, petak tengahnya kok jadi ramai sekali ya? Seru banget!",
       "Langkah yang solid kawan! Semoga pertarungan kita berakhir damai wkwk.",
-      "Duh menteri saya kesepian nih, boleh jalan-jalan ke tempatmu ga? 😁",
+      "Duh menteri saya kesepian nih, boleh jalan-jalan ke tempatmu ga? Senang",
       "Keren! Kamu beneran jago ya, saya jadi makin semangat mainnya!"
     ],
     nelson: [
@@ -3061,31 +3397,221 @@ export default function App() {
     setSelectedSquare(null);
   };
 
+  // -------------------------------------------------------------------------
+  // FEATURE 40: FRIDAY FLASH SALE WITH PERSONALIZED UNIQUE DAILY ITEMS
+  // -------------------------------------------------------------------------
+  const [forceFriday, setForceFriday] = useState(true);
+  const isCurrentlyFriday = new Date().getDay() === 5 || forceFriday;
+
+  interface FlashSaleItem {
+    id: string;
+    name: string;
+    originalCost: number;
+    discountedCost: number;
+    currency: 'coins' | 'diamonds';
+    rewardType: 'xp' | 'frame_magma' | 'frame_cosmic' | 'board_ice' | 'piece_royal' | 'diamond_sack' | 'gold_heavy' | 'title_gm';
+    desc: string;
+  }
+
+  const [flashDeals, setFlashDeals] = useState<FlashSaleItem[]>(() => {
+    try {
+      const saved = localStorage.getItem('personalized_flash_deals');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+
+    const pool: FlashSaleItem[] = [
+      { id: 'fs_xp', name: 'Paket Bundling Stamina dan XP', originalCost: 350, discountedCost: 99, currency: 'coins', rewardType: 'xp', desc: 'Isi Paket: +150 XP instan untuk mempercepat kenaikan level catur.' },
+      { id: 'fs_magma', name: 'Bingkai Merah Lava Vulkanik', originalCost: 600, discountedCost: 199, currency: 'coins', rewardType: 'frame_magma', desc: 'Bingkai profile magma oranye mengkilap khusus.' },
+      { id: 'fs_cosmic', name: 'Bingkai Nebula Kosmik Galactic', originalCost: 800, discountedCost: 240, currency: 'coins', rewardType: 'frame_cosmic', desc: 'Bingkai profile luar angkasa nebula bersinar terang.' },
+      { id: 'fs_ice', name: 'Desain Papan Es Beku Antartika', originalCost: 500, discountedCost: 150, currency: 'coins', rewardType: 'board_ice', desc: 'Skin arena papan catur selembut salju musim dingin.' },
+      { id: 'fs_royal', name: 'Tampilan Bidak Ksatria Kerajaan', originalCost: 600, discountedCost: 180, currency: 'coins', rewardType: 'piece_royal', desc: 'Desain bidak catur beraliansi bangsawan klasik berlapis emas.' },
+      { id: 'fs_sack', name: 'Kantung Hasil Pekan Diamond', originalCost: 150, discountedCost: 45, currency: 'diamonds', rewardType: 'diamond_sack', desc: 'Bypass brankas untuk mencairkan +50 Berlian tambahan secara gratis!' },
+      { id: 'fs_gold', name: 'Brankas Koin Kemakmuran Jumat', originalCost: 100, discountedCost: 30, currency: 'diamonds', rewardType: 'gold_heavy', desc: 'Buka brankas koin darurat: Dapatkan +1200 Koin Tabunan instan!' },
+      { id: 'fs_gm', name: 'Piala Gelar Grandmaster', originalCost: 120, discountedCost: 35, currency: 'diamonds', rewardType: 'title_gm', desc: 'Sematkan gelar kehormatan "Grandmaster" permanen pada kartu profil!' }
+    ];
+
+    const actUser = localStorage.getItem('user') || 'User';
+    const seed = actUser.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
+    const shuffled = [...pool].sort((a, b) => {
+      const ra = Math.sin(seed + a.name.charCodeAt(0)) * 1000;
+      const rb = Math.sin(seed + b.name.charCodeAt(0)) * 1000;
+      return (ra - Math.floor(ra)) - (rb - Math.floor(rb));
+    });
+
+    const selected = shuffled.slice(0, 3);
+    localStorage.setItem('personalized_flash_deals', JSON.stringify(selected));
+    return selected;
+  });
+
+  const handleBuyFlashItem = (deal: FlashSaleItem) => {
+    const actUser = localStorage.getItem('user') || 'User';
+    if (deal.currency === 'coins') {
+      if (coins < deal.discountedCost) {
+        triggerAudio('error');
+        triggerReward(0, 'Koin Anda tidak cukup untuk promo Friday Flash Sale ini!', 'info');
+        return;
+      }
+      setCoins(coins - deal.discountedCost);
+    } else {
+      if (diamonds < deal.discountedCost) {
+        triggerAudio('error');
+        triggerReward(0, 'Diamond Anda tidak cukup untuk promo Friday Flash Sale ini!', 'info');
+        return;
+      }
+      setDiamonds(diamonds - deal.discountedCost);
+    }
+
+    if (deal.rewardType === 'xp') {
+      setXp(x => x + 150);
+      triggerReward(150, 'Pembelian Berhasil! Anda mendapat +150 XP tambahan!', 'reward');
+    } else if (deal.rewardType === 'frame_magma' || deal.rewardType === 'frame_cosmic') {
+      const frameId = deal.rewardType === 'frame_magma' ? 'magma' : 'cosmic';
+      setUnlockedFrames(prev => {
+        const next = prev.includes(frameId) ? prev : [...prev, frameId];
+        localStorage.setItem('unlockedFrames', JSON.stringify(next));
+        localStorage.setItem('unlockedFrames:' + actUser.trim().toLowerCase(), JSON.stringify(next));
+        return next;
+      });
+      triggerReward(0, `Pembelian Berhasil! Bingkai "${frameId === 'magma' ? 'Lava Vulkanik' : 'Nebula Kosmik'}" berhasil dibeli! Silakan cek di profil Anda.`, 'success_no_xp');
+    } else if (deal.rewardType === 'board_ice') {
+      setUnlockedThemes(prev => {
+        const next = prev.includes('ice_freeze') ? prev : [...prev, 'ice_freeze'];
+        localStorage.setItem('unlockedThemes', JSON.stringify(next));
+        return next;
+      });
+      triggerReward(0, 'Pembelian Berhasil! Tema papan "Es Antartika" berhasil dipasang di menu pengaturan papan!', 'success_no_xp');
+    } else if (deal.rewardType === 'piece_royal') {
+      setUnlockedSkins(prev => {
+        const next = prev.includes('royal') ? prev : [...prev, 'royal'];
+        localStorage.setItem('unlockedSkins', JSON.stringify(next));
+        localStorage.setItem('unlockedSkins:' + actUser.trim().toLowerCase(), JSON.stringify(next));
+        return next;
+      });
+      triggerReward(0, 'Pembelian Berhasil! Tampilan bidak kustom "Ksatria Kerajaan" berhasil dibuka!', 'success_no_xp');
+    } else if (deal.rewardType === 'diamond_sack') {
+      setDiamonds(d => d + 50);
+      triggerReward(0, 'Tarik Berhasil! Karung Koin dibuka, +50 Berlian berhasil masuk ke saldo!', 'success_no_xp');
+    } else if (deal.rewardType === 'gold_heavy') {
+      setCoins(c => c + 1200);
+      triggerReward(0, 'Penarikan Koin sukses! +1200 Koin Tabunan berhasil ditambahkan.', 'success_no_xp');
+    } else if (deal.rewardType === 'title_gm') {
+      try {
+        const titles = JSON.parse(localStorage.getItem('unlockedTitles') || '[]');
+        if (!titles.includes('Grandmaster')) titles.push('Grandmaster');
+        localStorage.setItem('unlockedTitles', JSON.stringify(titles));
+        window.dispatchEvent(new Event('storage'));
+      } catch (e) {}
+      triggerReward(0, 'Pembelian Berhasil! Gelar elit "Grandmaster" Anda sekarang siap dipasang!', 'success_no_xp');
+    }
+
+    const nextDeals = flashDeals.filter(d => d.id !== deal.id);
+    setFlashDeals(nextDeals);
+    localStorage.setItem('personalized_flash_deals', JSON.stringify(nextDeals));
+    triggerAudio('win');
+  };
+
   // cosmetic theme shop purchasing
   const buyTheme = (theme: PurchaseableTheme) => {
-    if (xp >= theme.cost) {
-      setXp(prev => prev - theme.cost);
-      setUnlockedThemes(prev => [...prev, theme.id]);
-      setBoardTheme(theme.id);
-      triggerAudio('win');
+    const costType = theme.id === 'cosmic' ? 'diamond' : 'coin';
+    const costValue = theme.id === 'cosmic' ? 30 : 150;
+    
+    if (costType === 'coin') {
+      if (coins >= costValue) {
+        setCoins(prev => prev - costValue);
+        setUnlockedThemes(prev => [...prev, theme.id]);
+        setBoardTheme(theme.id);
+        triggerAudio('win');
+        triggerReward(0, `Tema "${theme.name}" berhasil dibeli seharga ${costValue} Koin!`, 'success_no_xp');
+      } else {
+        triggerAudio('error');
+        triggerReward(0, `Koin tidak cukup! Membutuhkan ${costValue} Koin.`, 'info');
+      }
     } else {
-      triggerAudio('error');
+      if (diamonds >= costValue) {
+        setDiamonds(prev => prev - costValue);
+        setUnlockedThemes(prev => [...prev, theme.id]);
+        setBoardTheme(theme.id);
+        triggerAudio('win');
+        triggerReward(0, `Tema "${theme.name}" berhasil dibeli seharga ${costValue} Berlian!`, 'success_no_xp');
+      } else {
+        triggerAudio('error');
+        triggerReward(0, `Berlian tidak cukup! Membutuhkan ${costValue} Berlian.`, 'info');
+      }
     }
   };
 
   // Refilling hearts
   const buyHeartRefill = () => {
-    if (xp >= 50) {
-      setXp(prev => prev - 50);
+    if (coins >= 50) {
+      setCoins(prev => prev - 50);
       setHearts(5);
       triggerAudio('win');
+      triggerReward(0, "Stamina Analisis berhasil diisi ulang menjadi penuh seharga 50 Koin!", 'success_no_xp');
     } else {
       triggerAudio('error');
+      triggerReward(0, "Koin tidak cukup untuk membeli isi ulang stamina (50 Koin)!", 'info');
     }
+  };
+
+  const claimLevelUpReward = (lvl: number) => {
+    const reward = LEVEL_REWARDS.find(r => r.level === lvl);
+    if (!reward) return;
+    
+    if (claimedLevelRewards.includes(lvl)) {
+      triggerAudio('error');
+      triggerReward(0, `Hadiah Level ${lvl} telah diklaim sebelumnya!`, 'info');
+      return;
+    }
+    
+    const currentLevel = Math.floor(xp / 100) + 1;
+    if (currentLevel < lvl) {
+      triggerAudio('error');
+      triggerReward(0, `Eits, level Anda belum melampaui Level ${lvl}! Terus dapatkan XP dengan bermain catur.`, 'info');
+      return;
+    }
+    
+    // Add currencies
+    const nextCoins = coins + reward.coins;
+    const nextDiamonds = diamonds + reward.diamonds;
+    setCoins(nextCoins);
+    setDiamonds(nextDiamonds);
+    localStorage.setItem('coins', String(nextCoins));
+    localStorage.setItem('diamonds', String(nextDiamonds));
+    
+    // Auto sync user metrics
+    if (user) {
+      syncUserStats(onlineRating, xp, unlockedThemes);
+    }
+    
+    // Check if frame exists as reward
+    let giftMsg = '';
+    if (reward.frameReward) {
+      if (!unlockedFrames.includes(reward.frameReward)) {
+        const nextFrames = [...unlockedFrames, reward.frameReward];
+        setUnlockedFrames(nextFrames);
+        const userScope = username.trim().toLowerCase();
+        localStorage.setItem(`unlockedFrames:${userScope}`, JSON.stringify(nextFrames));
+      }
+      giftMsg = ` & ${reward.otherGift}`;
+    }
+    
+    const nextClaimed = [...claimedLevelRewards, lvl];
+    setClaimedLevelRewards(nextClaimed);
+    const userKey = username.trim().toLowerCase();
+    localStorage.setItem(`claimedLevelRewards:${userKey}`, JSON.stringify(nextClaimed));
+    
+    triggerAudio('win');
+    triggerReward(0, `Selamat! Hadiah Naik Level ${lvl} diklaim: +${reward.coins} Koin, +${reward.diamonds} Berlian${giftMsg}!`, 'success_no_xp');
   };
 
   const buyAvatarFrame = (frame: AvatarFrame) => {
     if (unlockedFrames.includes(frame.id)) return;
+
+    if (frame.isPremiumExclusive) {
+      triggerAudio('error');
+      triggerReward(0, "Bingkai ini khusus untuk Member Premium! Aktifkan keanggotaan Premium di Toko.", 'info');
+      return;
+    }
 
     if (frame.costType === 'coin' && coins < frame.cost) {
       triggerAudio('error');
@@ -3098,9 +3624,13 @@ export default function App() {
     }
 
     if (frame.costType === 'coin') {
-      setCoins(prev => prev - frame.cost);
+      const next = coins - frame.cost;
+      setCoins(next);
+      localStorage.setItem('coins', String(next));
     } else if (frame.costType === 'diamond') {
-      setDiamonds(prev => prev - frame.cost);
+      const next = diamonds - frame.cost;
+      setDiamonds(next);
+      localStorage.setItem('diamonds', String(next));
     }
 
     setUnlockedFrames(prev => {
@@ -3116,7 +3646,15 @@ export default function App() {
 
   const equipAvatarFrame = (frameId: string) => {
     const isPremium = membershipStatus === 'premium';
-    const isUnlocked = unlockedFrames.includes(frameId) || frameId === 'none' || (isPremium && AVATAR_FRAMES.find(f => f.id === frameId)?.isPremiumExclusive);
+    const frame = AVATAR_FRAMES.find(f => f.id === frameId);
+    
+    if (frame?.isPremiumExclusive && !isPremium) {
+      triggerAudio('error');
+      triggerReward(0, "Bingkai ini eksklusif untuk Anggota Premium Elite! Silakan tingkatkan akun Anda di Toko.", 'info');
+      return;
+    }
+
+    const isUnlocked = unlockedFrames.includes(frameId) || frameId === 'none' || (isPremium && frame?.isPremiumExclusive);
     
     if (!isUnlocked) return;
 
@@ -3126,22 +3664,27 @@ export default function App() {
 
   // Daily login reward claiming
   const handleClaimDailyReward = () => {
-    const today = new Date().toLocaleDateString('en-CA');
+    const today = serverDate;
     
     // Custom daily gifts & XP
     // Day 1: i=0, Day 2: i=1, Day 3: i=2, etc.
     const rewards = [
-      { xp: 10, bonusxp: 0, refill: false, premiumDays: 0, desc: "+10 XP" },
-      { xp: 15, bonusxp: 0, refill: true, premiumDays: 0, desc: "+15 XP & Refill Nyawa Penuh" },
-      { xp: 20, bonusxp: 0, refill: false, premiumDays: 3, desc: "+20 XP & Akun Premium Gratis 3 Hari" },
-      { xp: 25, bonusxp: 100, refill: false, premiumDays: 0, desc: "+125 XP (Termasuk Bonus Absensi Spesial!)" },
-      { xp: 30, bonusxp: 0, refill: true, premiumDays: 0, desc: "+30 XP & Refill Nyawa Penuh" },
-      { xp: 40, bonusxp: 150, refill: false, premiumDays: 0, desc: "+190 XP (Termasuk Bonus XP Hebat!)" },
-      { xp: 50, bonusxp: 0, refill: false, premiumDays: 7, desc: "+50 XP & Akses Premium Gratis 7 Hari" },
+      { xp: 10, bonusxp: 0, refill: false, premiumDays: 0, desc: "XP Standar" },
+      { xp: 15, bonusxp: 0, refill: true, premiumDays: 0, desc: "XP Standar dan Pemulihan Nyawa" },
+      { xp: 20, bonusxp: 0, refill: false, premiumDays: 3, desc: "XP Standar dan Premium Gratis 3 Hari" },
+      { xp: 25, bonusxp: 100, refill: false, premiumDays: 0, desc: "Bonus Absensi Spesial" },
+      { xp: 30, bonusxp: 0, refill: true, premiumDays: 0, desc: "XP Standar dan Pemulihan Nyawa" },
+      { xp: 40, bonusxp: 150, refill: false, premiumDays: 0, desc: "Bonus XP Hebat" },
+      { xp: 50, bonusxp: 0, refill: false, premiumDays: 7, desc: "XP Standar dan Premium Gratis 7 Hari" },
     ];
     
     const reward = rewards[dailyIndex];
-    const totalXpGain = reward.xp + (reward.bonusxp || 0);
+    
+    // Feature 38: Streak Bonus - consecutive login rewards scale up
+    // Granting 10 XP and 25 Coins per streak day
+    const streakBonusXp = streak * 10;
+    const streakBonusCoins = streak * 25;
+    const totalXpGain = reward.xp + (reward.bonusxp || 0) + streakBonusXp;
 
     // Apply XP
     setXp(prev => {
@@ -3152,6 +3695,15 @@ export default function App() {
       }
       return nextXp;
     });
+
+    // Apply Coins
+    if (streakBonusCoins > 0) {
+      setCoins(prevCoins => {
+        const nextCoins = prevCoins + streakBonusCoins;
+        localStorage.setItem('coins', String(nextCoins));
+        return nextCoins;
+      });
+    }
 
     // Apply heart refill if any
     if (reward.refill) {
@@ -3176,7 +3728,10 @@ export default function App() {
     localStorage.setItem(`lastClaimDate:${userScope}`, today);
     triggerAudio('win');
     
-    triggerReward(totalXpGain, `Absensi Hari ke-${dailyIndex + 1} Selesai: Anda mendapatkan ${reward.desc}!`);
+    triggerReward(
+      totalXpGain, 
+      `Absensi Hari ke-${dailyIndex + 1} Berhasil Di-klaim! Mendapatkan: ${reward.desc}. Ditambah Bonus Streak Beruntun (${streak} Hari): +${streakBonusXp} XP dan +${streakBonusCoins} Coin!`
+    );
   };
 
   const activeThemeConfig = THEMES.find(t => t.id === boardTheme) || THEMES[0];
@@ -3184,165 +3739,316 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#262421] text-[#bab9b8] flex flex-col font-sans selection:bg-emerald-950 antialiased">
       {/* HUD HEADER/TOP STATUS BAR (NATURAL TONES STYLED PANEL) */}
-      <nav id="hud-nav" className="sticky top-0 z-40 bg-[#312e2b] border-b border-[#3c3934] px-1.5 py-3 min-[400px]:px-3 sm:px-6 sm:py-4 shadow-md">
-        <div className="max-w-6xl mx-auto flex flex-row items-center justify-between gap-1 sm:gap-1.5">
-          <div onClick={() => setMode('menu')} className="flex items-center gap-1.5 sm:gap-3 cursor-pointer group min-w-0">
-            <svg className="w-5 h-5 sm:w-8 sm:h-8 text-[#81b64c] shrink-0" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M19 22H5v-2h14v2M17 10c0-1.35-.83-2.5-2-3c0-2-2-4-3-4s-3 2-3 4c-1.17.5-2 1.65-2 3c0 1.35.83 2.5 2 3h6c1.17-.5 2-1.35 2-3M18 18H6v-3h12v3m-7-3v-2h2v2h-2z" />
-            </svg>
-            <div className="min-w-0">
-              <h1 className="text-2xs min-[360px]:text-xs sm:text-lg md:text-xl font-extrabold tracking-tight text-white group-hover:text-[#81b64c] transition-colors uppercase truncate">
-                Catur<span className="text-[#81b64c]"> Nopal</span>
-              </h1>
-              <p className="text-[9px] font-mono font-bold tracking-wider text-[#9babaf] uppercase hidden sm:block">Arena Catur & Taktik Premium</p>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-1 min-[400px]:gap-1.5 sm:gap-4 shrink-0 min-w-0">
-            {/* STREAK */}
-            <div className="flex items-center gap-0.5 sm:gap-1 cursor-default group shrink-0" title="Streak harian permainanmu">
-              <Flame className={`w-3.5 h-3.5 sm:w-5 sm:h-5 transition-all ${streak > 0 ? 'text-orange-500 fill-orange-500 animate-pulse' : 'text-[#55534e]'}`} />
-              <span className={`text-[10px] sm:text-sm font-black transition-all ${streak > 0 ? 'text-orange-400' : 'text-[#8a8883]'}`}>
-                {streak}<span className="hidden min-[450px]:inline"> Hari</span>
-              </span>
-            </div>
-
-            {/* HEARTS */}
-            <button 
-              onClick={() => {
-                if (hearts < 5) {
-                  setMode('store');
-                  triggerAudio('move');
-                }
-              }}
-              className="flex items-center gap-0.5 xs:gap-1 bg-[#262421] px-1.5 py-1 min-[400px]:px-2.5 min-[400px]:py-1.5 rounded-full border border-[#3c3934] hover:border-[#81b64c] cursor-pointer hover:scale-105 transition-all group shrink-0" 
-              title="Kesempatan Analisis / Nyawa. Klik untuk isi ulang di Store!"
-            >
-              <Heart className={`w-3 h-3 sm:w-3.5 sm:h-3.5 text-red-500 fill-red-500 ${hearts === 0 ? 'animate-ping' : ''}`} />
-              <span className="text-[10px] sm:text-xs font-black text-white">
-                {hearts}<span className="text-[9px] text-[#8a8883] font-normal">/5</span><span className="hidden sm:inline text-[#8a8883] font-semibold"> Nyawa</span>
-              </span>
-            </button>
-
-            {/* TOTAL POINTS XP/SPARKLES */}
-            <div className="flex items-center gap-0.5 xs:gap-1 bg-[#262421] px-1.5 py-1 min-[400px]:px-2.5 min-[400px]:py-1.5 rounded-full border border-[#3c3934] shrink-0" title="Skor Keahlian (XP)">
-              <Sparkles className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-[#FFC800] fill-yellow-500/10" />
-              <span className="text-[10px] sm:text-xs font-black text-white">
-                {xp} <span className="text-[8px] font-semibold text-slate-400 hidden min-[450px]:inline">XP</span>
-              </span>
-            </div>
-
-            {/* IN-GAME COINS */}
-            <div className="flex items-center gap-0.5 xs:gap-1 bg-[#262421] px-1.5 py-1 min-[400px]:px-2.5 min-[400px]:py-1.5 rounded-full border border-[#3c3934] shrink-0" title="Koin Utama Arena">
-              <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-[#81b64c]" />
-              <span className="text-[10px] sm:text-xs font-black text-white">
-                {coins} <span className="text-[8px] font-semibold text-slate-400 hidden min-[450px]:inline">Coin</span>
-              </span>
-            </div>
-
-            {/* IN-GAME DIAMONDS */}
-            <div className="flex items-center gap-0.5 xs:gap-1 bg-[#262421] px-1.5 py-1 min-[400px]:px-2.5 min-[400px]:py-1.5 rounded-full border border-[#3c3934] shrink-0" title="Berlian Eksklusif (Premium)">
-              <Gem className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-cyan-400" />
-              <span className="text-[10px] sm:text-xs font-black text-white">
-                {diamonds} <span className="text-[8px] font-semibold text-slate-400 hidden min-[450px]:inline">Berlian</span>
-              </span>
-            </div>
-
-            {/* SOUND SELECTOR */}
-            <button
-              id="sound-toggle-btn"
-              onClick={() => {
-                const updated = !soundEnabled;
-                setSoundEnabled(updated);
-                localStorage.setItem('sound', String(updated));
-                if (updated) playSound('move');
-              }}
-              className="p-1 sm:p-2 text-[#9babaf] hover:text-white rounded-lg hover:bg-[#3c3934] cursor-pointer transition-colors shrink-0"
-              title={soundEnabled ? "Matikan Efek Suara" : "Aktifkan Efek Suara"}
-            >
-              {soundEnabled ? <Volume2 className="w-3.5 h-3.5 sm:w-5 sm:h-5" /> : <VolumeX className="w-3.5 h-3.5 sm:w-5 sm:h-5 text-red-500" />}
-            </button>
-
-            {/* USER PROFILE & AUTHENTICATION WIDGET */}
-            {user ? (
-              <div id="profile-logged-in" className="flex items-center gap-1 sm:gap-2.5 pl-1 sm:pl-2 border-l border-[#3c3934] shrink-0 min-w-0">
-                <div 
-                  onClick={() => { setShowProfileModal(true); triggerAudio('move'); }} 
-                  className="flex items-center gap-1.5 sm:gap-2 cursor-pointer hover:bg-[#3c3934]/50 p-1 rounded-xl transition-all shrink-0 min-w-0"
-                  title="Lihat Profil & Statistik Catur Anda"
-                >
-                  <AvatarWithFrame 
-                    src={user.profileAvatar || martinAvatar} 
-                    frameId={selectedFrame} 
-                    size="sm" 
-                  />
-                  <div className="flex flex-col text-right hidden min-[500px]:flex">
-                    <span className="text-white text-[11px] sm:text-xs font-bold leading-tight truncate max-w-[70px] sm:max-w-[125px] flex items-center justify-end gap-0.5">
-                      {membershipStatus === 'premium' && <Crown className="w-3.5 h-3.5 text-yellow-400 fill-yellow-400/10 inline" />}
-                      {user.username}
-                    </span>
-                    <span className="text-[9px] sm:text-[10px] text-yellow-400 font-extrabold leading-none flex items-center justify-end gap-1">
-                      {membershipStatus === 'premium' ? (
-                        <span className="px-1 bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-[8px] font-black rounded uppercase tracking-wide">PREMIUM</span>
-                      ) : (
-                        <span className="flex items-center gap-0.5"><Swords className="w-3 h-3 text-yellow-500" /> {onlineRating} ELO</span>
-                      )}
-                      {membershipStatus === 'premium' && <span className="text-[9px] text-[#9babaf] flex items-center gap-0.5">• <Swords className="w-3 h-3 text-slate-300" /> {onlineRating}</span>}
-                    </span>
-                  </div>
-                </div>
-                <button
-                  id="profile-logout-btn"
-                  onClick={() => {
-                    setUser(null);
-                    localStorage.removeItem('user');
-                    setOnlineRating(400);
-                    localStorage.setItem('onlineRating', '400');
-                    setXp(0);
-                    localStorage.setItem('xp', '0');
-                    setUnlockedThemes(['classic']);
-                    localStorage.setItem('unlockedThemes', JSON.stringify(['classic']));
-                    setGuestMatchesPlayed(0);
-                    localStorage.setItem('guestMatchesPlayed', '0');
-                    setGuestMatchesWon(0);
-                    localStorage.setItem('guestMatchesWon', '0');
-                    setProfileEditingBio('Pecatur sejati pantang menyerah!');
-                    setClaimedAchievements([]);
-                    setMembershipStatus('free');
-                    localStorage.setItem('membershipStatus', 'free');
-
-                    // Reset to a seed profile name and load scoped stats for it
-                    const prevName = `Pecatur_${Math.random().toString(36).substring(2,6).toUpperCase()}`;
-                    setUsername(prevName);
-                    localStorage.setItem('username', prevName);
-                    loadUserScopedStats(prevName);
-                    triggerAudio('lose');
-                  }}
-                  className="p-1 sm:p-2 bg-red-500/15 hover:bg-red-500/25 text-red-400 rounded-lg cursor-pointer transition-colors shrink-0"
-                  title="Keluar dari Akun"
-                >
-                  <LogOut className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
-                </button>
+      <nav id="hud-nav" className="sticky top-0 z-40 bg-[#312e2b] border-b border-[#3c3934] px-2 py-2 sm:px-6 sm:py-4 shadow-md select-none">
+        <div className="max-w-6xl mx-auto flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4">
+          
+          {/* Main Brand with Left alignment & Profile End alignment on mobile */}
+          <div className="flex items-center justify-between w-full sm:w-auto">
+            <div onClick={() => setMode('menu')} className="flex items-center gap-1.5 sm:gap-3 cursor-pointer group min-w-0 shrink-0">
+              <svg className="w-5 h-5 sm:w-8 sm:h-8 text-[#81b64c] shrink-0" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M19 22H5v-2h14v2M17 10c0-1.35-.83-2.5-2-3c0-2-2-4-3-4s-3 2-3 4c-1.17.5-2 1.65-2 3c0 1.35.83 2.5 2 3h6c1.17-.5 2-1.35 2-3M18 18H6v-3h12v3m-7-3v-2h2v2h-2z" />
+              </svg>
+              <div className="min-w-0">
+                <h1 className="text-xs sm:text-lg md:text-xl font-black tracking-tight text-white group-hover:text-[#81b64c] transition-colors uppercase whitespace-nowrap">
+                  Catur<span className="text-[#81b64c]"> Nopal</span>
+                </h1>
+                <p className="text-[9px] font-mono font-bold tracking-wider text-[#9babaf] uppercase hidden sm:block">Arena Catur & Taktik Premium</p>
               </div>
-            ) : (
-              <div className="flex items-center gap-1 shrink-0">
-                {membershipStatus === 'premium' && (
-                  <span className="px-1 py-0.5 bg-yellow-500/20 border border-yellow-500/40 text-yellow-500 text-[8px] font-black rounded uppercase tracking-wide hidden sm:inline-flex items-center gap-0.5"><Crown className="w-3 h-3 text-yellow-400" /> PREMIUM</span>
-                )}
+            </div>
+
+            {/* Compact Profile Actions on Mobile right (avoids overflow) */}
+            <div className="flex items-center gap-1.5 sm:hidden">
+              {/* Sound icon button */}
+              <button
+                onClick={() => {
+                  const updated = !soundEnabled;
+                  setSoundEnabled(updated);
+                  localStorage.setItem('sound', String(updated));
+                  if (updated) playSound('move');
+                }}
+                className="p-1 px-1.5 bg-[#262421] border border-[#3c3934] text-[#9babaf] hover:text-white rounded-lg cursor-pointer transition-colors shrink-0"
+                title={soundEnabled ? "Matikan suara" : "Aktifkan suara"}
+              >
+                {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5 text-red-500" />}
+              </button>
+
+              {/* Login / Profile on mobile */}
+              {user ? (
+                <div className="flex items-center gap-1 pl-1 border-l border-[#3c3934] shrink-0">
+                  <div 
+                    onClick={() => { setShowProfileModal(true); triggerAudio('move'); }} 
+                    className="cursor-pointer hover:scale-105 active:scale-95 transition-all p-0.5 bg-[#262421] border border-[#3c3934] rounded-full"
+                    title="Lihat Profil"
+                  >
+                    <AvatarWithFrame 
+                      src={user.profileAvatar || martinAvatar} 
+                      frameId={selectedFrame} 
+                      size="xs" 
+                    />
+                  </div>
+                  <button
+                    onClick={() => {
+                      setUser(null);
+                      localStorage.removeItem('user');
+                      setOnlineRating(400);
+                      localStorage.setItem('onlineRating', '400');
+                      setXp(0);
+                      localStorage.setItem('xp', '0');
+                      setUnlockedThemes(['classic']);
+                      localStorage.setItem('unlockedThemes', JSON.stringify(['classic']));
+                      setGuestMatchesPlayed(0);
+                      localStorage.setItem('guestMatchesPlayed', '0');
+                      setGuestMatchesWon(0);
+                      localStorage.setItem('guestMatchesWon', '0');
+                      setProfileEditingBio('Pecatur sejati pantang menyerah!');
+                      setClaimedAchievements([]);
+                      setMembershipStatus('free');
+                      localStorage.setItem('membershipStatus', 'free');
+
+                      const prevName = `Pecatur_${Math.random().toString(36).substring(2,6).toUpperCase()}`;
+                      setUsername(prevName);
+                      localStorage.setItem('username', prevName);
+                      loadUserScopedStats(prevName);
+                      triggerAudio('lose');
+                    }}
+                    className="p-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg cursor-pointer transition-colors shrink-0"
+                    title="Keluar"
+                  >
+                    <LogOut className="w-3 h-3" />
+                  </button>
+                </div>
+              ) : (
                 <button
-                  id="profile-login-trigger"
                   onClick={() => {
                     setAuthError('');
                     setShowAuthModal(true);
                     triggerAudio('move');
                   }}
-                  className="px-1.5 py-1 min-[400px]:px-2.5 min-[400px]:py-2 bg-[#81b64c] hover:bg-[#6c9c3e] text-white text-[9px] min-[400px]:text-[10px] sm:text-xs font-black rounded-lg cursor-pointer flex items-center gap-0.5 min-[400px]:gap-1 hover:scale-105 transition-all shrink-0 uppercase tracking-wider"
+                  className="px-2 py-1 bg-[#81b64c] hover:bg-[#6c9c3e] text-white text-[10px] font-black rounded-lg cursor-pointer flex items-center gap-1 active:scale-95 transition-all uppercase tracking-wider shadow-sm"
                 >
-                  <User className="w-2.5 h-2.5 min-[400px]:w-3 min-[400px]:h-3 sm:w-3.5 sm:h-3.5 fill-white/10 hidden min-[360px]:inline" />
+                  <User className="w-3.5 h-3.5" />
                   <span>Masuk</span>
                 </button>
+              )}
+
+              {/* Hamburger Menu on Mobile */}
+              <button
+                onClick={() => {
+                  setIsNavDrawerOpen(true);
+                  triggerAudio('move');
+                }}
+                className="p-1 px-1.5 bg-[#262421] border border-[#3c3934] text-[#9babaf] hover:text-[#81b64c] rounded-lg cursor-pointer transition-colors shrink-0"
+                title="Buka Navigasi"
+              >
+                <Menu className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          </div>
+
+          {/* Top Bar Resources: Streak, Stamina, XP, Coin, Diamond */}
+          <div className="flex items-center justify-between w-full sm:w-auto gap-1 sm:gap-4 border-t sm:border-t-0 border-[#3c3934]/30 pt-1.5 sm:pt-0">
+            <div className="flex items-center justify-around sm:justify-start w-full sm:w-auto gap-1 sm:gap-2.5">
+              
+              {/* STREAK */}
+              <div className="flex items-center gap-0.5 sm:gap-1 bg-[#262421] px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-full border border-[#3c3934] shrink-0" title="Streak bermain">
+                <Flame className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${streak > 0 ? 'text-orange-500 fill-orange-500 animate-pulse' : 'text-[#55534e]'}`} />
+                <span className={`text-[10px] sm:text-xs font-black ${streak > 0 ? 'text-orange-400' : 'text-[#8a8883]'}`}>
+                  {streak}<span className="text-[8.5px] font-bold text-slate-400 hidden min-[400px]:inline"> Hari</span>
+                </span>
               </div>
-            )}
+
+              {/* HEARTS */}
+              <button 
+                onClick={() => {
+                  if (hearts < 5) {
+                    setMode('store');
+                    triggerAudio('move');
+                  }
+                }}
+                className="flex items-center gap-0.5 sm:gap-1 bg-[#262421] px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-full border border-[#3c3934] hover:border-[#81b64c] cursor-pointer hover:scale-105 transition-all group shrink-0" 
+                title="Nyawa analisis"
+              >
+                <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" />
+                <span className="text-[10px] sm:text-xs font-black text-white">
+                  {hearts}<span className="text-[8px] text-[#8a8883]/80 font-normal">/5</span>
+                </span>
+              </button>
+
+              {/* XP */}
+              <div 
+                onClick={() => { setMode('profile'); triggerAudio('move'); }}
+                className="flex items-center gap-0.5 sm:gap-1 bg-[#262421] hover:border-[#81b64c]/50 cursor-pointer px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-full border border-[#3c3934] shrink-0" 
+                title="Keahlian XP"
+              >
+                <Sparkles className="w-3.5 h-3.5 text-[#FFC800]" />
+                <span className="text-[10px] sm:text-xs font-black text-white">
+                  {xp}<span className="text-[8px] font-bold text-slate-400 hidden min-[400px]:inline"> XP</span>
+                </span>
+              </div>
+
+              {/* COINS */}
+              <div className="flex items-center gap-0.5 sm:gap-1 bg-[#262421] px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-full border border-[#3c3934] shrink-0" title="Koin Arena">
+                <Coins className="w-3.5 h-3.5 text-[#81b64c]" />
+                <span className="text-[10px] sm:text-xs font-black text-white">
+                  {coins}<span className="text-[8px] font-bold text-slate-400 hidden min-[400px]:inline"> Koin</span>
+                </span>
+              </div>
+
+              {/* DIAMONDS */}
+              <div className="flex items-center gap-0.5 sm:gap-1 bg-[#262421] px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-full border border-[#3c3934] shrink-0" title="Berlian Premium">
+                <Gem className="w-3.5 h-3.5 text-cyan-400" />
+                <span className="text-[10px] sm:text-xs font-black text-white">
+                  {diamonds}<span className="text-[8px] font-bold text-slate-400 hidden min-[400px]:inline"> Berlian</span>
+                </span>
+              </div>
+
+              {/* INBOX (SURAT KOTAK MASUK) - SEJAJAR CURRENCY */}
+              <button
+                onClick={() => {
+                  const totalG = receivedGifts.length;
+                  const totalI = inboxMessages.length;
+                  if (totalI > 0 && totalG === 0) {
+                    setInboxActiveTab('invites');
+                  } else {
+                    setInboxActiveTab('gifts');
+                  }
+                  setShowGiftInboxModal(true);
+                  triggerAudio('move');
+                }}
+                className="flex items-center gap-1 bg-[#262421] hover:bg-[#312e2b] hover:border-amber-500 transition-all cursor-pointer px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-[#3c3934] shrink-0 relative font-sans focus:outline-none"
+                title="Kotak Masuk Surat"
+              >
+                <Mail className={`w-3.5 h-3.5 text-amber-400 ${(receivedGifts.length + inboxMessages.length) > 0 ? 'animate-bounce' : ''}`} />
+                <span className="text-[10px] sm:text-xs font-black text-white hidden min-[400px]:inline">Surat</span>
+                {(receivedGifts.length + inboxMessages.length) > 0 && (
+                  <span className="absolute -top-1.5 -right-1 bg-red-600 text-white font-black text-[8px] px-1.5 py-0.5 rounded-full border border-[#1e1c1b] animate-pulse">
+                    {receivedGifts.length + inboxMessages.length}
+                  </span>
+                )}
+              </button>
+
+              {/* DAFTAR TEMAN - SEJAJAR INBOX */}
+              <button
+                onClick={() => {
+                  setShowFriendListModal(true);
+                  triggerAudio('move');
+                }}
+                className="flex items-center gap-1 bg-[#262421] hover:bg-[#312e2b] hover:border-[#81b64c] transition-all cursor-pointer px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-[#3c3934] shrink-0 relative font-sans focus:outline-none"
+                title="Daftar Teman"
+              >
+                <Users className={`w-3.5 h-3.5 text-cyan-400 ${friendRequests.length > 0 ? 'animate-bounce' : ''}`} />
+                <span className="text-[10px] sm:text-xs font-black text-white hidden min-[400px]:inline">Teman</span>
+                {friendRequests.length > 0 && (
+                  <span className="absolute -top-1.5 -right-1 bg-red-650 text-white font-black text-[8px] px-1.5 py-0.5 rounded-full border border-[#1e1c1b] animate-pulse">
+                    {friendRequests.length}
+                  </span>
+                )}
+              </button>
+
+            </div>
+
+            {/* Sound, Desktop Profile on Desktop right (hidden on mobile) */}
+            <div className="hidden sm:flex items-center gap-3 border-l border-[#3c3934] pl-4">
+              <button
+                onClick={() => {
+                  const updated = !soundEnabled;
+                  setSoundEnabled(updated);
+                  localStorage.setItem('sound', String(updated));
+                  if (updated) playSound('move');
+                }}
+                className="p-1.5 text-[#9babaf] hover:text-white rounded-lg hover:bg-[#3c3934] cursor-pointer transition-colors shrink-0"
+                title={soundEnabled ? "Matikan Efek Suara" : "Aktifkan Efek Suara"}
+              >
+                {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-red-500" />}
+              </button>
+
+              {user ? (
+                <div id="profile-logged-in-desktop" className="flex items-center gap-2.5 shrink-0 min-w-0">
+                  <div 
+                    onClick={() => { setShowProfileModal(true); triggerAudio('move'); }} 
+                    className="flex items-center gap-2 cursor-pointer hover:bg-[#3c3934]/50 p-1 rounded-xl transition-all shrink-0 min-w-0"
+                    title="Lihat Profil & Stats"
+                  >
+                    <AvatarWithFrame 
+                      src={user.profileAvatar || martinAvatar} 
+                      frameId={selectedFrame} 
+                      size="sm" 
+                    />
+                    <div className="flex flex-col text-right">
+                      <span className="text-white text-xs font-bold leading-tight truncate max-w-[124px] flex items-center justify-end gap-0.5">
+                        {membershipStatus === 'premium' && <Crown className="w-3 h-3 text-yellow-400 fill-yellow-400/10 inline" />}
+                        {user.username}
+                      </span>
+                      <span className="text-[9px] text-[#9babaf] font-semibold leading-none flex items-center justify-end gap-1 mt-0.5">
+                        {membershipStatus === 'premium' ? (
+                          <span className="px-1 bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-[8px] font-black rounded uppercase tracking-wide">PREMIUM</span>
+                        ) : (
+                          <span className="flex items-center gap-0.5"><Swords className="w-3 h-3 text-yellow-500" /> {onlineRating} ELO</span>
+                        )}
+                      </span>
+                    </div>
+                  </div>
+                  <button
+                    onClick={() => {
+                      setUser(null);
+                      localStorage.removeItem('user');
+                      setOnlineRating(400);
+                      localStorage.setItem('onlineRating', '400');
+                      setXp(0);
+                      localStorage.setItem('xp', '0');
+                      setUnlockedThemes(['classic']);
+                      localStorage.setItem('unlockedThemes', JSON.stringify(['classic']));
+                      setGuestMatchesPlayed(0);
+                      localStorage.setItem('guestMatchesPlayed', '0');
+                      setGuestMatchesWon(0);
+                      localStorage.setItem('guestMatchesWon', '0');
+                      setProfileEditingBio('Pecatur sejati pantang menyerah!');
+                      setClaimedAchievements([]);
+                      setMembershipStatus('free');
+                      localStorage.setItem('membershipStatus', 'free');
+
+                      const prevName = `Pecatur_${Math.random().toString(36).substring(2,6).toUpperCase()}`;
+                      setUsername(prevName);
+                      localStorage.setItem('username', prevName);
+                      loadUserScopedStats(prevName);
+                      triggerAudio('lose');
+                    }}
+                    className="p-1.5 bg-red-500/15 hover:bg-red-500/25 text-red-400 rounded-lg cursor-pointer transition-colors shrink-0"
+                    title="Keluar dari Akun"
+                  >
+                    <LogOut className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              ) : (
+                <div className="flex items-center gap-1 shrink-0">
+                  <button
+                    onClick={() => {
+                      setAuthError('');
+                      setShowAuthModal(true);
+                      triggerAudio('move');
+                    }}
+                    className="px-1.5 py-1 min-[400px]:px-2.5 min-[400px]:py-2 bg-[#81b64c] hover:bg-[#6c9c3e] text-white text-[9px] min-[400px]:text-[10px] sm:text-xs font-black rounded-lg cursor-pointer flex items-center gap-0.5 min-[400px]:gap-1 hover:scale-105 transition-all shrink-0 uppercase tracking-wider"
+                  >
+                    <User className="w-2.5 h-2.5 min-[400px]:w-3 min-[400px]:h-3 sm:w-3.5 sm:h-3.5 fill-white/10 hidden min-[360px]:inline" />
+                    <span>Masuk</span>
+                  </button>
+                </div>
+              )}
+
+              {/* Hamburger Menu on Desktop */}
+              <button
+                onClick={() => {
+                  setIsNavDrawerOpen(true);
+                  triggerAudio('move');
+                }}
+                className="p-1.5 bg-[#262421] border border-[#3c3934] text-[#9babaf] hover:text-[#81b64c] rounded-lg cursor-pointer transition-colors shrink-0 flex items-center gap-1 hover:border-[#81b64c]"
+                title="Buka Navigasi"
+              >
+                <Menu className="w-4 h-4 shrink-0" />
+                <span className="text-[10px] font-black uppercase tracking-wider hidden lg:inline">Menu</span>
+              </button>
+            </div>
+
           </div>
         </div>
       </nav>
@@ -3391,11 +4097,21 @@ export default function App() {
 
               {rewardType === 'success_no_xp' && (
                 <>
-                  <div className="w-16 h-16 bg-[#262421] rounded-full flex items-center justify-center mx-auto mb-4 border border-teal-600/30">
-                    <Crown className="w-9 h-9 text-[#81b64c] fill-[#81b64c]/20" />
+                  <div className="w-16 h-16 bg-[#262421] rounded-full flex items-center justify-center mx-auto mb-4 border border-[#81b64c]/30">
+                    <Check className="w-9 h-9 text-[#81b64c]" />
                   </div>
-                  <h3 className="text-2xl font-black text-white mb-1">PROMO AKTIF!</h3>
-                  <p className="text-xs text-[#81b64c] font-bold tracking-wide uppercase mb-4">Status Akun Diperbarui</p>
+                  <h3 className="text-2xl font-black text-white mb-1">BERHASIL!</h3>
+                  <p className="text-xs text-[#81b64c] font-bold tracking-wide uppercase mb-4">Transaksi Sukses</p>
+                </>
+              )}
+
+              {rewardType === 'level_up' && (
+                <>
+                  <div className="w-16 h-16 bg-[#262421] rounded-full flex items-center justify-center mx-auto mb-4 border border-yellow-500/30 animate-bounce">
+                    <Trophy className="w-9 h-9 text-[#FFC800] fill-yellow-500/10" />
+                  </div>
+                  <h3 className="text-2xl font-black text-white mb-1">LEVEL UP!</h3>
+                  <p className="text-xs text-yellow-500 font-bold tracking-wide uppercase mb-4">Selamat Naik Level</p>
                 </>
               )}
 
@@ -3420,7 +4136,7 @@ export default function App() {
                 id="close-reward-modal"
                 onClick={() => setShowRewardModal(false)}
                 className={`w-full py-3 text-white font-extrabold text-md rounded-xl shadow-lg cursor-pointer transition-colors uppercase border-b-4 ${
-                  rewardType === 'premium' 
+                  rewardType === 'premium' || rewardType === 'level_up'
                     ? 'bg-yellow-500 hover:bg-yellow-400 border-yellow-700' 
                     : rewardType === 'info'
                     ? 'bg-red-500 hover:bg-red-400 border-red-700'
@@ -3701,6 +4417,356 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* GIFT INBOX MODAL (EMOJI FREE) */}
+      <AnimatePresence>
+        {showGiftInboxModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#2d2a27] rounded-3xl max-w-md w-full p-6 shadow-2xl border border-stone-800 relative font-sans"
+            >
+              <button
+                onClick={() => setShowGiftInboxModal(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors cursor-pointer focus:outline-none"
+              >
+                <XCircle className="w-5 h-5 animate-pulse" />
+              </button>
+
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-stone-900 rounded-xl flex items-center justify-center border border-stone-800">
+                  <Mail className="w-5 h-5 text-amber-500 font-bold" />
+                </div>
+                <div>
+                  <h2 className="text-base font-black text-white uppercase tracking-tight leading-none text-left">Pusat Surat & Kotak Masuk</h2>
+                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block mt-1 text-left">Kelola Hadiah Klan dan Duel Tantangan Aktif</span>
+                </div>
+              </div>
+
+              {/* TAB ROW SWITCHER */}
+              <div className="grid grid-cols-2 gap-1.5 p-1 bg-stone-950 rounded-xl mb-4 border border-stone-900">
+                <button
+                  onClick={() => { setInboxActiveTab('gifts'); triggerAudio('move'); }}
+                  className={`py-2 text-[10px] font-black uppercase rounded-lg transition-all text-center cursor-pointer border-none flex items-center justify-center gap-1.5 ${
+                    inboxActiveTab === 'gifts'
+                      ? 'bg-stone-800 text-amber-400 shadow'
+                      : 'bg-transparent text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Surat Kado ({receivedGifts.length})
+                </button>
+                <button
+                  onClick={() => { setInboxActiveTab('invites'); triggerAudio('move'); }}
+                  className={`py-2 text-[10px] font-black uppercase rounded-lg transition-all text-center cursor-pointer border-none flex items-center justify-center gap-1.5 ${
+                    inboxActiveTab === 'invites'
+                      ? 'bg-stone-800 text-cyan-400 shadow'
+                      : 'bg-transparent text-slate-400 hover:text-white'
+                  }`}
+                >
+                  Undangan Duel ({inboxMessages.length})
+                </button>
+              </div>
+
+              {/* TAB 1: GIFTS CONTAINER */}
+              {inboxActiveTab === 'gifts' && (
+                <div>
+                  {receivedGifts.length === 0 ? (
+                    <div className="py-8 text-center text-stone-500 italic text-xs border border-dashed border-stone-800 rounded-xl">
+                      Kotak hadiah kosong. Belum ada kado yang dikirim untuk saat ini.
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[280px] overflow-y-auto pr-1">
+                      {receivedGifts.map((gift) => (
+                        <div key={gift.id} className="p-3 bg-stone-900 border border-stone-850 rounded-xl space-y-2 text-left">
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <span className="text-[9px] text-amber-400 font-bold uppercase font-mono">PENGIRIM: {gift.from}</span>
+                              <h4 className="text-xs font-black text-white">{gift.giftName}</h4>
+                            </div>
+                            {gift.isPremium && (
+                              <span className="text-[8px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded font-black font-sans uppercase">Premium</span>
+                            )}
+                          </div>
+                          
+                          <p className="text-[11.5px] text-[#bab9b8] italic bg-[#1c1a19] p-2.5 rounded border border-stone-950 leading-relaxed font-semibold">
+                            "{gift.msg}"
+                          </p>
+
+                          <div className="flex flex-wrap gap-1.5 pt-1">
+                            <button
+                              onClick={() => handleCashOutGiftInApp(gift, 'coins')}
+                              className="px-2.5 py-1.5 text-[9px] font-black text-white bg-[#81b64c] hover:bg-green-500 cursor-pointer rounded-lg uppercase transition-all border-none font-sans"
+                            >
+                              Koin (+{gift.cashValueCoins || 50})
+                            </button>
+                            {gift.cashValueDiamonds > 0 && (
+                              <button
+                                onClick={() => handleCashOutGiftInApp(gift, 'diamonds')}
+                                className="px-2.5 py-1.5 text-[9px] font-black text-white bg-cyan-600 hover:bg-cyan-500 cursor-pointer rounded-lg uppercase transition-all border-none font-sans"
+                              >
+                                Berlian (+{gift.cashValueDiamonds})
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleOpenOrdinaryGiftInApp(gift)}
+                              className="px-2.5 py-1.5 text-[9px] font-black text-slate-300 bg-stone-800 hover:bg-stone-700 cursor-pointer rounded-lg uppercase transition-all border-none font-sans"
+                            >
+                              Afinitas (+{gift.affinityPoints || 100})
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* TAB 2: DUEL CHALLENGES CONTAINER */}
+              {inboxActiveTab === 'invites' && (
+                <div>
+                  {inboxMessages.length === 0 ? (
+                    <div className="py-8 text-center text-stone-500 italic text-xs border border-dashed border-stone-800 rounded-xl">
+                      Tidak ada tantangan atau undangan tanding catur aktif saat ini.
+                    </div>
+                  ) : (
+                    <div className="space-y-3 max-h-[280px] overflow-y-auto pr-1">
+                      {inboxMessages.map((msg: any) => (
+                        <div key={msg.id} className="p-3 bg-[#1e2330] border border-blue-900/40 rounded-xl flex flex-col gap-2 text-left">
+                          <div className="flex items-start gap-2.5">
+                            <Mail className="w-4 h-4 text-cyan-400 mt-0.5 shrink-0" />
+                            <div className="flex-1">
+                              <p className="text-xs font-extrabold text-[#d2e0fb] leading-normal">{msg.text}</p>
+                              {msg.roomCode && (
+                                <span className="text-[9px] font-mono font-bold text-cyan-300 bg-cyan-950 px-1.5 py-0.5 rounded mt-1 inline-block border border-cyan-800/20">
+                                  ROOM: {msg.roomCode}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          
+                          {msg.type === 'game_invite' ? (
+                            <div className="flex gap-2 justify-end border-t border-stone-800/40 pt-2 mt-1">
+                              <button
+                                onClick={() => handleRespondToInvite(msg, 'decline')}
+                                className="px-3.5 py-1.5 bg-stone-800 hover:bg-stone-750 text-slate-350 font-black rounded-lg text-[9px] uppercase tracking-wider transition-colors cursor-pointer border-none font-sans"
+                              >
+                                Tolak
+                              </button>
+                              <button
+                                onClick={() => {
+                                  setShowGiftInboxModal(false);
+                                  handleRespondToInvite(msg, 'accept');
+                                }}
+                                className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-500 text-white font-black rounded-lg text-[9px] uppercase tracking-wider border-none shadow-[0_2.5px_0_0_#4338ca] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer font-sans"
+                              >
+                                Terima & Main
+                              </button>
+                            </div>
+                          ) : (
+                            <button
+                              onClick={async () => {
+                                await fetch('/api/social/inbox/clear', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ username, msgId: msg.id })
+                                });
+                                fetchSocialInfo();
+                              }}
+                              className="self-end px-3 py-1 bg-stone-800 hover:bg-stone-700 text-slate-300 font-bold rounded-lg text-[9px] uppercase tracking-wider cursor-pointer border-none font-sans"
+                            >
+                              Hapus
+                            </button>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <div className="mt-6 flex gap-2">
+                <button
+                  onClick={() => setShowGiftInboxModal(false)}
+                  className="w-full py-2.5 bg-stone-800 hover:bg-stone-700 text-slate-300 text-xs font-black uppercase rounded-xl transition border-none cursor-pointer"
+                >
+                  Tutup Kotak Masuk
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* DAFTAR TEMAN MODAL */}
+      <AnimatePresence>
+        {showFriendListModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+            <motion.div
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-[#2d2a27] rounded-3xl max-w-md w-full p-6 shadow-2xl border border-stone-800 relative font-sans"
+            >
+              <button
+                onClick={() => setShowFriendListModal(false)}
+                className="absolute top-4 right-4 text-slate-400 hover:text-white transition-colors cursor-pointer focus:outline-none"
+              >
+                <XCircle className="w-5 h-5 animate-pulse" />
+              </button>
+
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-10 h-10 bg-stone-900 rounded-xl flex items-center justify-center border border-stone-800">
+                  <Users className="w-5 h-5 text-cyan-400 font-bold" />
+                </div>
+                <div>
+                  <h2 className="text-base font-black text-white uppercase tracking-tight leading-none text-left font-sans">Hubungan Teman & Relasi</h2>
+                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block mt-1 text-left font-sans">Tambah, tantang duel, atau kelola pertemanan Anda</span>
+                </div>
+              </div>
+
+              {!user ? (
+                <div className="py-6 text-center max-w-sm mx-auto font-sans">
+                  <p className="text-xs font-semibold text-slate-300 leading-relaxed mb-4">
+                    Silakan masuk atau daftar akun terlebih dahulu untuk menggunakan fitur pertemanan sosial!
+                  </p>
+                  <button
+                    onClick={() => {
+                      setShowFriendListModal(false);
+                      setMode('profile');
+                      triggerAudio('move');
+                    }}
+                    className="w-full py-2.5 bg-[#81b64c] hover:bg-[#92ca5a] text-white font-black rounded-xl text-xs uppercase cursor-pointer"
+                  >
+                    Masuk Akun Sekarang
+                  </button>
+                </div>
+              ) : (
+                <div className="space-y-4 font-sans">
+                  {/* SEARCH & ADD FRIEND FORM */}
+                  <div className="space-y-1.5 p-3.5 bg-stone-950/45 border border-stone-900 rounded-2xl">
+                    <label className="text-[9px] uppercase font-black tracking-wider text-slate-400 block text-left">Cari & Tambah Kawan Baru</label>
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={addFriendInput}
+                        onChange={(e) => setAddFriendInput(e.target.value)}
+                        onKeyDown={(e) => { if(e.key === 'Enter') handleSendFriendRequest(); }}
+                        disabled={isSocialLoading}
+                        placeholder="Masukkan username kawan catur..."
+                        className="flex-1 px-3 py-1.5 bg-stone-900 border border-stone-800 focus:border-[#81b64c] text-xs rounded-xl font-bold text-white focus:outline-none placeholder-slate-600 font-sans"
+                      />
+                      <button
+                        onClick={handleSendFriendRequest}
+                        disabled={isSocialLoading || !addFriendInput.trim()}
+                        className="px-3 bg-[#81b64c] hover:bg-[#92ca5a] disabled:bg-stone-800 text-white font-black rounded-xl cursor-pointer shadow-[0_2px_0_0_#5d8a32]"
+                      >
+                        <UserPlus className="w-4 h-4" />
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* PENDING FRIEND REQUESTS SECTION IN MODAL */}
+                  {friendRequests.length > 0 && (
+                    <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl space-y-2">
+                      <span className="text-[9px] uppercase font-black tracking-wider text-yellow-500 block text-left">Permintaan Pertemanan Masuk ({friendRequests.length})</span>
+                      <div className="space-y-2 max-h-32 overflow-y-auto pr-1">
+                        {friendRequests.map((reqUser: string) => (
+                          <div key={reqUser} className="flex items-center justify-between gap-2 bg-stone-950/40 p-2 rounded-lg border border-stone-900/60">
+                            <span className="text-xs font-bold text-slate-200">@{reqUser}</span>
+                            <div className="flex gap-1.5">
+                              <button
+                                onClick={() => handleRespondToFriendRequest(reqUser, 'decline')}
+                                className="px-2 py-1 bg-stone-800 hover:bg-stone-750 text-slate-350 rounded-lg text-[8px] uppercase tracking-wider cursor-pointer font-sans"
+                              >
+                                Tolak
+                              </button>
+                              <button
+                                onClick={() => handleRespondToFriendRequest(reqUser, 'accept')}
+                                className="px-2 py-1 bg-[#81b64c] hover:bg-[#92ca5a] text-white font-black rounded-lg text-[8px] uppercase tracking-wider cursor-pointer font-sans"
+                              >
+                                Terima
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* FRIEND LIST VIEW */}
+                  <div>
+                    <span className="text-[10px] uppercase font-black tracking-wider text-slate-400 block mb-2 text-left">Rekan Duel Anda ({friendsList.length})</span>
+                    {friendsList.length === 0 ? (
+                      <div className="py-6 bg-stone-900 border border-stone-850 rounded-2xl text-center text-slate-500 font-bold p-4 text-xs font-sans">
+                        Belum memiliki relasi teman bermain saat ini.
+                      </div>
+                    ) : (
+                      <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
+                        {friendsList.map((friend: any) => (
+                          <div key={friend.username} className="p-2.5 bg-stone-900 border border-stone-850 rounded-xl flex items-center justify-between gap-3 shadow-xs hover:bg-stone-850 transition-colors">
+                            <div 
+                              className="flex items-center gap-2 cursor-pointer group flex-1 min-w-0"
+                              onClick={() => {
+                                setSelectedFriendForDetail(friend);
+                                setShowFriendListModal(false);
+                                setMode('profile');
+                                triggerAudio('move');
+                              }}
+                              title="Klik untuk melihat profil teman"
+                            >
+                              <img
+                                src={friend.avatar || martinAvatar}
+                                alt="Friend"
+                                referrerPolicy="no-referrer"
+                                className="w-8 h-8 rounded-lg border border-stone-800 bg-neutral-900 object-cover shrink-0 group-hover:scale-105 transition-transform"
+                              />
+                              <div className="min-w-0 flex-1 text-left">
+                                <h4 className="font-extrabold text-xs text-slate-200 group-hover:text-[#a2e564] transition-colors truncate">@{friend.username}</h4>
+                                <span className="text-[9px] font-mono text-[#81b64c] font-black uppercase flex items-center gap-0.5 text-left">
+                                  {friend.elo} ELO <ChevronRight className="w-2.5 h-2.5 opacity-0 group-hover:opacity-100 transition-all text-[#81b64c]" />
+                                </span>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <button
+                                onClick={() => {
+                                  setShowFriendListModal(false);
+                                  handleInviteFriend(friend.username);
+                                }}
+                                className="px-2.5 py-1.5 bg-cyan-600 hover:bg-cyan-500 hover:scale-105 active:scale-95 text-white text-[8px] font-black uppercase rounded-lg transition-all cursor-pointer font-sans"
+                              >
+                                Tantang Duel
+                              </button>
+                              <button
+                                onClick={() => handleRemoveFriend(friend.username)}
+                                title="Hapus Teman"
+                                className="p-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 hover:text-red-400 border border-red-500/20 rounded-lg cursor-pointer transition-colors border-none"
+                              >
+                                <UserMinus className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-6 flex">
+                <button
+                  onClick={() => setShowFriendListModal(false)}
+                  className="w-full py-2.5 bg-stone-800 hover:bg-stone-750 text-slate-350 text-xs font-black uppercase rounded-xl transition border-none cursor-pointer"
+                >
+                  Tutup Daftar Teman
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* DYNAMIC USER ACCONT PROFILE CARD & GAME STATS MODAL */}
       <AnimatePresence>
         {showProfileModal && (
@@ -3772,27 +4838,27 @@ export default function App() {
                     {/* BIO STATUS CHANGER */}
                     <div className="mb-3.5">
                       <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Ubah Motto/Bio catur:</span>
-                      <div className="flex gap-2">
-                        <input
-                          type="text"
-                          value={profileEditingBio}
-                          onChange={(e) => setProfileEditingBio(e.target.value)}
-                          placeholder="Motto catur kamu..."
-                          maxLength={50}
-                          className="flex-1 bg-[#211f1d] border border-[#3c3934] rounded-lg px-3 py-2 text-white text-xs font-semibold focus:outline-none focus:border-[#81b64c]"
-                        />
-                        <button
-                          type="button"
-                          disabled={saveStatus === 'saving'}
-                          onClick={() => {
-                            syncUserStats(undefined, undefined, undefined, undefined, undefined, undefined, profileEditingBio);
-                            triggerAudio('win');
-                          }}
-                          className="px-3.5 py-2 bg-[#81b64c] hover:bg-[#6c9c3e] text-white text-xs font-extrabold rounded-lg shrink-0 transition-all hover:scale-105 uppercase cursor-pointer min-w-[90px]"
-                        >
-                          {saveStatus === 'saving' ? 'Proses...' : saveStatus === 'saved' ? 'Sukses! ✓' : saveStatus === 'error' ? 'Gagal ✗' : 'Simpan'}
-                        </button>
-                      </div>
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        value={profileEditingBio}
+                        onChange={(e) => setProfileEditingBio(e.target.value)}
+                        placeholder="Motto catur kamu..."
+                        maxLength={50}
+                        className="w-full sm:flex-1 bg-[#211f1d] border border-[#3c3934] rounded-lg px-3 py-2 text-white text-xs font-semibold focus:outline-none focus:border-[#81b64c]"
+                      />
+                      <button
+                        type="button"
+                        disabled={saveStatus === 'saving'}
+                        onClick={() => {
+                          syncUserStats(undefined, undefined, undefined, undefined, undefined, undefined, profileEditingBio);
+                          triggerAudio('win');
+                        }}
+                        className="w-full sm:w-auto px-3.5 py-2 bg-[#81b64c] hover:bg-[#6c9c3e] text-white text-xs font-extrabold rounded-lg shrink-0 transition-all hover:scale-105 uppercase cursor-pointer min-w-[90px]"
+                      >
+                        {saveStatus === 'saving' ? 'Proses...' : saveStatus === 'saved' ? 'Sukses! ' : saveStatus === 'error' ? 'Gagal ' : 'Simpan'}
+                      </button>
+                    </div>
                     </div>
 
                     {/* UPLOAD AVATAR FROM GALLERY */}
@@ -3873,6 +4939,88 @@ export default function App() {
                           <Trophy className="w-4 h-4 text-cyan-400" /> {user.matchesPlayed ? Math.round(((user.matchesWon || 0) / user.matchesPlayed) * 100) : 0}%
                         </div>
                       </div>
+                    </div>
+                  </div>
+
+                  {/* EXP ROADMAP / PERJALANAN LEVEL */}
+                  <div className="p-4 bg-[#262421] rounded-2xl border border-[#3c3934] text-left">
+                    <div className="flex justify-between items-center mb-2">
+                      <h3 className="text-xs font-black text-slate-300 uppercase tracking-widest flex items-center gap-1.5 font-sans">
+                        <Sparkles className="w-3.5 h-3.5 text-[#FFC800] fill-yellow-400/10" /> Perjalanan Level & Hadiah
+                      </h3>
+                      <span className="text-[10px] bg-[#3c3934] text-[#81b64c] font-mono px-2 py-0.5 rounded-lg uppercase font-black">
+                        LVL {Math.floor(xp / 100) + 1}
+                      </span>
+                    </div>
+                    <p className="text-[10px] text-slate-400 mb-3.5 font-semibold">Tingkatkan skor XP lewat permainan catur & kumpulkan koin/diamond melimpah!</p>
+                    
+                    <div className="flex gap-2.5 overflow-x-auto pb-3 pt-1 snap-x scrollbar-thin scrollbar-thumb-[#3c3934] max-w-full">
+                      {LEVEL_REWARDS.map((reward) => {
+                        const currentLvl = Math.floor(xp / 100) + 1;
+                        const isUnlocked = currentLvl >= reward.level;
+                        const isClaimed = claimedLevelRewards.includes(reward.level);
+                        
+                        let cardBorder = "border-[#3c3934] opacity-55";
+                        let statusText = "Terkunci";
+                        let btnStyle = "bg-[#3c3934] text-slate-500 cursor-not-allowed";
+                        
+                        if (isUnlocked) {
+                          if (isClaimed) {
+                            cardBorder = "border-[#81b64c]/40 bg-[#1f281e]/40 opacity-100";
+                            statusText = "Klaim Selesai ";
+                            btnStyle = "bg-emerald-950/55 text-[#81b64c] cursor-default border border-emerald-900/40 font-bold";
+                          } else {
+                            cardBorder = "border-yellow-500 bg-[#2d2a27] opacity-100 ring-2 ring-yellow-500/15";
+                            statusText = "Siap Klaim!";
+                            btnStyle = "bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-slate-950 font-black cursor-pointer shadow-[0_2px_0_0_#997300] active:translate-y-0.5 active:shadow-none";
+                          }
+                        }
+
+                        return (
+                          <div 
+                            key={reward.level}
+                            className={`min-w-[145px] sm:min-w-[155px] snap-start bg-[#1c1a19] p-3 rounded-xl border flex flex-col justify-between text-center gap-2.5 transition-all ${cardBorder}`}
+                          >
+                            <div>
+                              <div className="text-2xs font-extrabold text-white uppercase tracking-wider">Level {reward.level}</div>
+                              <div className="text-[8px] text-slate-400 font-mono mt-0.5 font-bold">Syarat: {reward.xpRequired} XP</div>
+                            </div>
+                            
+                            <div className="bg-black/25 py-2 px-1.5 rounded-lg text-left text-[9px] space-y-1">
+                              <div className="flex items-center gap-1 font-bold text-slate-300">
+                                <Coins className="w-3 h-3 text-[#81b64c] shrink-0" />
+                                <span>+{reward.coins} Koin</span>
+                              </div>
+                              <div className="flex items-center gap-1 font-bold text-slate-300">
+                                <Gem className="w-3 h-3 text-cyan-400 shrink-0" />
+                                <span>+{reward.diamonds} Berlian</span>
+                              </div>
+                              {reward.otherGift && (
+                                <div className="text-[9px] text-[#ffdd55] font-extrabold flex items-center gap-0.5 truncate" title={reward.otherGift}>
+                                  <Crown className="w-3 h-3 text-yellow-500 shrink-0" />
+                                  <span>Premium Frame</span>
+                                </div>
+                              )}
+                            </div>
+
+                            <div>
+                              {isUnlocked && !isClaimed ? (
+                                <button
+                                  type="button"
+                                  onClick={() => claimLevelUpReward(reward.level)}
+                                  className={`w-full py-1 rounded-md text-[9px] uppercase font-bold tracking-wider transition-all duration-150 ${btnStyle}`}
+                                >
+                                  Ambil
+                                </button>
+                              ) : (
+                                <div className={`w-full py-1 text-center text-[9px] uppercase rounded-md font-extrabold select-none ${btnStyle}`}>
+                                  {statusText}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })}
                     </div>
                   </div>
                 </div>
@@ -4065,14 +5213,52 @@ export default function App() {
         )}
       </AnimatePresence>
 
-      <main className="flex-1 w-full max-w-6xl mx-auto px-4 py-8 pb-24 flex flex-col justify-start">
+      <div className="flex-1 flex flex-col md:flex-row w-full max-w-7xl mx-auto md:px-4">
+        {/* Main Content Pane */}
+        <main className="flex-1 w-full max-w-5xl mx-auto px-4 py-8 pb-24 flex flex-col justify-start">
         {/* =========================================
              0. CORE HOME / DASHBOARD VIEW 
            ========================================= */}
         {mode === 'home' && (
           <div className="space-y-8">
-            {/* HERO WELCOME BANNER WITH LOCAL TIME */}
-            <div className="bg-[#312e2b] rounded-3xl p-6 sm:p-8 border border-[#3c3934] flex flex-col md:flex-row items-center gap-6 justify-between shadow-xl relative overflow-hidden">
+            {/* SUB-TAB BAR AT THE VERY TOP OF HOME VIEW */}
+            <div className="flex border-b border-[#3c3934] overflow-x-auto scroller-hidden pb-1 justify-center sm:justify-start gap-4">
+              <button
+                onClick={() => { setHomeActiveTab('dashboard'); triggerAudio('move'); }}
+                className={`pb-2.5 text-xs font-black uppercase tracking-wider transition-all cursor-pointer border-b-2 px-3 flex items-center gap-1.5 ${
+                  homeActiveTab === 'dashboard'
+                    ? 'border-[#81b64c] text-white'
+                    : 'border-transparent text-slate-400 hover:text-white'
+                }`}
+              >
+                <Home className="w-4 h-4 text-[#81b64c]" /> Dasbor Beranda
+              </button>
+              <button
+                onClick={() => { setHomeActiveTab('community'); triggerAudio('move'); }}
+                className={`pb-2.5 text-xs font-black uppercase tracking-wider transition-all cursor-pointer border-b-2 px-3 flex items-center gap-1.5 ${
+                  homeActiveTab === 'community'
+                    ? 'border-[#81b64c] text-white'
+                    : 'border-transparent text-slate-400 hover:text-white'
+                }`}
+              >
+                <Shield className="w-4 h-4 text-[#81b64c]" /> Klub & Liga Turnamen
+              </button>
+              <button
+                onClick={() => { setHomeActiveTab('forum'); triggerAudio('move'); }}
+                className={`pb-2.5 text-xs font-black uppercase tracking-wider transition-all cursor-pointer border-b-2 px-3 flex items-center gap-1.5 ${
+                  homeActiveTab === 'forum'
+                    ? 'border-[#81b64c] text-white'
+                    : 'border-transparent text-slate-400 hover:text-white'
+                }`}
+              >
+                <MessageSquare className="w-4 h-4 text-[#81b64c]" /> Forum Komunitas
+              </button>
+            </div>
+
+            {homeActiveTab === 'dashboard' && (
+              <div className="space-y-8 animate-fade-in duration-300">
+                {/* HERO WELCOME BANNER WITH LOCAL TIME */}
+                <div className="bg-[#312e2b] rounded-3xl p-6 sm:p-8 border border-[#3c3934] flex flex-col md:flex-row items-center gap-6 justify-between shadow-xl relative overflow-hidden">
               <div className="absolute top-0 right-0 opacity-5 pointer-events-none transform translate-y-3 translate-x-3 scale-150">
                 <Crown className="w-64 h-64 text-white" />
               </div>
@@ -4117,15 +5303,24 @@ export default function App() {
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
               {/* COMPONENT: QUOTE OF THE DAY */}
               <div className="md:col-span-7 bg-[#312e2b] rounded-3xl p-6 border border-[#3c3934] shadow-md flex flex-col justify-between">
-                <div>
-                  <span className="text-[9px] font-black tracking-wider text-[#9babaf] uppercase">Kutipan Hari Ini</span>
-                  <div className="mt-4 text-white text-sm sm:text-md italic font-semibold leading-relaxed border-l-4 border-[#81b64c] pl-4">
-                    “{CHESS_QUOTES[triviaIndex % CHESS_QUOTES.length].quote}”
+                {serverEpochDays === 0 ? (
+                  <div className="flex flex-col justify-center items-center py-6 h-full text-slate-400 gap-2">
+                    <Sparkles className="w-5 h-5 text-cyan-400 animate-spin" />
+                    <span className="text-xs font-semibold uppercase tracking-wider">Mendapatkan kutipan hari ini...</span>
                   </div>
-                </div>
-                <div className="text-right mt-4 text-[#81b64c] text-xs font-bold font-mono">
-                  — {CHESS_QUOTES[triviaIndex % CHESS_QUOTES.length].author}
-                </div>
+                ) : (
+                  <>
+                    <div>
+                      <span className="text-[9px] font-black tracking-wider text-[#9babaf] uppercase">Kutipan Hari Ini</span>
+                      <div className="mt-4 text-white text-sm sm:text-md italic font-semibold leading-relaxed border-l-4 border-[#81b64c] pl-4">
+                        “{CHESS_QUOTES[serverEpochDays % CHESS_QUOTES.length].quote}”
+                      </div>
+                    </div>
+                    <div className="text-right mt-4 text-[#81b64c] text-xs font-bold font-mono">
+                      — {CHESS_QUOTES[serverEpochDays % CHESS_QUOTES.length].author}
+                    </div>
+                  </>
+                )}
               </div>
 
               {/* COMPONENT: QUICK METRICS SUMMARY */}
@@ -4167,6 +5362,12 @@ export default function App() {
                     <Calendar className="w-4 h-4 text-[#81b64c]" /> Absensi Harian & Hadiah Beruntun
                   </h3>
                   <p className="text-[11px] text-slate-400 mt-1">Lakukan login harian rutin dan klaim bonus XP untuk melaju di klub catur!</p>
+                  {streak > 0 && (
+                    <div className="mt-2 text-[10px] text-orange-400 font-extrabold uppercase font-mono bg-orange-950/20 px-3 py-1.5 rounded-lg border border-orange-500/10 inline-flex items-center gap-1.5">
+                      <Flame className="w-3.5 h-3.5 text-orange-500 animate-pulse fill-orange-500/10" />
+                      Streak Bonus Aktif: +{streak * 10} XP & +{streak * 25} Coins setiap absensi!
+                    </div>
+                  )}
                 </div>
                 {!dailyClaimed ? (
                   <button
@@ -4235,6 +5436,94 @@ export default function App() {
                     </div>
                   );
                 })}
+              </div>
+            </div>
+
+            {/* MODULAR INTEGRATION CARDS FOR SEPARATE PAGES/SUB-PAGES (EMOJI-FREE) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              {/* CARD 1: EX-TABUNKAN / SEASON PASS */}
+              <div className="bg-[#312e2b] rounded-3xl p-6 border border-[#3c3934] shadow-md flex flex-col justify-between space-y-4">
+                <div className="space-y-2">
+                  <span className="text-[9px] font-black tracking-wider text-cyan-400 uppercase font-mono block">Misi Kehormatan</span>
+                  <h3 className="text-sm font-black text-white uppercase tracking-tight">Chess Battle Pass</h3>
+                  <p className="text-[11px] text-slate-400 leading-relaxed font-semibold">
+                    Kumpulkan XP untuk meningkatkan hadiah lintasan elite, serta buka brankas Tabungan Diamond Anda di halaman tersendiri saat ini.
+                  </p>
+                  <div className="pt-1.5 flex items-center justify-between text-2xs font-bold text-slate-400">
+                    <span>Level Pass saat ini:</span>
+                    <span className="text-[#81b64c] font-black">Level {passLevel}</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setMode('season-pass');
+                    triggerAudio('move');
+                  }}
+                  className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-500 border border-cyan-700 text-white text-[10px] font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-sm text-center"
+                >
+                  Buka Halaman Season Pass
+                </button>
+              </div>
+
+              {/* CARD 2: PANGKAT GAME JOURNEY */}
+              <div className="bg-[#312e2b] rounded-3xl p-6 border border-[#3c3934] shadow-md flex flex-col justify-between space-y-4">
+                <div className="space-y-2">
+                  <span className="text-[9px] font-black tracking-wider text-yellow-500 uppercase font-mono block">Piala Arena</span>
+                  <h3 className="text-sm font-black text-white uppercase tracking-tight">Pangkat Catur Arena</h3>
+                  <p className="text-[11px] text-slate-400 leading-relaxed font-semibold">
+                    Raih kemenangan dalam pertempuran arena untuk mendaki ranks level catur, kumpulkan ELO, serta klaim hadiah piala akhir season.
+                  </p>
+                  <div className="pt-1.5 flex items-center justify-between text-2xs font-bold text-slate-400">
+                    <span>Skor ELO:</span>
+                    <span className="text-yellow-500 font-black">{onlineRating} PTS</span>
+                  </div>
+                </div>
+                <button
+                  onClick={() => {
+                    setMode('rank');
+                    triggerAudio('move');
+                  }}
+                  className="w-full py-2.5 bg-yellow-500 hover:bg-yellow-400 border border-yellow-600 text-slate-950 text-[10px] font-black uppercase tracking-wider rounded-xl transition-all cursor-pointer shadow-sm text-center"
+                >
+                  Buka Menu Pangkat Catur
+                </button>
+              </div>
+
+              {/* CARD 3: REPLAYS AND FRIENDS REDIRECTIONS */}
+              <div className="bg-[#312e2b] rounded-3xl p-6 border border-[#3c3934] shadow-md flex flex-col justify-between space-y-4">
+                <div className="space-y-2">
+                  <span className="text-[9px] font-black tracking-wider text-[#81b64c] uppercase font-mono block">Profil Sosial</span>
+                  <h3 className="text-sm font-black text-white uppercase tracking-tight">Replay & Rekan Mabar</h3>
+                  <p className="text-[11px] text-slate-400 leading-relaxed font-semibold">
+                    Bongkar rekaman duel catur lawas, analisa taktik bot, dan pantau status afinitas rekan mabar Anda langsung di sub-hlm Profil.
+                  </p>
+                  <div className="pt-1.5 flex items-center justify-between text-2xs font-bold text-slate-400">
+                    <span>Teman Terdaftar:</span>
+                    <span className="text-[#81b64c] font-black">{friendsList.length} Pemain</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => {
+                      setMode('profile');
+                      setProfileActiveTab('replay');
+                      triggerAudio('move');
+                    }}
+                    className="py-2.5 bg-[#262421] hover:bg-slate-700 border border-[#3c3934] text-slate-300 text-[9px] font-extrabold uppercase rounded-xl transition-all cursor-pointer text-center"
+                  >
+                    Ulas Replay
+                  </button>
+                  <button
+                    onClick={() => {
+                      setMode('profile');
+                      setProfileActiveTab('social');
+                      triggerAudio('move');
+                    }}
+                    className="py-2.5 bg-[#262421] hover:bg-slate-700 border border-[#3c3934] text-slate-300 text-[9px] font-extrabold uppercase rounded-xl transition-all cursor-pointer text-center"
+                  >
+                    Rekan Mabar
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -4604,84 +5893,69 @@ export default function App() {
                       }}
                       className="w-full py-2.5 bg-[#81b64c] hover:bg-[#92ca5a] text-white font-extrabold rounded-lg shadow-[0_3px_0_0_#5d8a32] active:translate-y-0.5 active:shadow-none transition-all text-xs uppercase cursor-pointer"
                     >
-                      Masuk atau Daftar Akun Catur ➜
+                      Masuk atau Daftar Akun Catur 
                     </button>
                   </div>
                 ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {/* LEFT COLUMN: INBOX & FRIEND REQUESTS */}
-                    <div className="space-y-4">
-                      <div>
-                        <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#9babaf] block mb-2 flex items-center gap-1.5">
-                          <Mail className="w-3.5 h-3.5 text-cyan-400" /> Kotak Masuk Surat Tantangan ({inboxMessages.length})
-                        </span>
-                        {inboxMessages.length === 0 ? (
-                          <div className="py-6 bg-[#262421] border border-[#3c3934] rounded-2xl text-center text-slate-500 font-bold p-4 text-xs">
-                            Kotak masuk kosong. Minta lawanmu mengirim tantangan tanding!
-                          </div>
-                        ) : (
-                          <div className="space-y-2.5 max-h-52 overflow-y-auto pr-1">
-                            {inboxMessages.map((msg: any) => (
-                              <div key={msg.id} className="p-3 bg-[#262421] border border-[#3c3934] rounded-xl flex flex-col gap-2 shadow-sm">
-                                <p className="text-xs text-white font-semibold leading-relaxed">
-                                  <strong className="text-cyan-400">@{msg.sender}</strong> mengundang Anda duel catur online!
-                                </p>
-                                <div className="flex gap-2 justify-end">
-                                  <button
-                                    onClick={async () => {
-                                      await fetch('/api/social/inbox/clear', {
-                                        method: 'POST',
-                                        headers: { 'Content-Type': 'application/json' },
-                                        body: JSON.stringify({ username, msgId: msg.id })
-                                      });
-                                      fetchSocialInfo();
-                                    }}
-                                    className="px-2.5 py-1 bg-[#3c3934] hover:bg-[#4d4a44] text-slate-300 font-bold rounded text-[8px] uppercase tracking-wider cursor-pointer transition-colors"
-                                  >
-                                    Hapus / Abaikan
-                                  </button>
-                                  <button
-                                    onClick={() => handleRespondToInvite(msg, 'accept')}
-                                    className="px-3 py-1 bg-[#81b64c] hover:bg-[#92ca5a] text-white font-bold rounded text-[8px] uppercase tracking-wider cursor-pointer shadow-[0_1.5px_0_0_#5d8a32]"
-                                  >
-                                    Mulai Duel
-                                  </button>
-                                </div>
-                              </div>
-                            ))}
-                          </div>
-                        )}
+                  <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
+                    {/* LEFT COLUMN: ADD FRIENDS & GUIDES (4 cols) */}
+                    <div className="md:col-span-4 space-y-4">
+                      <div className="space-y-1">
+                        <label className="text-[10px] uppercase font-extrabold tracking-wider text-[#9babaf] block text-left">Tambah Teman Baru</label>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={addFriendInput}
+                            onChange={(e) => setAddFriendInput(e.target.value)}
+                            onKeyDown={(e) => { if(e.key === 'Enter') handleSendFriendRequest(); }}
+                            disabled={isSocialLoading}
+                            placeholder="Username kawan..."
+                            className="flex-1 px-3 py-1.5 bg-[#262421] border border-[#3c3934] focus:border-[#81b64c] text-xs rounded-xl font-extrabold text-white focus:outline-none placeholder-slate-600 font-sans"
+                          />
+                          <button
+                            onClick={handleSendFriendRequest}
+                            disabled={isSocialLoading || !addFriendInput.trim()}
+                            className="px-3 bg-[#81b64c] hover:bg-[#92ca5a] disabled:bg-[#3c3934] text-white font-black rounded-xl cursor-pointer shadow-[0_2.5px_0_0_#5d8a32]"
+                          >
+                            <UserPlus className="w-4 h-4" />
+                          </button>
+                        </div>
                       </div>
 
-                      {/* Pending friend requests */}
+                      {/* Pending friend requests as a compact list */}
                       {friendRequests.length > 0 && (
                         <div className="p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-xl space-y-2">
-                          <span className="text-[9px] uppercase font-bold tracking-wider text-yellow-500 block">Menunggu Konfirmasi Teman ({friendRequests.length})</span>
+                          <span className="text-[9px] uppercase font-bold tracking-wider text-yellow-500 block text-left font-sans">Permintaan Masuk ({friendRequests.length})</span>
                           {friendRequests.map((reqUser: string) => (
-                            <div key={reqUser} className="flex items-center justify-between gap-2 border-b border-[#3c3934]/40 pb-1.5 last:border-0 last:pb-0">
-                              <span className="text-xs font-bold text-slate-200">@{reqUser}</span>
-                              <div className="flex gap-1.5">
+                            <div key={reqUser} className="flex items-center justify-between gap-2 border-b border-[#3c3934]/40 pb-1.5 last:border-0 last:pb-0 font-sans">
+                              <span className="text-[11px] font-bold text-slate-200">@{reqUser}</span>
+                              <div className="flex gap-1">
                                 <button
                                   onClick={() => handleRespondToFriendRequest(reqUser, 'decline')}
-                                  className="px-2 py-0.5 bg-[#3c3934] text-slate-300 rounded text-[8px] uppercase tracking-wider cursor-pointer"
+                                  className="px-2 py-0.5 bg-[#3c3934] text-slate-300 rounded text-[8px] uppercase tracking-wider cursor-pointer font-sans"
                                 >
-                                  Tolak
+                                  Batal
                                 </button>
                                 <button
                                   onClick={() => handleRespondToFriendRequest(reqUser, 'accept')}
-                                  className="px-2 py-0.5 bg-[#81b64c] text-white font-bold rounded text-[8px] uppercase tracking-wider cursor-pointer"
+                                  className="px-2 py-0.5 bg-[#81b64c] text-white font-bold rounded text-[8px] uppercase tracking-wider cursor-pointer font-sans"
                                 >
-                                  Terima
+                                  Oke
                                 </button>
                               </div>
                             </div>
                           ))}
                         </div>
                       )}
+
+                      <div className="p-3.5 bg-[#262421] rounded-2xl border border-[#3c3934]/60 text-left font-sans">
+                        <h4 className="text-[10px] font-black text-white uppercase tracking-tight">Kawan Bermain</h4>
+                        <p className="text-[9.5px] text-slate-400 mt-1 leading-relaxed">Tantang kawan Anda duel secara instan! Kotak surat dan undangan tanding kini disatukan dengan rapi pada tombol <span className="text-amber-400 font-extrabold">Surat</span> & <span className="text-cyan-400 font-extrabold">Teman</span> di navigasi bar atas agar layar game tetap bersih dan lapang.</p>
+                      </div>
                     </div>
 
-                    {/* RIGHT COLUMN: FRIENDS LIST & ADD FRIEND */}
-                    <div className="space-y-4">
+                    {/* RIGHT COLUMN: FRIENDS LIST (8 cols) */}
+                    <div className="md:col-span-8 space-y-4">
                       <div className="space-y-1">
                         <label className="text-[10px] uppercase font-extrabold tracking-wider text-[#9babaf] block">Tambah Hubungan Teman Baru</label>
                         <div className="flex gap-2">
@@ -4760,6 +6034,82 @@ export default function App() {
           </div>
         )}
 
+        {homeActiveTab === 'community' && (
+          <div className="animate-fade-in duration-300">
+            <Features31to40
+              coins={coins}
+              setCoins={setCoins}
+              diamonds={diamonds}
+              setDiamonds={setDiamonds}
+              xp={xp}
+              setXp={setXp}
+              onlineRating={onlineRating}
+              setOnlineRating={setOnlineRating}
+              membershipStatus={membershipStatus}
+              triggerAudio={triggerAudio}
+              triggerReward={triggerReward}
+              setMode={setMode}
+              streak={streak}
+              startAiGameWithTimerAndCasual={(charId, limit, isCasual) => {
+                const char = CHARACTERS.find(c => c.id === charId) || CHARACTERS[0];
+                setTimerLimit(limit);
+                localStorage.setItem('timerLimit', String(limit));
+                localStorage.setItem('timerEnabled', 'true');
+                localStorage.setItem('casual_match_mode', String(isCasual));
+                handleSelectCharacter(char);
+              }}
+              receivedGifts={receivedGifts}
+              setReceivedGifts={setReceivedGifts}
+              unlockedSkins={unlockedSkins}
+              setUnlockedSkins={setUnlockedSkins}
+              unlockedThemes={unlockedThemes}
+              setUnlockedThemes={setUnlockedThemes}
+              unlockedFrames={unlockedFrames}
+              setUnlockedFrames={setUnlockedFrames}
+            />
+          </div>
+        )}
+
+        {homeActiveTab === 'forum' && (
+          <div className="animate-fade-in duration-300">
+            <Features31to40
+              coins={coins}
+              setCoins={setCoins}
+              diamonds={diamonds}
+              setDiamonds={setDiamonds}
+              xp={xp}
+              setXp={setXp}
+              onlineRating={onlineRating}
+              setOnlineRating={setOnlineRating}
+              membershipStatus={membershipStatus}
+              triggerAudio={triggerAudio}
+              triggerReward={triggerReward}
+              setMode={setMode}
+              streak={streak}
+              startAiGameWithTimerAndCasual={(charId, limit, isCasual) => {
+                const char = CHARACTERS.find(c => c.id === charId) || CHARACTERS[0];
+                setTimerLimit(limit);
+                localStorage.setItem('timerLimit', String(limit));
+                localStorage.setItem('timerEnabled', 'true');
+                localStorage.setItem('casual_match_mode', String(isCasual));
+                handleSelectCharacter(char);
+              }}
+              receivedGifts={receivedGifts}
+              setReceivedGifts={setReceivedGifts}
+              unlockedSkins={unlockedSkins}
+              setUnlockedSkins={setUnlockedSkins}
+              unlockedThemes={unlockedThemes}
+              setUnlockedThemes={setUnlockedThemes}
+              unlockedFrames={unlockedFrames}
+              setUnlockedFrames={setUnlockedFrames}
+              initialTab="posts"
+              hideTabsSelector={true}
+            />
+          </div>
+        )}
+      </div>
+    )}
+
         {/* =========================================
              0.5 STANDALONE FULL PROFILE VIEW 
            ========================================= */}
@@ -4772,8 +6122,34 @@ export default function App() {
               Pantau reputasi, kustomisasi avatar, dan lacak statistik pertandingan caturmu
             </p>
 
-            {user ? (
-              <div className="space-y-6">
+            {/* PROFILE SUB-PAGES NAVIGATION (EMOJI-FREE) */}
+            <div className="flex gap-2 border-b border-[#3c3934] pb-4 flex-wrap">
+              {[
+                { id: 'profile', label: 'Informasi Profil' },
+                { id: 'replay', label: 'Riwayat & Replay Duel' },
+                { id: 'social', label: 'Hub Rekan Mabar' },
+                { id: 'stats', label: 'Analisis & Progress ELO' }
+              ].map((sub) => {
+                const isSelected = profileActiveTab === sub.id;
+                return (
+                  <button
+                    key={sub.id}
+                    onClick={() => { setProfileActiveTab(sub.id as any); triggerAudio('move'); }}
+                    className={`px-4.5 py-2.5 text-xs font-black uppercase rounded-xl transition-all cursor-pointer ${
+                      isSelected 
+                        ? 'bg-[#81b64c] text-slate-950' 
+                        : 'bg-[#262421] text-slate-400 hover:text-slate-200 hover:bg-[#312e2b]'
+                    }`}
+                  >
+                    {sub.label}
+                  </button>
+                );
+              })}
+            </div>
+
+            {profileActiveTab === 'profile' && (
+              user ? (
+                <div className="space-y-6">
                 {/* PRIMARY AVATAR DETAILS CARD */}
                 <div className="p-5 bg-[#312e2b] rounded-3xl border border-[#3c3934] flex flex-col sm:flex-row items-center gap-5 shadow-lg">
                   <div className="shrink-0 relative">
@@ -4815,14 +6191,14 @@ export default function App() {
                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest block mb-1">Ubah Motto/Bio Personal:</span>
                       <p className="text-[11px] text-[#9babaf] leading-normal mb-3 font-semibold">Tulis motto catur inspiratifmu untuk ditampilkan di halaman profil utama!</p>
                     </div>
-                    <div className="flex gap-2.5">
+                    <div className="flex flex-col sm:flex-row gap-2.5">
                       <input
                         type="text"
                         value={profileEditingBio}
                         onChange={(e) => setProfileEditingBio(e.target.value)}
                         placeholder="Motto catur kamu..."
                         maxLength={50}
-                        className="flex-1 bg-[#211f1d] border border-[#3c3934] rounded-xl px-3.5 py-2.5 text-white text-xs font-semibold focus:outline-none focus:border-[#81b64c]"
+                        className="w-full sm:flex-1 bg-[#211f1d] border border-[#3c3934] rounded-xl px-3.5 py-2.5 text-white text-xs font-semibold focus:outline-none focus:border-[#81b64c]"
                       />
                       <button
                         type="button"
@@ -4831,9 +6207,9 @@ export default function App() {
                           syncUserStats(undefined, undefined, undefined, undefined, undefined, undefined, profileEditingBio);
                           triggerAudio('win');
                         }}
-                        className="px-4 py-2.5 bg-[#81b64c] hover:bg-[#6c9c3e] text-white text-xs font-extrabold rounded-xl shrink-0 transition-all hover:scale-105 uppercase tracking-wide cursor-pointer min-w-[95px]"
+                        className="w-full sm:w-auto px-4 py-2.5 bg-[#81b64c] hover:bg-[#6c9c3e] text-white text-xs font-extrabold rounded-xl shrink-0 transition-all hover:scale-105 uppercase tracking-wide cursor-pointer min-w-[95px]"
                       >
-                        {saveStatus === 'saving' ? 'Proses...' : saveStatus === 'saved' ? 'Sukses! ✓' : saveStatus === 'error' ? 'Gagal ✗' : 'Simpan'}
+                        {saveStatus === 'saving' ? 'Proses...' : saveStatus === 'saved' ? 'Sukses! ' : saveStatus === 'error' ? 'Gagal ' : 'Simpan'}
                       </button>
                     </div>
                   </div>
@@ -5118,7 +6494,175 @@ export default function App() {
                   </button>
                 </div>
               </div>
+            ))}
+
+            {/* PROFILE SUB-PAGES RENDER DIRECT FROM BUNDLE */}
+            {(profileActiveTab === 'replay' || profileActiveTab === 'social') && (
+              <Features17to25
+                subTab={profileActiveTab}
+                coins={coins}
+                setCoins={setCoins}
+                diamonds={diamonds}
+                setDiamonds={setDiamonds}
+                xp={xp}
+                setXp={setXp}
+                membershipStatus={membershipStatus}
+                onlineHistory={onlineHistory}
+                setOnlineHistory={setOnlineHistory}
+                onlineRating={onlineRating}
+                setOnlineRating={setOnlineRating}
+                triggerAudio={triggerAudio}
+                triggerReward={triggerReward}
+                user={user}
+                syncUserStats={syncUserStats}
+                passLevel={passLevel}
+                setPassLevel={setPassLevel}
+                passXp={passXp}
+                setPassXp={setPassXp}
+                passStatus={passStatus}
+                setPassStatus={setPassStatus}
+                claimedPassRewards={claimedPassRewards}
+                setClaimedPassRewards={setClaimedPassRewards}
+                claimedRankRewards={claimedRankRewards}
+                setClaimedRankRewards={setClaimedRankRewards}
+                diamondSavings={diamondSavings}
+                setDiamondSavings={setDiamondSavings}
+                friendsList={friendsList}
+                setFriendsList={setFriendsList}
+              />
             )}
+
+            {profileActiveTab === 'stats' && (
+              <div className="animate-fade-in duration-300">
+                <Features31to40
+                  coins={coins}
+                  setCoins={setCoins}
+                  diamonds={diamonds}
+                  setDiamonds={setDiamonds}
+                  xp={xp}
+                  setXp={setXp}
+                  onlineRating={onlineRating}
+                  setOnlineRating={setOnlineRating}
+                  membershipStatus={membershipStatus}
+                  triggerAudio={triggerAudio}
+                  triggerReward={triggerReward}
+                  setMode={setMode}
+                  streak={streak}
+                  receivedGifts={receivedGifts}
+                  setReceivedGifts={setReceivedGifts}
+                  unlockedSkins={unlockedSkins}
+                  setUnlockedSkins={setUnlockedSkins}
+                  unlockedThemes={unlockedThemes}
+                  setUnlockedThemes={setUnlockedThemes}
+                  unlockedFrames={unlockedFrames}
+                  setUnlockedFrames={setUnlockedFrames}
+                  initialTab="stats"
+                  hideTabsSelector={true}
+                />
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* =========================================
+             STANDALONE RANK VIEW (EMOJI-FREE)
+           ========================================= */}
+        {mode === 'rank' && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => { setMode('home'); triggerAudio('move'); }} 
+                className="p-2.5 bg-[#312e2b] hover:bg-[#3c3934] border border-[#3c3934] rounded-xl text-slate-300 flex items-center justify-center transition-all cursor-pointer"
+                title="Kembali ke Beranda"
+              >
+                <span className="text-xs font-black uppercase tracking-tight flex items-center gap-1.5">&#8592; Beranda</span>
+              </button>
+              <span className="text-xs font-bold text-slate-500">/ Pangkat</span>
+            </div>
+
+            <Features17to25
+              subTab="rank"
+              coins={coins}
+              setCoins={setCoins}
+              diamonds={diamonds}
+              setDiamonds={setDiamonds}
+              xp={xp}
+              setXp={setXp}
+              membershipStatus={membershipStatus}
+              onlineHistory={onlineHistory}
+              setOnlineHistory={setOnlineHistory}
+              onlineRating={onlineRating}
+              setOnlineRating={setOnlineRating}
+              triggerAudio={triggerAudio}
+              triggerReward={triggerReward}
+              user={user}
+              syncUserStats={syncUserStats}
+              passLevel={passLevel}
+              setPassLevel={setPassLevel}
+              passXp={passXp}
+              setPassXp={setPassXp}
+              passStatus={passStatus}
+              setPassStatus={setPassStatus}
+              claimedPassRewards={claimedPassRewards}
+              setClaimedPassRewards={setClaimedPassRewards}
+              claimedRankRewards={claimedRankRewards}
+              setClaimedRankRewards={setClaimedRankRewards}
+              diamondSavings={diamondSavings}
+              setDiamondSavings={setDiamondSavings}
+              friendsList={friendsList}
+              setFriendsList={setFriendsList}
+            />
+          </div>
+        )}
+
+        {/* =========================================
+             STANDALONE SEASON PASS VIEW (EMOJI-FREE)
+           ========================================= */}
+        {mode === 'season-pass' && (
+          <div className="space-y-6">
+            <div className="flex items-center gap-3">
+              <button 
+                onClick={() => { setMode('home'); triggerAudio('move'); }} 
+                className="p-2.5 bg-[#312e2b] hover:bg-[#3c3934] border border-[#3c3934] rounded-xl text-slate-300 flex items-center justify-center transition-all cursor-pointer"
+                title="Kembali ke Beranda"
+              >
+                <span className="text-xs font-black uppercase tracking-tight flex items-center gap-1.5">&#8592; Beranda</span>
+              </button>
+              <span className="text-xs font-bold text-slate-500">/ Battle Pass</span>
+            </div>
+
+            <Features17to25
+              subTab="pass"
+              coins={coins}
+              setCoins={setCoins}
+              diamonds={diamonds}
+              setDiamonds={setDiamonds}
+              xp={xp}
+              setXp={setXp}
+              membershipStatus={membershipStatus}
+              onlineHistory={onlineHistory}
+              setOnlineHistory={setOnlineHistory}
+              onlineRating={onlineRating}
+              setOnlineRating={setOnlineRating}
+              triggerAudio={triggerAudio}
+              triggerReward={triggerReward}
+              user={user}
+              syncUserStats={syncUserStats}
+              passLevel={passLevel}
+              setPassLevel={setPassLevel}
+              passXp={passXp}
+              setPassXp={setPassXp}
+              passStatus={passStatus}
+              setPassStatus={setPassStatus}
+              claimedPassRewards={claimedPassRewards}
+              setClaimedPassRewards={setClaimedPassRewards}
+              claimedRankRewards={claimedRankRewards}
+              setClaimedRankRewards={setClaimedRankRewards}
+              diamondSavings={diamondSavings}
+              setDiamondSavings={setDiamondSavings}
+              friendsList={friendsList}
+              setFriendsList={setFriendsList}
+            />
           </div>
         )}
 
@@ -5255,8 +6799,8 @@ export default function App() {
               </div>
 
             </div>
-          </div>
-        )}
+              </div>
+            )}
 
         {/* =========================================
              1. CORE DASHBOARD / MAIN MENU VIEW 
@@ -5276,8 +6820,72 @@ export default function App() {
               </div>
             </div>
 
-            {/* FIVE COLUMN GRID CARD CHOICES */}
-            <div className="md:col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-5">
+            {/* GAME SPEED TYPE SELECTORS AND CASUAL MODE ACCORDING TO USER'S DIRECT RECOMMENDATION */}
+            <div className="md:col-span-12 grid grid-cols-1 sm:grid-cols-2 gap-5">
+              {/* Batas Waktu / Format Tanding */}
+              <div className="bg-[#312e2b] p-5 rounded-3xl border border-[#3c3934] flex flex-col sm:flex-row justify-between items-center shadow-lg gap-4">
+                <div>
+                  <h4 className="font-extrabold text-[#81b64c] uppercase tracking-wide text-xs flex items-center gap-2">
+                    <Clock className="w-4 h-4" /> Format & Kendali Waktu Tanding
+                  </h4>
+                  <p className="text-[10.5px] text-slate-400 mt-1 font-semibold leading-normal">Tentukan batas jam tanding default sebelum mulai bermain.</p>
+                </div>
+                <div className="flex gap-1.5 bg-[#262421] p-1 border border-[#3c3934] rounded-xl shrink-0">
+                  {(['rapid', 'blitz', 'bullet'] as const).map((speed) => {
+                    const isSelected = gameSpeedType === speed;
+                    return (
+                      <button
+                        key={speed}
+                        type="button"
+                        onClick={() => {
+                          setGameSpeedType(speed);
+                          const limit = speed === 'bullet' ? 60 : speed === 'blitz' ? 180 : 600;
+                          setTimerLimit(limit);
+                          localStorage.setItem('timerLimit', String(limit));
+                          triggerAudio('move');
+                        }}
+                        className={`px-3 py-1.5 text-[9px] uppercase font-black tracking-wider rounded-lg cursor-pointer transition-all ${
+                          isSelected 
+                            ? 'bg-[#81b64c] text-white shadow-sm' 
+                            : 'text-slate-400 hover:text-white'
+                        }`}
+                      >
+                        {speed}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {/* Mode Kausal Friendly */}
+              <div className="bg-[#312e2b] p-5 rounded-3xl border border-[#3c3934] flex flex-col sm:flex-row justify-between items-center shadow-lg gap-4">
+                <div>
+                  <h4 className="font-extrabold text-blue-400 uppercase tracking-wide text-xs flex items-center gap-2">
+                    <Activity className="w-4 h-4 text-blue-400" /> Mode Match Friendly (Kausal)
+                  </h4>
+                  <p className="text-[10.5px] text-slate-400 mt-1 font-semibold leading-normal">Main santai tanpa mempertaruhkan ELO rating berharga Anda.</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const nextVal = !isCasualMatch;
+                    setIsCasualMatch(nextVal);
+                    localStorage.setItem('casual_match_mode', String(nextVal));
+                    triggerAudio('move');
+                  }}
+                  className={`px-4 py-2 text-[10px] uppercase border cursor-pointer transition-all font-black rounded-lg ${
+                    isCasualMatch 
+                      ? 'bg-blue-950/40 text-blue-400 border-blue-900/40 hover:bg-blue-900/60' 
+                      : 'bg-[#81b64c]/10 text-[#81b64c] border-[#81b64c]/20 hover:bg-[#81b64c]/20'
+                  }`}
+                >
+                  {isCasualMatch ? 'Friendly (Kausal)' : 'Kompetitif (ELO)'}
+                </button>
+              </div>
+            </div>
+
+            {/* SEVEN COLUMN RESPONSIVE GRID CARD CHOICES */}
+            <div className="md:col-span-12 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
               
               {/* CARD 1: CHARACTER MATCH ZONE */}
               <div 
@@ -5379,6 +6987,107 @@ export default function App() {
                   Mabar Teman <ChevronRight className="w-4 h-4" />
                 </div>
               </div>
+
+              {/* CARD 6: TOURNAMENT BRACKET ARENA MODE */}
+              <div 
+                onClick={() => {
+                  setMode('tournament');
+                  triggerAudio('move');
+                }}
+                className="bg-[#312e2b] rounded-3xl p-6 border border-[#3c3934] hover:border-yellow-500 hover:bg-[#3c3934] hover:shadow-xl transition-all cursor-pointer flex flex-col items-center text-center group font-sans"
+              >
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-yellow-500 to-amber-600 text-white flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  <Trophy className="w-8 h-8 fill-white/10 stroke-white/80" />
+                </div>
+                <h3 className="text-lg font-extrabold text-white mb-2">Turnamen Braket</h3>
+                <p className="text-[#9babaf] text-xs font-semibold leading-relaxed">
+                  Ikuti liga sistem gugur knockout 8-pemain. Tantang jawara catur, rebut tahta podium, dan raih koin melimpah!
+                </p>
+                <div className="mt-5 flex items-center text-yellow-500 font-black group-hover:translate-x-1.5 transition-transform text-xs uppercase tracking-wide gap-1">
+                  IKUT TURNAMEN <ChevronRight className="w-4 h-4" />
+                </div>
+              </div>
+
+              {/* CARD 7: GUILD CLAN CHESS WAR MODE */}
+              <div 
+                onClick={() => {
+                  setMode('guild-suku');
+                  triggerAudio('move');
+                }}
+                className="bg-[#312e2b] rounded-3xl p-6 border border-[#3c3934] hover:border-[#81b64c] hover:bg-[#3c3934] hover:shadow-xl transition-all cursor-pointer flex flex-col items-center text-center group font-sans"
+              >
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-indigo-500 to-[#81b64c] text-white flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  <Shield className="w-8 h-8 fill-white/10 stroke-white/80" />
+                </div>
+                <h3 className="text-lg font-extrabold text-white mb-2">Klub & Suku Klan</h3>
+                <p className="text-[#9babaf] text-xs font-semibold leading-relaxed">
+                  Pasukan klan taktis Anda. Selesaikan kontribusi harian, tukar fragment skin, dan obrolan antarpemain langsung!
+                </p>
+                <div className="mt-5 flex items-center text-indigo-400 font-black group-hover:translate-x-1.5 transition-transform text-xs uppercase tracking-wide gap-1">
+                  MASUK KLUB <ChevronRight className="w-4 h-4" />
+                </div>
+              </div>
+
+              {/* CARD 8: FORUM & DISKUSI */}
+              <div 
+                onClick={() => {
+                  setMode('forum-diskusi');
+                  triggerAudio('move');
+                }}
+                className="bg-[#312e2b] rounded-3xl p-6 border border-[#3c3934] hover:border-purple-500 hover:bg-[#3c3934] hover:shadow-xl transition-all cursor-pointer flex flex-col items-center text-center group font-sans"
+              >
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  <MessageSquare className="w-8 h-8 fill-white/10 stroke-white/80" />
+                </div>
+                <h3 className="text-lg font-extrabold text-white mb-2">Forum & Diskusi</h3>
+                <p className="text-[#9babaf] text-xs font-semibold leading-relaxed">
+                  Bagikan teori pembukaan catur, buat postingan diskusi taktis harian, dan obrolan komunitas antarpemain!
+                </p>
+                <div className="mt-5 flex items-center text-purple-400 font-black group-hover:translate-x-1.5 transition-transform text-xs uppercase tracking-wide gap-1">
+                  BUKA FORUM <ChevronRight className="w-4 h-4" />
+                </div>
+              </div>
+
+              {/* CARD 9: HADIAH & DEAL SALE */}
+              <div 
+                onClick={() => {
+                  setMode('toko-deals');
+                  triggerAudio('move');
+                }}
+                className="bg-[#312e2b] rounded-3xl p-6 border border-[#3c3934] hover:border-rose-500 hover:bg-[#3c3934] hover:shadow-xl transition-all cursor-pointer flex flex-col items-center text-center group font-sans"
+              >
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-pink-500 to-rose-600 text-white flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  <Gift className="w-8 h-8 fill-white/10 stroke-white/80" />
+                </div>
+                <h3 className="text-lg font-extrabold text-white mb-2">Toko Sale & Hadiah</h3>
+                <p className="text-[#9babaf] text-xs font-semibold leading-relaxed">
+                  Kirim bingkisan sosial ke sehabat untuk menambah level afinitas, dan klaim promo kilat Flash Sale hari Jumat!
+                </p>
+                <div className="mt-5 flex items-center text-rose-400 font-black group-hover:translate-x-1.5 transition-transform text-xs uppercase tracking-wide gap-1">
+                  KIRIM HADIAH <ChevronRight className="w-4 h-4" />
+                </div>
+              </div>
+
+              {/* CARD 10: DATA STATISTIK ELO */}
+              <div 
+                onClick={() => {
+                  setMode('statistik-elo');
+                  triggerAudio('move');
+                }}
+                className="bg-[#312e2b] rounded-3xl p-6 border border-[#3c3934] hover:border-orange-500 hover:bg-[#3c3934] hover:shadow-xl transition-all cursor-pointer flex flex-col items-center text-center group font-sans"
+              >
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-400 to-amber-500 text-white flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  <LineChart className="w-8 h-8 fill-white/10 stroke-white/80" />
+                </div>
+                <h3 className="text-lg font-extrabold text-white mb-2">Kurva ELO & Streak</h3>
+                <p className="text-[#9babaf] text-xs font-semibold leading-relaxed">
+                  Tinjau data kurva telemetri ELO historis, tracker kontinyu streak login harian, dan unlock pencapaian rahasia!
+                </p>
+                <div className="mt-5 flex items-center text-orange-400 font-black group-hover:translate-x-1.5 transition-transform text-xs uppercase tracking-wide gap-1">
+                  CEK STATISTIK <ChevronRight className="w-4 h-4" />
+                </div>
+              </div>
+
             </div>
 
             {/* LOWER STATS AND ACCESSORY ROW */}
@@ -5543,9 +7252,9 @@ export default function App() {
                 }`}>
                   <AlertCircle className="w-4 h-4" />
                   {gameResult === 'win' && 'Skakmat! Kamu menang!'}
-                  {gameResult === 'win-time' && 'Waktu AI habis! Kamu menang secara waktu! ⏱️'}
+                  {gameResult === 'win-time' && 'Waktu AI habis! Kamu menang secara waktu!'}
                   {gameResult === 'lose' && 'Skakmat! Kamu kalah dari AI.'}
-                  {gameResult === 'lose-time' && 'Waktumu habis! Kamu kalah secara waktu. ⏱️'}
+                  {gameResult === 'lose-time' && 'Waktumu habis! Kamu kalah secara waktu.'}
                   {gameResult === 'draw' && 'Seri (Draw) ! Papan terkunci.'}
                 </div>
               )}
@@ -6033,7 +7742,7 @@ export default function App() {
                   }}
                   className="flex-1 py-2.5 bg-red-500/10 hover:bg-red-500/20 text-xs font-black text-red-400 rounded-xl border border-red-500/20 uppercase tracking-wide cursor-pointer transition-colors"
                 >
-                  Atur Ulang Papan 🔄
+                  Atur Ulang Papan 
                 </button>
               </div>
             </div>
@@ -6471,7 +8180,7 @@ export default function App() {
                     {puzzleStatus === 'solved' && (
                       <div>
                         <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3 border border-green-200 text-green-600 font-extrabold">
-                          ✓
+                          
                         </div>
                         <h4 className="font-extrabold text-green-700 text-lg mb-1">Berhasil Memecahkan Masalah!</h4>
                         <p className="text-[#777777] text-xs font-semibold mb-3">{activePuzzle.explanation}</p>
@@ -6494,7 +8203,7 @@ export default function App() {
                     {puzzleStatus === 'failed' && (
                       <div>
                         <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3 border border-red-200 text-red-500 font-extrabold">
-                          ✗
+                          
                         </div>
                         <h4 className="font-extrabold text-red-700 text-md mb-2">Aduh, Langkah Itu Salah!</h4>
                         <p className="text-[#777777] text-xs font-semibold mb-4 leading-relaxed">Itu adalah langkah blunder! Coba pelajari taktik pertahanan.</p>
@@ -6633,7 +8342,7 @@ export default function App() {
                     {lessonStatus === 'step-success' && (
                       <div>
                         <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-2 text-green-600 font-extrabold">
-                          ✓
+                          
                         </div>
                         <h4 className="font-extrabold text-green-700 text-sm mb-3">Langkah Ini Benar!</h4>
                         <button
@@ -6648,7 +8357,7 @@ export default function App() {
                     {lessonStatus === 'completed' && (
                       <div>
                         <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-2 text-green-600 font-extrabold">
-                          ✓
+                          
                         </div>
                         <h4 className="font-extrabold text-green-700 text-md mb-2">Hebat, Latihan Selesai!</h4>
                         <div className="py-1 px-3 bg-green-50 text-green-700 font-black tracking-wide uppercase text-xs rounded-xl inline-block border border-green-200">
@@ -6767,7 +8476,7 @@ export default function App() {
                       }}
                       className="w-full max-w-xs py-3.5 bg-[#58CC02] hover:bg-[#46A302] text-white font-extrabold rounded-2xl shadow-[0_4px_0_0_#46A302] active:translate-y-1 active:shadow-none transition-all uppercase tracking-wider text-sm cursor-pointer"
                     >
-                      Cari Lawan Catur Sekarang ➜
+                      Cari Lawan Catur Sekarang 
                     </button>
                     <div className="flex items-center gap-1 text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">
                       <span className="w-2 h-2 bg-green-500 rounded-full animate-ping" />
@@ -6834,7 +8543,7 @@ export default function App() {
                               onClick={() => { setMode('store'); triggerAudio('move'); }}
                               className="mt-2 text-[9px] font-bold uppercase text-yellow-600 hover:text-yellow-700 underline tracking-wider cursor-pointer"
                             >
-                              Tingkatkan Sekarang ➜
+                              Tingkatkan Sekarang 
                             </button>
                           </div>
                         )}
@@ -6913,7 +8622,7 @@ export default function App() {
                         }}
                         className="w-full py-2.5 bg-[#1CB0F6] hover:bg-[#0D94D2] text-white font-extrabold rounded-xl shadow-[0_3px_0_0_#0D94D2] active:translate-y-0.5 active:shadow-none transition-all text-xs uppercase cursor-pointer"
                       >
-                        Masuk / Daftar Akun ➜
+                        Masuk / Daftar Akun 
                       </button>
                     </div>
                   ) : (
@@ -7368,6 +9077,296 @@ export default function App() {
         )}
 
         {/* =========================================
+             5.5 STANDALONE TOURNAMENT BRACKET ARENA MODE
+           ========================================= */}
+        {mode === 'tournament' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-[#3c3934]">
+              <div>
+                <button 
+                  onClick={() => {
+                    setMode('menu');
+                    triggerAudio('move');
+                  }}
+                  className="mb-2 px-3.5 py-2 flex items-center gap-1.5 text-xs font-black text-slate-300 bg-[#262421]/90 hover:bg-[#312e2b] border border-stone-880 rounded-xl transition-all uppercase tracking-wider cursor-pointer font-sans"
+                >
+                  <ArrowLeft className="w-4 h-4 text-[#81b64c]" /> Kembali ke Arena
+                </button>
+                <h2 className="text-2xl font-black text-white uppercase tracking-tight flex items-center gap-2 font-sans">
+                   Turnamen Braket Mingguan
+                </h2>
+              </div>
+            </div>
+
+            <Features31to40
+              coins={coins}
+              setCoins={setCoins}
+              diamonds={diamonds}
+              setDiamonds={setDiamonds}
+              xp={xp}
+              setXp={setXp}
+              onlineRating={onlineRating}
+              setOnlineRating={setOnlineRating}
+              membershipStatus={membershipStatus}
+              triggerAudio={triggerAudio}
+              triggerReward={triggerReward}
+              setMode={setMode}
+              streak={streak}
+              startAiGameWithTimerAndCasual={(charId, limit, isCasual) => {
+                const char = CHARACTERS.find(c => c.id === charId) || CHARACTERS[0];
+                setTimerLimit(limit);
+                localStorage.setItem('timerLimit', String(limit));
+                localStorage.setItem('timerEnabled', 'true');
+                localStorage.setItem('casual_match_mode', String(isCasual));
+                handleSelectCharacter(char);
+              }}
+              receivedGifts={receivedGifts}
+              setReceivedGifts={setReceivedGifts}
+              unlockedSkins={unlockedSkins}
+              setUnlockedSkins={setUnlockedSkins}
+              unlockedThemes={unlockedThemes}
+              setUnlockedThemes={setUnlockedThemes}
+              unlockedFrames={unlockedFrames}
+              setUnlockedFrames={setUnlockedFrames}
+              initialTab="tournament"
+              hideTabsSelector={true}
+            />
+          </div>
+        )}
+
+        {/* =========================================
+             5.6 STANDALONE CLAN GUILD ARENA MODE
+           ========================================= */}
+        {mode === 'guild-suku' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-[#3c3934]">
+              <div>
+                <button 
+                  onClick={() => {
+                    setMode('menu');
+                    triggerAudio('move');
+                  }}
+                  className="mb-2 px-3.5 py-2 flex items-center gap-1.5 text-xs font-black text-slate-300 bg-[#262421]/90 hover:bg-[#312e2b] border border-stone-880 rounded-xl transition-all uppercase tracking-wider cursor-pointer font-sans"
+                >
+                  <ArrowLeft className="w-4 h-4 text-[#81b64c]" /> Kembali ke Arena
+                </button>
+                <h2 className="text-2xl font-black text-white uppercase tracking-tight flex items-center gap-2 font-sans">
+                  Perisai Klub & Suku Klan Catur
+                </h2>
+              </div>
+            </div>
+
+            <Features31to40
+              coins={coins}
+              setCoins={setCoins}
+              diamonds={diamonds}
+              setDiamonds={setDiamonds}
+              xp={xp}
+              setXp={setXp}
+              onlineRating={onlineRating}
+              setOnlineRating={setOnlineRating}
+              membershipStatus={membershipStatus}
+              triggerAudio={triggerAudio}
+              triggerReward={triggerReward}
+              setMode={setMode}
+              streak={streak}
+              startAiGameWithTimerAndCasual={(charId, limit, isCasual) => {
+                const char = CHARACTERS.find(c => c.id === charId) || CHARACTERS[0];
+                setTimerLimit(limit);
+                localStorage.setItem('timerLimit', String(limit));
+                localStorage.setItem('timerEnabled', 'true');
+                localStorage.setItem('casual_match_mode', String(isCasual));
+                handleSelectCharacter(char);
+              }}
+              receivedGifts={receivedGifts}
+              setReceivedGifts={setReceivedGifts}
+              unlockedSkins={unlockedSkins}
+              setUnlockedSkins={setUnlockedSkins}
+              unlockedThemes={unlockedThemes}
+              setUnlockedThemes={setUnlockedThemes}
+              unlockedFrames={unlockedFrames}
+              setUnlockedFrames={setUnlockedFrames}
+              initialTab="guild"
+              hideTabsSelector={true}
+            />
+          </div>
+        )}
+
+        {/* =========================================
+             5.7 STANDALONE FORUM & DISCUSSION MODE
+           ========================================= */}
+        {mode === 'forum-diskusi' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-[#3c3934]">
+              <div>
+                <button 
+                  onClick={() => {
+                    setMode('menu');
+                    triggerAudio('move');
+                  }}
+                  className="mb-2 px-3.5 py-2 flex items-center gap-1.5 text-xs font-black text-slate-300 bg-[#262421]/90 hover:bg-[#312e2b] border border-stone-880 rounded-xl transition-all uppercase tracking-wider cursor-pointer font-sans"
+                >
+                  <ArrowLeft className="w-4 h-4 text-[#81b64c]" /> Kembali ke Arena
+                </button>
+                <h2 className="text-2xl font-black text-white uppercase tracking-tight flex items-center gap-2 font-sans">
+                  Pesan Forum Diskusi & Analisis Catur
+                </h2>
+              </div>
+            </div>
+
+            <Features31to40
+              coins={coins}
+              setCoins={setCoins}
+              diamonds={diamonds}
+              setDiamonds={setDiamonds}
+              xp={xp}
+              setXp={setXp}
+              onlineRating={onlineRating}
+              setOnlineRating={setOnlineRating}
+              membershipStatus={membershipStatus}
+              triggerAudio={triggerAudio}
+              triggerReward={triggerReward}
+              setMode={setMode}
+              streak={streak}
+              startAiGameWithTimerAndCasual={(charId, limit, isCasual) => {
+                const char = CHARACTERS.find(c => c.id === charId) || CHARACTERS[0];
+                setTimerLimit(limit);
+                localStorage.setItem('timerLimit', String(limit));
+                localStorage.setItem('timerEnabled', 'true');
+                localStorage.setItem('casual_match_mode', String(isCasual));
+                handleSelectCharacter(char);
+              }}
+              receivedGifts={receivedGifts}
+              setReceivedGifts={setReceivedGifts}
+              unlockedSkins={unlockedSkins}
+              setUnlockedSkins={setUnlockedSkins}
+              unlockedThemes={unlockedThemes}
+              setUnlockedThemes={setUnlockedThemes}
+              unlockedFrames={unlockedFrames}
+              setUnlockedFrames={setUnlockedFrames}
+              initialTab="posts"
+              hideTabsSelector={true}
+            />
+          </div>
+        )}
+
+        {/* =========================================
+             5.8 STANDALONE TOKO DEALS & HADIAH MODE
+           ========================================= */}
+        {mode === 'toko-deals' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-[#3c3934]">
+              <div>
+                <button 
+                  onClick={() => {
+                    setMode('menu');
+                    triggerAudio('move');
+                  }}
+                  className="mb-2 px-3.5 py-2 flex items-center gap-1.5 text-xs font-black text-slate-300 bg-[#262421]/90 hover:bg-[#312e2b] border border-[#3c3934] rounded-xl transition-all uppercase tracking-wider cursor-pointer font-sans"
+                >
+                  <ArrowLeft className="w-4 h-4 text-[#81b64c]" /> Kembali ke Arena
+                </button>
+                <h2 className="text-2xl font-black text-white uppercase tracking-tight flex items-center gap-2 font-sans">
+                   Gifting Teman & Promo Flash Sale
+                </h2>
+              </div>
+            </div>
+
+            <Features31to40
+              coins={coins}
+              setCoins={setCoins}
+              diamonds={diamonds}
+              setDiamonds={setDiamonds}
+              xp={xp}
+              setXp={setXp}
+              onlineRating={onlineRating}
+              setOnlineRating={setOnlineRating}
+              membershipStatus={membershipStatus}
+              triggerAudio={triggerAudio}
+              triggerReward={triggerReward}
+              setMode={setMode}
+              streak={streak}
+              startAiGameWithTimerAndCasual={(charId, limit, isCasual) => {
+                const char = CHARACTERS.find(c => c.id === charId) || CHARACTERS[0];
+                setTimerLimit(limit);
+                localStorage.setItem('timerLimit', String(limit));
+                localStorage.setItem('timerEnabled', 'true');
+                localStorage.setItem('casual_match_mode', String(isCasual));
+                handleSelectCharacter(char);
+              }}
+              receivedGifts={receivedGifts}
+              setReceivedGifts={setReceivedGifts}
+              unlockedSkins={unlockedSkins}
+              setUnlockedSkins={setUnlockedSkins}
+              unlockedThemes={unlockedThemes}
+              setUnlockedThemes={setUnlockedThemes}
+              unlockedFrames={unlockedFrames}
+              setUnlockedFrames={setUnlockedFrames}
+              initialTab="deals"
+              hideTabsSelector={true}
+            />
+          </div>
+        )}
+
+        {/* =========================================
+             5.9 STANDALONE PROGRESS STATS & ACHIEVEMENT
+           ========================================= */}
+        {mode === 'statistik-elo' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between pb-4 border-b border-[#3c3934]">
+              <div>
+                <button 
+                  onClick={() => {
+                    setMode('menu');
+                    triggerAudio('move');
+                  }}
+                  className="mb-2 px-3.5 py-2 flex items-center gap-1.5 text-xs font-black text-slate-300 bg-[#262421]/90 hover:bg-[#312e2b] border border-[#3c3934] rounded-xl transition-all uppercase tracking-wider cursor-pointer font-sans"
+                >
+                  <ArrowLeft className="w-4 h-4 text-[#81b64c]" /> Kembali ke Arena
+                </button>
+                <h2 className="text-2xl font-black text-white uppercase tracking-tight flex items-center gap-2 font-sans">
+                   Kurva ELO Historis & Pencapaian
+                </h2>
+              </div>
+            </div>
+
+            <Features31to40
+              coins={coins}
+              setCoins={setCoins}
+              diamonds={diamonds}
+              setDiamonds={setDiamonds}
+              xp={xp}
+              setXp={setXp}
+              onlineRating={onlineRating}
+              setOnlineRating={setOnlineRating}
+              membershipStatus={membershipStatus}
+              triggerAudio={triggerAudio}
+              triggerReward={triggerReward}
+              setMode={setMode}
+              streak={streak}
+              startAiGameWithTimerAndCasual={(charId, limit, isCasual) => {
+                const char = CHARACTERS.find(c => c.id === charId) || CHARACTERS[0];
+                setTimerLimit(limit);
+                localStorage.setItem('timerLimit', String(limit));
+                localStorage.setItem('timerEnabled', 'true');
+                localStorage.setItem('casual_match_mode', String(isCasual));
+                handleSelectCharacter(char);
+              }}
+              receivedGifts={receivedGifts}
+              setReceivedGifts={setReceivedGifts}
+              unlockedSkins={unlockedSkins}
+              setUnlockedSkins={setUnlockedSkins}
+              unlockedThemes={unlockedThemes}
+              setUnlockedThemes={setUnlockedThemes}
+              unlockedFrames={unlockedFrames}
+              setUnlockedFrames={setUnlockedFrames}
+              initialTab="stats"
+              hideTabsSelector={true}
+            />
+          </div>
+        )}
+
+        {/* =========================================
              6. THEME STORE & NYAWA LOCKS VIEW 
            ========================================= */}
         {mode === 'store' && (
@@ -7386,11 +9385,46 @@ export default function App() {
                 <h2 className="text-2xl font-extrabold text-white tracking-tight animate-fade-in flex items-center gap-2">
                   Toko Tema & Kosmetik Papan <ShoppingBag className="w-6 h-6 text-[#81b64c] shrink-0" />
                 </h2>
-                <p className="text-[#9babaf] font-semibold text-sm mt-1">Unlock kustomisasi warna kontras papan turnamen atau isi ulang kesempatan analisismu memakai poin XP!</p>
+                <p className="text-[#9babaf] font-semibold text-sm mt-1">Unlock kustomisasi warna kontras papan turnamen atau isi ulang kesempatan analisismu memakai Koin & Berlian!</p>
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
+            {/* Store Top Navigation Sub-Tabs */}
+            <div className="flex flex-wrap gap-3.5 border-b border-[#3c3934] mb-8 pb-3 scroller-hidden">
+              <button
+                onClick={() => { setStoreActiveTab('shop'); triggerAudio('move'); }}
+                className={`px-5 py-2.5 font-black text-xs uppercase tracking-wider rounded-xl border transition-all cursor-pointer flex items-center gap-2 ${
+                  storeActiveTab === 'shop'
+                    ? 'bg-[#81b64c] text-white border-[#81b64c] shadow-md'
+                    : 'bg-[#262421] text-slate-300 border-[#3c3934] hover:text-white hover:bg-[#312e2b]'
+                }`}
+              >
+                 Katalog Pembelian Langsung
+              </button>
+              <button
+                onClick={() => { setStoreActiveTab('gacha'); triggerAudio('move'); }}
+                className={`px-5 py-2.5 font-black text-xs uppercase tracking-wider rounded-xl border transition-all cursor-pointer flex items-center gap-2 ${
+                  storeActiveTab === 'gacha'
+                    ? 'bg-yellow-500 text-slate-950 border-yellow-500 shadow-md'
+                    : 'bg-[#262421] text-slate-300 border-[#3c3934] hover:text-white hover:bg-[#312e2b]'
+                }`}
+              >
+                 Mesin Gacha & Tabungan Diamond
+              </button>
+              <button
+                onClick={() => { setStoreActiveTab('flash_sale'); triggerAudio('move'); }}
+                className={`px-5 py-2.5 font-black text-xs uppercase tracking-wider rounded-xl border transition-all cursor-pointer flex items-center gap-2 ${
+                  storeActiveTab === 'flash_sale'
+                    ? 'bg-rose-500 text-white border-rose-500 shadow-md'
+                    : 'bg-[#262421] text-slate-300 border-[#3c3934] hover:text-white hover:bg-[#312e2b]'
+                }`}
+              >
+                Kilat Friday Flash Sale Spesial
+              </button>
+            </div>
+
+            {storeActiveTab === 'shop' && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-start">
               
               <div className="space-y-8">
                 {/* HEARTS FILL RECOVERY ITEM */}
@@ -7405,10 +9439,10 @@ export default function App() {
                     </div>
                   </div>
                   <div className="text-center sm:text-right shrink-0">
-                    <span className="block font-extrabold text-[#FFC800] font-mono text-lg mb-2">50 XP</span>
+                    <span className="block font-extrabold text-[#81b64c] font-mono text-lg mb-2 flex items-center justify-center sm:justify-end gap-1"><Coins className="w-5 h-5 text-[#81b64c]" /> 50 Koin</span>
                     <button 
                       onClick={buyHeartRefill}
-                      disabled={xp < 50 || hearts >= 5}
+                      disabled={coins < 50 || hearts >= 5}
                       className="px-6 py-2.5 bg-[#81b64c] hover:bg-[#92ca5a] disabled:opacity-50 text-white font-extrabold text-xs uppercase rounded-xl shadow-[0_4px_0_0_#5d8a32] active:translate-y-1 active:shadow-none cursor-pointer transition-all"
                     >
                       {hearts >= 5 ? 'Sudah Penuh' : 'Refill Penuh'}
@@ -7470,18 +9504,20 @@ export default function App() {
                       <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-400 mt-0.5" />
                       <div>
                         <span className="block text-white">Durasi Keanggotaan: Aktif Selamanya (Lifetime)</span>
-                        <span className="text-[10px] text-slate-400 font-normal">Sekali aktivasi menggunakan poin XP, akun Anda resmi terdaftar sebagai member loyal permanen selamanya (Tanpa Batas Waktu).</span>
+                        <span className="text-[10px] text-slate-400 font-normal">Sekali aktivasi menggunakan Koin, akun Anda resmi terdaftar sebagai member loyal permanen selamanya (Tanpa Batas Waktu).</span>
                       </div>
                     </div>
                   </div>
 
-                  <div className="flex justify-between items-center bg-[#1d1a18] p-4 rounded-xl border border-yellow-500/10">
+                  <div className="flex justify-between items-center bg-[#1d1a18]/95 p-4 rounded-xl border border-yellow-500/10">
                     <div>
                       <span className="block text-[9px] uppercase font-bold text-slate-400 tracking-wide">Biaya Aktivasi</span>
                       {membershipStatus === 'premium' ? (
-                        <span className="text-yellow-400 font-black text-xs tracking-wider uppercase">LIFETIME AKTIF ✔</span>
+                        <span className="text-yellow-400 font-black text-xs tracking-wider uppercase">LIFETIME AKTIF Aktif</span>
                       ) : (
-                        <span className="font-extrabold text-[#FFC800] font-mono text-xl">350 XP</span>
+                        <span className="font-extrabold text-[#81b64c] font-mono text-xl flex items-center gap-1">
+                          <Coins className="w-5 h-5 text-[#81b64c]" /> 350
+                        </span>
                       )}
                     </div>
                     {membershipStatus === 'premium' ? (
@@ -7491,14 +9527,17 @@ export default function App() {
                     ) : (
                       <button 
                         onClick={() => {
-                          if (xp >= 350) {
-                            setXp(prev => prev - 350);
+                          if (coins >= 350) {
+                            const nextCoins = coins - 350;
+                            setCoins(nextCoins);
+                            localStorage.setItem('coins', String(nextCoins));
                             setMembershipStatus('premium');
+                            localStorage.setItem('membershipStatus', 'premium');
                             triggerAudio('win');
                             triggerReward(0, "Selamat! Anda resmi menjadi Anggota Premium Klub Catur Nopal! Nikmati semua fitur istimewa!", 'success_no_xp');
                           }
                         }}
-                        disabled={xp < 350}
+                        disabled={coins < 350}
                         className="px-6 py-3 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 disabled:opacity-40 text-slate-950 font-black text-xs uppercase rounded-xl shadow-[0_4px_0_0_#b38b00] active:translate-y-1 active:shadow-none cursor-pointer transition-all tracking-wider"
                       >
                         Aktifkan Sekarang
@@ -7516,10 +9555,14 @@ export default function App() {
                     {THEMES.map((theme) => {
                       const isUnlocked = unlockedThemes.includes(theme.id) || membershipStatus === 'premium';
                       const isActive = boardTheme === theme.id;
+                      const costType = theme.id === 'cosmic' ? 'diamond' : 'coin';
+                      const costValue = theme.id === 'cosmic' ? 30 : 150;
+                      const hasEnough = costType === 'coin' ? coins >= costValue : diamonds >= costValue;
+
                       return (
                         <div 
                           key={theme.id}
-                          className={`p-4 rounded-2xl border transition-all flex flex-col justify-between h-40 ${
+                          className={`p-4 rounded-2xl border transition-all flex flex-col justify-between min-h-[11rem] h-full ${
                             isActive 
                               ? 'bg-[#262421] border-[#81b64c] shadow-md' 
                               : 'bg-[#262421] border-[#3c3934] hover:border-[#81b64c]'
@@ -7538,23 +9581,35 @@ export default function App() {
 
                           <div className="flex items-center justify-between mt-4">
                             {!isUnlocked ? (
-                              <span className="font-extrabold text-[#FFC800] text-sm font-mono">{theme.cost} XP</span>
+                              <span className="font-extrabold text-sm font-mono flex items-center gap-0.5 whitespace-nowrap">
+                                {costType === 'coin' ? (
+                                  <>
+                                    <Coins className="w-3.5 h-3.5 text-[#81b64c] inline" />
+                                    <span className="text-[#81b64c]">{costValue}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Gem className="w-3.5 h-3.5 text-cyan-400 inline" />
+                                    <span className="text-cyan-400">{costValue}</span>
+                                  </>
+                                )}
+                              </span>
                             ) : (
-                              <span className="text-[#9babaf] text-xs font-semibold">Tersedia</span>
+                              <span className="text-[#9babaf] text-[11px] font-semibold">Tersedia</span>
                             )}
                             
                             {!isUnlocked ? (
                               <button
                                 onClick={() => buyTheme(theme)}
-                                disabled={xp < theme.cost}
-                                className="px-4 py-2 bg-[#FFC800] hover:bg-yellow-400 disabled:opacity-40 text-[#262421] font-extrabold text-[10px] uppercase rounded-lg shadow-[0_3px_0_0_#b38b00] active:translate-y-0.5 active:shadow-none cursor-pointer"
+                                disabled={!hasEnough}
+                                className="px-3.5 py-1.5 bg-[#FFC800] hover:bg-yellow-400 disabled:opacity-40 text-[#262421] font-black text-[10px] uppercase rounded-lg shadow-[0_3px_0_0_#b38b00] active:translate-y-0.5 active:shadow-none cursor-pointer"
                               >
                                 Beli
                               </button>
                             ) : (
                               <button
                                 onClick={() => setBoardTheme(theme.id)}
-                                className="px-4 py-2 bg-[#312e2b] hover:bg-[#3c3934] text-white font-extrabold text-[10px] uppercase rounded-lg border border-[#3c3934] shadow-[0_3px_0_0_#211f1d] active:translate-y-0.5 active:shadow-none cursor-pointer"
+                                className="px-3.5 py-1.5 bg-[#312e2b] hover:bg-[#3c3934] text-white font-extrabold text-[10px] uppercase rounded-lg border border-[#3c3934] shadow-[0_3px_0_0_#211f1d] active:translate-y-0.5 active:shadow-none cursor-pointer"
                               >
                                 Gunakan
                               </button>
@@ -7571,17 +9626,19 @@ export default function App() {
                   <h3 className="font-extrabold text-white text-md uppercase tracking-wide mb-4">Skin Bidak Catur</h3>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {[
-                      { id: 'standard', name: 'Gaya Klasik', cost: 0, desc: 'Tampilan standar minimal' },
-                      { id: 'wood', name: 'Kayu Maple', cost: 100, desc: 'Tekstur serat kayu natural' },
-                      { id: 'neon', name: 'Cyber Laser', cost: 200, desc: 'Garis neon cyberpunk menyala' },
-                      { id: 'gold', name: 'Emas Kerajaan', cost: 300, desc: 'Brilian kilau emas monarki' }
+                      { id: 'standard', name: 'Gaya Klasik', cost: 0, costType: 'coin', desc: 'Tampilan standar minimal' },
+                      { id: 'wood', name: 'Kayu Maple', cost: 150, costType: 'coin', desc: 'Tekstur serat kayu natural' },
+                      { id: 'neon', name: 'Cyber Laser', cost: 20, costType: 'diamond', desc: 'Garis neon cyberpunk menyala' },
+                      { id: 'gold', name: 'Emas Kerajaan', cost: 40, costType: 'diamond', desc: 'Brilian kilau emas monarki' }
                     ].map((skinItem) => {
                       const isUnlocked = unlockedSkins.includes(skinItem.id) || membershipStatus === 'premium' || skinItem.id === 'standard';
                       const isActive = selectedSkin === skinItem.id;
+                      const hasEnough = skinItem.costType === 'coin' ? coins >= skinItem.cost : diamonds >= skinItem.cost;
+
                       return (
                         <div 
                           key={skinItem.id}
-                          className={`p-4 rounded-2xl border transition-all flex flex-col justify-between h-44 ${
+                          className={`p-4 rounded-2xl border transition-all flex flex-col justify-between min-h-[12rem] h-full ${
                             isActive 
                               ? 'bg-[#262421] border-[#ffd700] shadow-md' 
                               : 'bg-[#262421] border-[#3c3934] hover:border-[#81b64c]'
@@ -7605,22 +9662,44 @@ export default function App() {
 
                           <div className="flex items-center justify-between mt-3">
                             {!isUnlocked ? (
-                              <span className="font-extrabold text-[#FFC800] text-sm font-mono">{skinItem.cost} XP</span>
+                              <span className="font-extrabold text-sm font-mono flex items-center gap-0.5 whitespace-nowrap">
+                                {skinItem.costType === 'coin' ? (
+                                  <>
+                                    <Coins className="w-3.5 h-3.5 text-[#81b64c] inline" />
+                                    <span className="text-[#81b64c]">{skinItem.cost}</span>
+                                  </>
+                                ) : (
+                                  <>
+                                    <Gem className="w-3.5 h-3.5 text-cyan-400 inline" />
+                                    <span className="text-cyan-400">{skinItem.cost}</span>
+                                  </>
+                                )}
+                              </span>
                             ) : (
-                              <span className="text-[#9babaf] text-xs font-semibold">Tersedia</span>
+                              <span className="text-[#9babaf] text-2xs font-semibold">Tersedia</span>
                             )}
                             
                             {!isUnlocked ? (
                               <button
                                 onClick={() => {
-                                  if (xp >= skinItem.cost) {
-                                    setXp(prev => prev - skinItem.cost);
-                                    setUnlockedSkins(prev => [...prev, skinItem.id]);
-                                    triggerAudio('win');
+                                  if (skinItem.costType === 'coin') {
+                                    if (coins >= skinItem.cost) {
+                                      setCoins(prev => prev - skinItem.cost);
+                                      setUnlockedSkins(prev => [...prev, skinItem.id]);
+                                      triggerAudio('win');
+                                      triggerReward(0, `Skin Bidak "${skinItem.name}" berhasil dibeli seharga ${skinItem.cost} Koin!`, 'success_no_xp');
+                                    }
+                                  } else {
+                                    if (diamonds >= skinItem.cost) {
+                                      setDiamonds(prev => prev - skinItem.cost);
+                                      setUnlockedSkins(prev => [...prev, skinItem.id]);
+                                      triggerAudio('win');
+                                      triggerReward(0, `Skin Bidak "${skinItem.name}" berhasil dibeli seharga ${skinItem.cost} Berlian!`, 'success_no_xp');
+                                    }
                                   }
                                 }}
-                                disabled={xp < skinItem.cost}
-                                className="px-4 py-2 bg-[#FFC800] hover:bg-yellow-400 disabled:opacity-40 text-black font-extrabold text-[10px] uppercase rounded-lg shadow-[0_3px_0_0_#b38b00] active:translate-y-0.5 active:shadow-none cursor-pointer"
+                                disabled={!hasEnough}
+                                className="px-3.5 py-1.5 bg-[#FFC800] hover:bg-yellow-400 disabled:opacity-40 text-black font-extrabold text-[10px] uppercase rounded-lg shadow-[0_3px_0_0_#b38b00] active:translate-y-0.5 active:shadow-none cursor-pointer"
                               >
                                 Beli
                               </button>
@@ -7630,7 +9709,7 @@ export default function App() {
                                   setSelectedSkin(skinItem.id);
                                   triggerAudio('move');
                                 }}
-                                className="px-4 py-2 bg-[#312e2b] hover:bg-[#3c3934] text-white font-extrabold text-[10px] uppercase rounded-lg border border-[#3c3934] shadow-[0_3px_0_0_#211f1d] active:translate-y-0.5 active:shadow-none cursor-pointer"
+                                className="px-3.5 py-1.5 bg-[#312e2b] hover:bg-[#3c3934] text-white font-extrabold text-[10px] uppercase rounded-lg border border-[#3c3934] shadow-[0_3px_0_0_#211f1d] active:translate-y-0.5 active:shadow-none cursor-pointer"
                               >
                                 Gunakan
                               </button>
@@ -7667,7 +9746,7 @@ export default function App() {
                       return (
                         <div 
                           key={frame.id}
-                          className={`p-4 rounded-2xl border transition-all flex flex-col justify-between h-48 ${
+                          className={`p-4 rounded-2xl border transition-all flex flex-col justify-between min-h-[13rem] h-full ${
                             isActive 
                               ? 'bg-[#262421] border-[#81b64c] shadow-lg shadow-[#81b64c]/10' 
                               : 'bg-[#262421] border-[#3c3934] hover:border-slate-600'
@@ -7690,12 +9769,12 @@ export default function App() {
                               )}
                             </div>
                             
-                            <p className="text-[9.5px] sm:text-[10px] text-slate-400 font-semibold mt-1 mb-2.5 h-10 overflow-hidden line-clamp-2 leading-relaxed">
+                            <p className="text-[9.5px] sm:text-[10px] text-slate-400 font-semibold mt-1 mb-1.5 h-9 overflow-hidden line-clamp-2 leading-relaxed">
                               {frame.description}
                             </p>
                             
                             {/* Live preview section */}
-                            <div className="flex items-center gap-2.5">
+                            <div className="flex items-center gap-2">
                               <AvatarWithFrame 
                                 src={user?.profileAvatar || martinAvatar} 
                                 frameId={frame.id} 
@@ -7705,41 +9784,60 @@ export default function App() {
                             </div>
                           </div>
 
-                          <div className="flex items-center justify-between mt-3 gap-1">
+                          <div className="flex items-center justify-between mt-2.5 gap-1.5 border-t border-[#3c3934]/35 pt-2.5">
                             {!isUnlocked ? (
-                              <div className="flex items-center gap-1 font-extrabold text-sm font-mono">
-                                {frame.costType === 'coin' ? (
-                                  <span className="text-yellow-450 flex items-center gap-1">
-                                    <Coins className="w-3.5 h-3.5 text-yellow-400" /> {frame.cost}
+                              frame.isPremiumExclusive ? (
+                                <>
+                                  <span className="text-[9px] uppercase font-black tracking-wider text-yellow-500 flex items-center gap-0.5 shrink-0 select-none">
+                                    <Crown className="w-3.5 h-3.5 text-yellow-500 shrink-0" /> Premium
                                   </span>
-                                ) : (
-                                  <span className="text-cyan-450 flex items-center gap-1">
-                                    <Gem className="w-3.5 h-3.5 text-cyan-400" /> {frame.cost}
-                                  </span>
-                                )}
-                              </div>
+                                  <button
+                                    onClick={() => {
+                                      setMode('store');
+                                      triggerAudio('move');
+                                    }}
+                                    className="px-3.5 py-1.5 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-slate-950 font-black text-[9px] uppercase rounded-lg shadow-[0_2px_0_0_#b38b00] active:translate-y-0.5 active:shadow-none cursor-pointer transition-all shrink-0 font-sans"
+                                  >
+                                    Ubah Premium
+                                  </button>
+                                </>
+                              ) : (
+                                <>
+                                  <div className="flex items-center gap-1 font-extrabold text-xs font-mono shrink-0 select-none">
+                                    {frame.costType === 'coin' ? (
+                                      <span className="text-yellow-450 flex items-center gap-1">
+                                        <Coins className="w-3.5 h-3.5 text-yellow-400" /> {frame.cost}
+                                      </span>
+                                    ) : (
+                                      <span className="text-cyan-450 flex items-center gap-1">
+                                        <Gem className="w-3.5 h-3.5 text-cyan-400" /> {frame.cost}
+                                      </span>
+                                    )}
+                                  </div>
+                                  <button
+                                    onClick={() => buyAvatarFrame(frame)}
+                                    className="px-4 py-1.5 bg-[#FFC800] hover:bg-yellow-450 text-black font-black text-[9px] uppercase rounded-lg shadow-[0_2px_0_0_#b38b00] active:translate-y-0.5 active:shadow-none cursor-pointer transition-all shrink-0 font-sans"
+                                  >
+                                    Beli
+                                  </button>
+                                </>
+                              )
                             ) : (
-                              <span className="text-[#9babaf] text-[10px] font-semibold">Siap Digunakan</span>
-                            )}
-                            
-                            {!isUnlocked ? (
-                              <button
-                                onClick={() => buyAvatarFrame(frame)}
-                                className="px-4 py-1.5 bg-[#FFC800] hover:bg-yellow-450 text-black font-black text-[9px] uppercase rounded-lg shadow-[0_2.5px_0_0_#b38b00] active:translate-y-0.5 active:shadow-none cursor-pointer transition-all"
-                              >
-                                Beli
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => equipAvatarFrame(frame.id)}
-                                className={`px-4 py-1.5 font-bold text-[9px] uppercase rounded-lg cursor-pointer transition-all ${
-                                  isActive
-                                    ? 'bg-[#81b64c] text-white shadow-[0_2.5px_0_0_#5b8c34]'
-                                    : 'bg-[#312e2b] hover:bg-[#3c3934] text-slate-350 border border-[#3c3934] shadow-[0_2.5px_0_0_#211f1d] active:translate-y-0.5 active:shadow-none'
-                                }`}
-                              >
-                                {isActive ? 'Dipasang' : 'Gunakan'}
-                              </button>
+                              <>
+                                <span className="text-[10px] uppercase font-black tracking-wider text-[#9babaf] shrink-0 select-none">
+                                  {isActive ? '● Aktif' : 'Milik Anda'}
+                                </span>
+                                <button
+                                  onClick={() => equipAvatarFrame(frame.id)}
+                                  className={`px-4 py-1.5 font-extrabold text-[9px] uppercase rounded-lg cursor-pointer transition-all shrink-0 font-sans ${
+                                    isActive
+                                      ? 'bg-[#81b64c] text-white shadow-[0_2px_0_0_#5b8c34]'
+                                      : 'bg-[#312e2b] hover:bg-[#3c3934] text-slate-350 border border-[#3c3934] shadow-[0_2px_0_0_#211f1d] active:translate-y-0.5 active:shadow-none'
+                                  }`}
+                                >
+                                  {isActive ? 'Dipasang' : 'Pasang'}
+                                </button>
+                              </>
                             )}
                           </div>
                         </div>
@@ -7750,62 +9848,285 @@ export default function App() {
               </div>
 
             </div>
+            )}
+
+            {storeActiveTab === 'gacha' && (
+              <div className="animate-fade-in duration-300">
+                <Features26to30
+                  coins={coins}
+                  setCoins={setCoins}
+                  diamonds={diamonds}
+                  setDiamonds={setDiamonds}
+                  membershipStatus={membershipStatus}
+                  setMembershipStatus={setMembershipStatus}
+                  unlockedSkins={unlockedSkins}
+                  setUnlockedSkins={setUnlockedSkins}
+                  unlockedThemes={unlockedThemes}
+                  setUnlockedThemes={setUnlockedThemes}
+                  unlockedFrames={unlockedFrames}
+                  setUnlockedFrames={setUnlockedFrames}
+                  selectedSkin={selectedSkin}
+                  setSelectedSkin={setSelectedSkin}
+                  selectedFrame={selectedFrame}
+                  setSelectedFrame={setSelectedFrame}
+                  boardTheme={boardTheme}
+                  setBoardTheme={setBoardTheme}
+                  diamondSavings={diamondSavings}
+                  setDiamondSavings={setDiamondSavings}
+                  dailyQuests={dailyQuests}
+                  setDailyQuests={setDailyQuests}
+                  triggerAudio={triggerAudio}
+                  triggerReward={triggerReward}
+                />
+              </div>
+            )}
+
+            {storeActiveTab === 'flash_sale' && (
+              <div className="animate-fade-in duration-300 space-y-6">
+                {/* Friday Flash Sale Card */}
+                <div className="bg-[#312e2b] p-6 rounded-3xl border border-[#3c3934] relative overflow-hidden shadow-lg">
+                  <div className="space-y-4">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-[9px] font-black tracking-widest bg-rose-500 text-white px-2.5 py-0.5 rounded-lg uppercase">
+                        PROMO JUMAT BERKAH COIN DISKON
+                      </span>
+                      
+                      {/* Test Override Switch */}
+                      <label className="inline-flex items-center gap-1.5 cursor-pointer select-none">
+                        <input 
+                          type="checkbox" 
+                          checked={forceFriday} 
+                          onChange={(e) => setForceFriday(e.target.checked)} 
+                          className="sr-only peer" 
+                        />
+                        <div className="w-10 h-5 bg-[#262421] border border-[#3c3934] peer-checked:border-rose-500 rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:bg-slate-400 peer-checked:after:bg-white after:rounded-full after:h-3.5 after:w-3.5 after:top-[3px] after:left-[3px] after:transition-all peer-checked:bg-rose-500 relative" />
+                        <span className="text-[9px] text-slate-400 font-black uppercase font-mono">Bypass Hari Jumat</span>
+                      </label>
+                    </div>
+
+                    <div>
+                      <h3 className="text-xl font-black text-white uppercase flex items-center gap-2">
+                        Kilat Friday Flash Sale Spesial
+                      </h3>
+                      <p className="text-xs text-slate-400 max-w-xl font-semibold mt-1 font-sans">
+                        Setiap hari Jumat, Toko memberikan potongan harga eksklusif (Diskon 50% - 80%) 
+                        pada bundel kustom kosmetika legendaris berbatas waktu yang ditawarkan secara acak khas untuk Anda!
+                      </p>
+                    </div>
+                  </div>
+
+                  {isCurrentlyFriday ? (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+                      {flashDeals.map((deal) => (
+                        <div key={deal.id} className="p-5 bg-[#262421] border border-stone-800 hover:border-rose-500/50 rounded-2xl flex flex-col justify-between min-h-[12-rem] shadow-inner transition-all hover:scale-[1.01]">
+                          <div>
+                            <div className="flex justify-between items-start">
+                              <span className="text-[8px] font-black uppercase bg-rose-500 text-white px-2 py-0.5 rounded-md">DISKON 70%</span>
+                              <span className="text-yellow-500">Spesial</span>
+                            </div>
+                            <h4 className="font-extrabold text-[#cdc2af] text-sm mt-3">{deal.name}</h4>
+                            <p className="text-[11px] text-slate-400 leading-normal mt-1.5 font-medium">{deal.desc}</p>
+                          </div>
+
+                          <div className="mt-5 pt-3 border-t border-stone-800 flex justify-between items-center gap-2">
+                            <div className="text-left font-mono">
+                              <span className="text-[10px] text-slate-500 line-through block">{deal.originalCost}</span>
+                              <span className="text-[#81b64c] font-black text-xs block">{deal.discountedCost} {deal.currency === 'coins' ? 'Koin' : 'Diamond'}</span>
+                            </div>
+                            <button
+                              onClick={() => handleBuyFlashItem(deal)}
+                              className="px-4 py-2 bg-rose-500 hover:bg-rose-600 text-white text-[10px] font-black uppercase rounded-lg transition-all cursor-pointer shadow-md hover:translate-y-[-1px] active:translate-y-[1px]"
+                            >
+                              Beli Kilat
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {flashDeals.length === 0 && (
+                        <div className="md:col-span-3 text-center py-10 text-xs text-slate-500 uppercase font-black tracking-wider font-mono">
+                          Semua item promo Jumat flash sale hari ini telah sukses Anda borong habis!
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="bg-black/15 p-8 rounded-2xl text-center text-xs text-slate-500 uppercase font-black tracking-wider border border-[#3c3934]/35 mt-4">
+                      Toko Flash Sale hanya terbuka secara otomatis setiap hari Jumat! (Centang opsi "Bypass Hari Jumat" di atas untuk demonstrasi uji coba)
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
+
+          </div>
+        )}
+
+        {mode === 'koleksi-pokedex' && (
+          <div className="space-y-6">
+            <Features41to50
+              coins={coins}
+              setCoins={setCoins}
+              diamonds={diamonds}
+              setDiamonds={setDiamonds}
+              xp={xp}
+              setXp={setXp}
+              membershipStatus={membershipStatus}
+              triggerAudio={triggerAudio}
+              triggerReward={triggerReward}
+              unlockedSkins={unlockedSkins}
+              setUnlockedSkins={setUnlockedSkins}
+              unlockedThemes={unlockedThemes}
+              setUnlockedThemes={setUnlockedThemes}
+              unlockedFrames={unlockedFrames}
+              setUnlockedFrames={setUnlockedFrames}
+              username={username}
+              onlineRating={onlineRating}
+            />
           </div>
         )}
       </main>
+    </div>
 
-      {/* SOLID HIGH-FIDELITY BOTTOM NAVIGATION BAR */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#262421]/95 md:bg-[#312e2b]/98 backdrop-blur-md border-t border-[#3c3934] shadow-2xl py-2.5 px-4 transition-all">
-        <div className="max-w-md mx-auto flex items-center justify-between gap-1">
-          {[
-            { id: 'home', label: 'Beranda', Icon: Home },
-            { id: 'menu', label: 'Arena', Icon: Swords },
-            { id: 'profile', label: 'Profil', Icon: User },
-            { id: 'store', label: 'Toko', Icon: ShoppingBag },
-            { id: 'settings', label: 'Opsi', Icon: Settings }
-          ].map((item) => {
-            const isArenaSubMode = ['menu', 'select-character', 'play', 'puzzles', 'lessons', 'online-match', 'analysis', 'local-friend'].includes(mode);
-            const isActive = item.id === 'menu' ? isArenaSubMode : mode === item.id;
+      {/* SIDE NAVIGATION DRAWER */}
+      <AnimatePresence>
+        {isNavDrawerOpen && (
+          <>
+            {/* Backdrop Overlay */}
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => {
+                setIsNavDrawerOpen(false);
+                triggerAudio('move');
+              }}
+              className="fixed inset-0 z-50 bg-black/70 backdrop-blur-xs cursor-pointer"
+            />
 
-            return (
-              <button
-                key={item.id}
-                type="button"
-                onClick={() => {
-                  if (mode === 'online-match' && onlineStatus === 'playing') {
-                    if (!confirm('Apakah Anda yakin ingin meninggalkan pertandingan online yang sedang berjalan? Anda akan dinilai kalah!')) {
-                      return;
-                    }
-                    setOnlineStatus('idle');
-                  }
-                  
-                  if (mode === 'puzzles') {
-                    setPuzzleStatus('playing');
-                  }
+            {/* Sidebar Slide-in Panel */}
+            <motion.div
+              initial={{ x: '100%' }}
+              animate={{ x: 0 }}
+              exit={{ x: '100%' }}
+              transition={{ type: 'spring', damping: 26, stiffness: 220 }}
+              className="fixed right-0 top-0 bottom-0 z-55 w-80 max-w-[90vw] bg-[#1e1c1b] border-l border-[#3c3934] shadow-2xl flex flex-col font-sans"
+            >
+              {/* Drawer Header */}
+              <div className="p-5 border-b border-[#3c3934] flex items-center justify-between bg-[#262421]">
+                <div>
+                  <h3 className="text-sm font-black text-[#81b64c] uppercase tracking-wider font-mono flex items-center gap-2">
+                    <svg className="w-5 h-5 text-[#81b64c]" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M19 22H5v-2h14v2M17 10c0-1.35-.83-2.5-2-3c0-2-2-4-3-4s-3 2-3 4c-1.17.5-2 1.65-2 3c0 1.35.83 2.5 2 3h6c1.17-.5 2-1.35 2-3M18 18H6v-3h12v3m-7-3v-2h2v2h-2z" />
+                    </svg>
+                    Catur Nopal
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase mt-0.5 font-sans">Navigasi Utama</p>
+                </div>
+                <button
+                  onClick={() => {
+                    setIsNavDrawerOpen(false);
+                    triggerAudio('move');
+                  }}
+                  className="p-1.5 hover:bg-[#312e2b] text-slate-400 hover:text-white rounded-lg transition-colors border border-[#3c3934]/30"
+                  title="Tutup Menu"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
-                  setMode(item.id as any);
-                  triggerAudio('move');
-                }}
-                className={`flex flex-col items-center justify-center flex-1 py-1 px-2 rounded-xl transition-all relative ${
-                  isActive 
-                    ? 'text-[#81b64c] font-black scale-105' 
-                    : 'text-slate-400 hover:text-white hover:bg-[#3c3934]/35 font-semibold'
-                }`}
-              >
-                {isActive && (
-                  <motion.div 
-                    layoutId="activeTabGlow"
-                    className="absolute inset-0 bg-[#81b64c]/8 border border-[#81b64c]/20 rounded-xl -z-10"
-                    transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+              {/* Quick Profile Summary/Stats inside Drawer */}
+              <div className="p-4 bg-[#262421]/55 border-b border-[#3c3934]/60 flex items-center gap-3">
+                <div 
+                  onClick={() => {
+                    setShowProfileModal(true);
+                    setIsNavDrawerOpen(false);
+                    triggerAudio('move');
+                  }}
+                  className="cursor-pointer hover:scale-105 transition-transform shrink-0"
+                >
+                  <AvatarWithFrame 
+                    src={(user && user.profileAvatar) || martinAvatar} 
+                    frameId={selectedFrame} 
+                    size="sm" 
                   />
-                )}
-                <item.Icon className={`w-5 h-5 mb-1 ${isActive ? 'text-[#81b64c]' : 'text-slate-400'}`} />
-                <span className="text-[10px] sm:text-[11px] tracking-tight leading-none">{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-1">
+                    {membershipStatus === 'premium' && <Crown className="w-3.5 h-3.5 text-yellow-500 fill-yellow-400/15 shrink-0" />}
+                    <h4 className="text-white text-xs font-bold font-sans truncate uppercase">
+                      {user ? user.username : username}
+                    </h4>
+                  </div>
+                  <p className="text-[9px] text-[#9babaf] font-semibold mt-0.5 uppercase tracking-wide">
+                    {membershipStatus === 'premium' ? 'Klub Premium' : `${onlineRating} ELO • Pemula`}
+                  </p>
+                </div>
+              </div>
+
+              {/* Navigation Links Scrollable List */}
+              <div className="flex-1 overflow-y-auto p-4 py-6 space-y-2">
+                {[
+                  { id: 'home', label: 'Beranda', Icon: Home },
+                  { id: 'menu', label: 'Arena Utama', Icon: Swords },
+                  { id: 'select-character', label: 'Lawan Karakter AI', Icon: Award },
+                  { id: 'puzzles', label: 'Teka-Teki Catur', Icon: Sparkles },
+                  { id: 'lessons', label: 'Teori & Teaser', Icon: BookOpen },
+                  { id: 'tournament', label: 'Turnamen Braket', Icon: Trophy },
+                  { id: 'guild-suku', label: 'Klan & Klub Suku', Icon: Shield },
+                  { id: 'koleksi-pokedex', label: 'Indeks Koleksi & Kuis (41-50)', Icon: Sparkles },
+                  { id: 'forum-diskusi', label: 'Forum Komunitas', Icon: MessageSquare },
+                  { id: 'toko-deals', label: 'Toko Sale & Promo', Icon: ShoppingBag },
+                  { id: 'profile', label: 'Profil Catur', Icon: User },
+                  { id: 'settings', label: 'Pengaturan', Icon: Settings }
+                ].map((item) => {
+                  const isArenaSubMode = ['menu', 'select-character', 'play', 'puzzles', 'lessons', 'online-match', 'analysis', 'local-friend', 'tournament', 'guild-suku'].includes(mode);
+                  const isActive = (item.id === 'menu' && isArenaSubMode) || mode === item.id;
+                  return (
+                    <button
+                      key={item.id}
+                      onClick={() => {
+                        // Confirm active game leave safety checks
+                        if (mode === 'online-match' && onlineStatus === 'playing') {
+                          if (!confirm('Apakah Anda yakin ingin meninggalkan pertandingan online yang sedang berjalan? Anda akan dinilai kalah!')) {
+                            return;
+                          }
+                          setOnlineStatus('idle');
+                        }
+                        if (mode === 'puzzles') {
+                          setPuzzleStatus('playing');
+                        }
+
+                        setMode(item.id as any);
+                        setIsNavDrawerOpen(false);
+                        triggerAudio('move');
+                      }}
+                      className={`w-full flex items-center justify-between gap-3 px-4 py-3.5 rounded-xl transition-all font-sans text-left cursor-pointer ${
+                        isActive
+                          ? 'bg-[#81b64c]/10 text-[#81b64c] font-black border border-[#81b64c]/20'
+                          : 'text-slate-400 hover:text-white hover:bg-[#262421]/60 font-semibold'
+                      }`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <item.Icon className={`w-4 h-4 ${isActive ? 'text-[#81b64c]' : 'text-slate-400'}`} />
+                        <span className="text-[10px] font-black uppercase tracking-wider">{item.label}</span>
+                      </div>
+                      {isActive && (
+                        <span className="w-1.5 h-1.5 bg-[#81b64c] rounded-full" />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Drawer Footer Status line */}
+              <div className="p-4 bg-[#262421] border-t border-[#3c3934] text-center">
+                <span className="text-[8px] font-mono font-bold tracking-widest text-[#9babaf] uppercase block">
+                  Catur Nopal v2.0
+                </span>
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
 
       {/* =========================================
            FRIEND PROFILE & ACHIEVEMENTS MODAL

@@ -1,6 +1,6 @@
-export type GameMode = 'menu' | 'select-character' | 'play' | 'puzzles' | 'lessons' | 'store' | 'online-match' | 'analysis' | 'local-friend' | 'home' | 'settings' | 'profile';
+export type GameMode = 'menu' | 'select-character' | 'play' | 'puzzles' | 'lessons' | 'store' | 'online-match' | 'analysis' | 'local-friend' | 'home' | 'settings' | 'profile' | 'season-pass' | 'rank' | 'tournament' | 'guild-suku' | 'forum-diskusi' | 'toko-deals' | 'statistik-elo';
 
-export type BoardTheme = 'classic' | 'forest' | 'cosmic';
+export type BoardTheme = 'classic' | 'forest' | 'cosmic' | 'magma_lava' | 'ice_freeze';
 
 export interface Character {
   id: string;

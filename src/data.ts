@@ -1,4 +1,4 @@
-import { Character, Puzzle, Lesson, PurchaseableTheme } from './types';
+import { Character, Puzzle, Lesson, PurchaseableTheme, BoardTheme } from './types';
 
 import martinAvatar from './assets/images/avatar_martin_1779709510230.png';
 import nelsonAvatar from './assets/images/nelson_avatar_1779712159293.png';
@@ -284,8 +284,24 @@ export const THEMES: PurchaseableTheme[] = [
     id: 'cosmic',
     name: 'Ice Blue Glacier',
     cost: 300,
-    primaryColor: '#38A169', // a nice ocean theme or blue gray
-    secondaryColor: '#2B6CB0',
+    primaryColor: '#e2e8f0', // ice slate light
+    secondaryColor: '#3b82f6', // beautiful frost blue
     bgClass: 'bg-slate-900 border-blue-950'
+  },
+  {
+    id: 'magma_lava' as BoardTheme,
+    name: 'Tema Magma Berapi',
+    cost: 400,
+    primaryColor: '#ffd1d1', // peach pink magma
+    secondaryColor: '#991b1b', // flame dark outline red
+    bgClass: 'bg-red-950 border-red-900'
+  },
+  {
+    id: 'ice_freeze' as BoardTheme,
+    name: 'Tema Frost Blizzard',
+    cost: 500,
+    primaryColor: '#e0f2fe', // sky light ice
+    secondaryColor: '#0284c7', // rich glacier blue
+    bgClass: 'bg-sky-950 border-sky-900'
   }
 ];

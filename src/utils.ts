@@ -12,26 +12,57 @@ export function playSound(type: 'move' | 'capture' | 'check' | 'win' | 'lose' | 
     gain.connect(ctx.destination);
     
     const now = ctx.currentTime;
+    const activeSfx = localStorage.getItem('gacha_sfx_equipped') || 'none';
     
     switch (type) {
       case 'move':
-        osc.type = 'triangle';
-        osc.frequency.setValueAtTime(260, now);
-        osc.frequency.exponentialRampToValueAtTime(140, now + 0.1);
-        gain.gain.setValueAtTime(0.12, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        if (activeSfx === 'sfx_robotic') {
+          // metallic sweep robot beep
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.setValueAtTime(880, now + 0.05);
+          gain.gain.setValueAtTime(0.06, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        } else if (activeSfx === 'sfx_laser') {
+          // laser pew pew downward sweep
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(1200, now);
+          osc.frequency.exponentialRampToValueAtTime(300, now + 0.12);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        } else {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(260, now);
+          osc.frequency.exponentialRampToValueAtTime(140, now + 0.1);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        }
         osc.start(now);
-        osc.stop(now + 0.11);
+        osc.stop(now + 0.13);
         break;
         
       case 'capture':
-        osc.type = 'sine';
-        osc.frequency.setValueAtTime(140, now);
-        osc.frequency.setValueAtTime(90, now + 0.04);
-        gain.gain.setValueAtTime(0.22, now);
-        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        if (activeSfx === 'sfx_robotic') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(220, now);
+          osc.frequency.setValueAtTime(110, now + 0.06);
+          gain.gain.setValueAtTime(0.14, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        } else if (activeSfx === 'sfx_laser') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(900, now);
+          osc.frequency.exponentialRampToValueAtTime(150, now + 0.15);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        } else {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(140, now);
+          osc.frequency.setValueAtTime(90, now + 0.04);
+          gain.gain.setValueAtTime(0.22, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        }
         osc.start(now);
-        osc.stop(now + 0.13);
+        osc.stop(now + 0.16);
         break;
         
       case 'check':
