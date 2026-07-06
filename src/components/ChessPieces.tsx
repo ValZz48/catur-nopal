@@ -15,26 +15,60 @@ export const ChessPiece: React.FC<PieceProps> = ({ type, color, className = 'w-f
     ? 'fill-slate-50 stroke-slate-800' 
     : 'fill-slate-800 stroke-slate-900';
     
-  if (skin === 'wood') {
+  const cleanSkin = skin.replace('skin_', '');
+
+  if (cleanSkin === 'wood') {
     fillClass = isWhite
       ? 'fill-[#f1d7a8] stroke-[#855329]' // warm maple wood
       : 'fill-[#5f3f26] stroke-[#2c1c0e]'; // rich espresso walnut wood
-  } else if (skin === 'neon') {
+  } else if (cleanSkin === 'neon') {
     fillClass = isWhite
       ? 'fill-[#1c1c24] stroke-[#00f0ff]' // sci-fi cyan glow
       : 'fill-[#1c1c24] stroke-[#ff007f]'; // cyberpunk magenta glow
-  } else if (skin === 'royal') {
+  } else if (cleanSkin === 'royal') {
     fillClass = isWhite
       ? 'fill-[#e0f2fe] stroke-[#0369a1]' // royal silver frost blue
       : 'fill-[#1e3a8a] stroke-[#0ea5e9]'; // deep navy royal blue
-  } else if (skin === 'gold') {
+  } else if (cleanSkin === 'gold') {
     fillClass = isWhite
       ? 'fill-[#ffd700] stroke-[#917105]' // brilliant royal gold
       : 'fill-[#252525] stroke-[#ffd700]'; // platinum with gold lining
-  } else if (skin === 'singularity') {
+  } else if (cleanSkin === 'singularity') {
     fillClass = isWhite
       ? 'fill-[#090514] stroke-[#ff007f]' // cosmic magenta singularity
       : 'fill-[#120024] stroke-[#a855f7]'; // deep space purple ultraviolet
+  } else if (cleanSkin === 'anime') {
+    fillClass = isWhite
+      ? 'fill-[#ffffff] stroke-[#ef4444] shadow-[0_0_8px_rgba(239,68,68,0.5)]' // Scarlet crimson warrior
+      : 'fill-[#1a0f0f] stroke-[#ffd700] shadow-[0_0_8px_rgba(255,215,0,0.5)]'; // Gold & shadow shinobi
+  } else if (cleanSkin === 'cyberpunk') {
+    fillClass = isWhite
+      ? 'fill-[#090d16] stroke-[#10b981] shadow-[0_0_10px_rgba(16,185,129,0.73)]' // Emerald grid cyber
+      : 'fill-[#090d16] stroke-[#ec4899] shadow-[0_0_10px_rgba(236,72,153,0.73)]'; // Neon rose matrix cyber
+  } else if (cleanSkin === 'crystal') {
+    fillClass = isWhite
+      ? 'fill-[#f0f9ff] stroke-[#38bdf8] shadow-[0_0_12px_rgba(56,189,248,0.6)]' // Diamond ice frost
+      : 'fill-[#1e1b4b] stroke-[#e9d5ff] shadow-[0_0_12px_rgba(233,213,255,0.6)]'; // Twilight glass amethyst
+  } else if (cleanSkin === 'emerald_wood') {
+    fillClass = isWhite
+      ? 'fill-[#a7f3d0] stroke-[#047857] shadow-[0_0_8px_rgba(4,120,87,0.4)]' // mint wood
+      : 'fill-[#064e3b] stroke-[#34d399] shadow-[0_0_8px_rgba(52,211,153,0.4)]'; // deep forest emerald wood
+  } else if (cleanSkin === 'golden_ketupat_skin') {
+    fillClass = isWhite
+      ? 'fill-[#fef08a] stroke-[#ca8a04] shadow-[0_0_8px_rgba(202,138,4,0.4)]' // bright ketupat yellow
+      : 'fill-[#854d0e] stroke-[#fef08a] shadow-[0_0_8px_rgba(254,240,138,0.4)]'; // rich ketupat brown gold
+  } else if (cleanSkin === 'red_dragon_skin') {
+    fillClass = isWhite
+      ? 'fill-[#fecaca] stroke-[#b91c1c] shadow-[0_0_8px_rgba(185,28,28,0.5)]' // lantern red white
+      : 'fill-[#7f1d1d] stroke-[#fbbf24] shadow-[0_0_8px_rgba(251,191,36,0.5)]'; // crimson and gold dragon
+  } else if (cleanSkin === 'beach_sun_skin') {
+    fillClass = isWhite
+      ? 'fill-[#e0f2fe] stroke-[#0284c7] shadow-[0_0_8px_rgba(2,132,199,0.4)]' // cool sea breeze blue
+      : 'fill-[#0369a1] stroke-[#f59e0b] shadow-[0_0_8px_rgba(245,158,11,0.5)]'; // sun-drenched beach sand orange
+  } else if (cleanSkin === 'blizzard_wood') {
+    fillClass = isWhite
+      ? 'fill-[#f0fdf4] stroke-[#0ea5e9] shadow-[0_0_8px_rgba(14,165,233,0.5)]' // icy blizzard white
+      : 'fill-[#0c4a6e] stroke-[#bae6fd] shadow-[0_0_8px_rgba(186,230,253,0.5)]'; // frozen arctic ice blue
   }
     
   // High contrast elegant minimal custom vector paths for chess pieces

@@ -13,10 +13,46 @@ export function playSound(type: 'move' | 'capture' | 'check' | 'win' | 'lose' | 
     
     const now = ctx.currentTime;
     const activeSfx = localStorage.getItem('gacha_sfx_equipped') || 'none';
+    const selectedSkin = localStorage.getItem('selectedSkin') || 'standard';
     
     switch (type) {
       case 'move':
-        if (activeSfx === 'sfx_robotic') {
+        if (selectedSkin === 'wood') {
+          // classic deep wooden thonk
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(140, now);
+          osc.frequency.exponentialRampToValueAtTime(70, now + 0.08);
+          gain.gain.setValueAtTime(0.20, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.08);
+        } else if (selectedSkin === 'neon' || selectedSkin === 'cyberpunk') {
+          // cyber pulse scanner
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(680, now);
+          osc.frequency.setValueAtTime(450, now + 0.04);
+          gain.gain.setValueAtTime(0.09, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+        } else if (selectedSkin === 'gold') {
+          // metallic chime ring
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(880, now);
+          osc.frequency.setValueAtTime(660, now + 0.04);
+          gain.gain.setValueAtTime(0.12, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+        } else if (selectedSkin === 'anime') {
+          // sword swoosh cut
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(1200, now);
+          osc.frequency.exponentialRampToValueAtTime(200, now + 0.12);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        } else if (selectedSkin === 'crystal') {
+          // crystal glass ding
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(1500, now);
+          osc.frequency.setValueAtTime(1350, now + 0.05);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        } else if (activeSfx === 'sfx_robotic') {
           // metallic sweep robot beep
           osc.type = 'sawtooth';
           osc.frequency.setValueAtTime(440, now);
@@ -38,7 +74,7 @@ export function playSound(type: 'move' | 'capture' | 'check' | 'win' | 'lose' | 
           gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
         }
         osc.start(now);
-        osc.stop(now + 0.13);
+        osc.stop(now + 0.16);
         break;
         
       case 'capture':
@@ -333,4 +369,56 @@ export function evaluateMoveQuality(
   // 5% default opportunity for a tactical blunder
   return 'blunder';
 }
+
+/**
+ * Progressive XP level calculation.
+ * Level 1: 0 - 149 XP
+ * Level 2: 150 - 449 XP (+300)
+ * Level 3: 450 - 899 XP (+450)
+ * Level 4: 900 - 1499 XP (+600)
+ * Level 5: 1500 - 2249 XP (+750)
+ * In general: Threshold for Level L is 150 * L * (L - 1) / 2
+ */
+export function getLevelFromXP(xp: number): number {
+  let level = 1;
+  while (true) {
+    const requiredCumulative = 75 * level * (level + 1); // cumulative threshold for level+1
+    if (xp >= requiredCumulative) {
+      level++;
+    } else {
+      break;
+    }
+  }
+  return level;
+}
+
+/**
+ * Gets the total XP threshold required to reach a specific level.
+ */
+export function getXPThresholdForLevel(level: number): number {
+  if (level <= 1) return 0;
+  return 75 * (level - 1) * level;
+}
+
+/**
+ * Gets the relative XP progress within the current level.
+ * Returns { level: number, currentLevelXP: number, nextLevelXPNeeded: number, percentage: number }
+ */
+export function getLevelProgress(xp: number) {
+  const currentLevel = getLevelFromXP(xp);
+  const baseXP = getXPThresholdForLevel(currentLevel);
+  const nextXP = getXPThresholdForLevel(currentLevel + 1);
+  
+  const currentLevelXP = Math.max(0, xp - baseXP);
+  const nextLevelXPNeeded = nextXP - baseXP;
+  const percentage = Math.min(100, Math.max(0, (currentLevelXP / nextLevelXPNeeded) * 100));
+  
+  return {
+    level: currentLevel,
+    currentLevelXP: Math.floor(currentLevelXP),
+    nextLevelXPNeeded,
+    percentage
+  };
+}
+
 

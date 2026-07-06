@@ -47,7 +47,7 @@ export const CHARACTERS: Character[] = [
   },
   {
     id: 'magnus',
-    name: 'Magnus (Simulated)',
+    name: 'Magnus',
     avatar: magnusAvatar,
     difficulty: 'Sulit',
     elo: 2850,

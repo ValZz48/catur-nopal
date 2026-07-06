@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Shield, Coins, Crown, Edit, Award } from 'lucide-react';
+import { Shield, Coins, Crown, Edit, Award, Swords, Trophy } from 'lucide-react';
 
 interface SukuDashboardProps {
   guildProfile: any;
@@ -43,10 +43,16 @@ export const SukuDashboard: React.FC<SukuDashboardProps> = ({
   const [showLogs, setShowLogs] = useState(false);
 
   const renderGuildLogo = (logo: string) => {
-    if (logo === 'pedang') return <span className="text-white text-2xl">⚔</span>;
-    if (logo === 'mahkota') return <Crown className="w-8 h-8 text-yellow-500" />;
-    if (logo === 'medali') return <Award className="w-8 h-8 text-sky-400" />;
-    return <Shield className="w-8 h-8 text-emerald-500" />;
+    if (!logo) return <Shield className="w-11 h-11 text-emerald-500 shrink-0" />;
+    if (logo.startsWith('data:') || logo.startsWith('http') || logo.startsWith('/')) {
+      return <img src={logo} alt="Suku Logo" className="absolute inset-0 w-full h-full object-cover rounded-[inherit]" referrerPolicy="no-referrer" />;
+    }
+    const norm = String(logo).toLowerCase();
+    if (norm === 'pedang') return <Swords className="w-11 h-11 text-amber-500 shrink-0" />;
+    if (norm === 'mahkota') return <Crown className="w-11 h-11 text-yellow-500 shrink-0" />;
+    if (norm === 'medali') return <Award className="w-11 h-11 text-sky-400 shrink-0" />;
+    if (norm === 'piala') return <Trophy className="w-11 h-11 text-yellow-500 shrink-0" />;
+    return <Shield className="w-11 h-11 text-[#81b64c] shrink-0" />;
   };
 
   const sukuIdHash = Math.abs(guildProfile.name.split('').reduce((acc: number, c: string) => acc + c.charCodeAt(0), 100260));
@@ -69,16 +75,55 @@ export const SukuDashboard: React.FC<SukuDashboardProps> = ({
             <div>
               <label className="text-[10px] uppercase font-black text-slate-400 block mb-1">Lambang Suku</label>
               <select 
-                value={editLogo}
-                onChange={(e) => setEditLogo(e.target.value)}
+                value={editLogo.startsWith('data:') || editLogo.startsWith('http') ? 'custom' : editLogo}
+                onChange={(e) => {
+                  if (e.target.value === 'custom') {
+                    setEditLogo('custom');
+                  } else {
+                    setEditLogo(e.target.value);
+                  }
+                }}
                 className="w-full bg-[#1c1a19] border border-stone-800 p-2.5 rounded-xl text-xs text-white focus:outline-none font-bold"
               >
                 <option value="perisai">Lambang Perisai</option>
                 <option value="pedang">Lambang Duel Pedang</option>
                 <option value="mahkota">Lambang Mahkota</option>
                 <option value="medali">Lambang Medali</option>
+                <option value="custom"> Pilih dari Galeri User...</option>
               </select>
             </div>
+            { (editLogo === 'custom' || editLogo.startsWith('data:') || editLogo.startsWith('http')) && (
+              <div className="sm:col-span-2 bg-[#1c1a19]/60 border border-dashed border-stone-700 rounded-xl p-3 text-center space-y-2">
+                <span className="text-[9.5px] uppercase font-black text-[#81b64c] block">PILIH FILE DARI GALERI DEVICE</span>
+                <input 
+                  type="file" 
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onloadend = () => {
+                        if (typeof reader.result === 'string') {
+                          setEditLogo(reader.result);
+                          triggerAudio('win');
+                          triggerReward(0, 'Logo Suku dimuat dari Galeri kustom Anda!', 'success_no_xp');
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="w-full text-xs text-slate-400 file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-[10px] file:font-black file:uppercase file:bg-stone-800 file:text-[#81b64c] hover:file:bg-stone-700 file:cursor-pointer"
+                />
+                { editLogo.startsWith('data:') && (
+                  <div className="flex flex-col items-center justify-center gap-2 mt-2 bg-black/20 p-2.5 rounded-xl border border-stone-800">
+                    <span className="text-[9px] text-slate-450 font-bold uppercase block">Preview Tampilan Frame Suku:</span>
+                    <div className="w-16 h-16 bg-[#1a1817] border-2 border-yellow-500 rounded-2xl flex items-center justify-center overflow-hidden shadow-md relative">
+                      <img src={editLogo} alt="Preview Logo" className="absolute inset-0 w-full h-full object-cover rounded-[inherit]" />
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
             <div>
               <label className="text-[10px] uppercase font-black text-slate-400 block mb-1">Kategori Tag</label>
               <select 
@@ -158,7 +203,7 @@ export const SukuDashboard: React.FC<SukuDashboardProps> = ({
           {/* Main Suku Info Card */}
           <div className="bg-[#262421] p-5 rounded-2xl border border-stone-800 flex flex-col gap-4">
             <div className="flex items-center gap-4">
-              <div className="w-16 h-16 bg-[#1a1817] border-2 border-yellow-500 rounded-2xl flex items-center justify-center shrink-0">
+              <div className="w-16 h-16 bg-[#1a1817] border-2 border-yellow-500 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden relative">
                 {renderGuildLogo(guildProfile.logo)}
               </div>
               <div>
@@ -201,17 +246,49 @@ export const SukuDashboard: React.FC<SukuDashboardProps> = ({
           </div>
 
           {/* Bonus Benefits Suku */}
-          <div className="bg-[#262421] p-5 rounded-2xl border border-stone-800">
-            <span className="text-[9px] font-black text-[#81b64c] uppercase block tracking-wider">Aktivitas Keuntungan & Bonus (ボーナス)</span>
-            <div className="mt-2 space-y-1.5 text-xs text-slate-300">
-              <div className="flex justify-between border-b border-stone-850 pb-1.5">
-                <span>Bonus XP Bertanding</span>
-                <span className="text-green-500 font-extrabold font-mono">+{guildLevel * 5}% XP</span>
-              </div>
-              <div className="flex justify-between pt-0.5">
-                <span>Hadiah Koin Bonus Mingguan</span>
-                <span className="text-yellow-500 font-extrabold font-mono">+{guildLevel * 100} Coins</span>
-              </div>
+          <div className="bg-[#262421] p-5 rounded-2xl border border-stone-800 space-y-4">
+            <div>
+              <span className="text-[9px] font-black text-[#81b64c] uppercase block tracking-wider">Keuntungan & Hak Istimewa Suku (Clan Privilege)</span>
+              <p className="text-[10px] text-slate-400 mt-0.5 leading-normal font-medium">Tingkatkan level suku klan Anda melalui donasi koin untuk membuka hak istimewa eksklusif berikut:</p>
+            </div>
+            
+            <div className="grid grid-cols-1 gap-2.5">
+              {[
+                { lvl: 1, name: 'Suku Cadet', xp: '+5% XP', coins: '+100 Koin', perk: 'Akses Forum Chat Suku' },
+                { lvl: 2, name: 'Suku Fighter', xp: '+10% XP', coins: '+200 Koin', perk: 'Gelar Profil "Kombatan Suku"' },
+                { lvl: 3, name: 'Suku Tactician', xp: '+15% XP', coins: '+300 Koin', perk: 'Diskon Biaya Gacha -5%' },
+                { lvl: 4, name: 'Suku Vanguard', xp: '+20% XP', coins: '+400 Koin', perk: 'Multiplier Donasi Fragment +1' },
+                { lvl: 5, name: 'Suku Legendary', xp: '+25% XP', coins: '+500 Koin', perk: 'Skin Khusus "Ksatria Suku"' }
+              ].map((p) => {
+                const isUnlocked = guildLevel >= p.lvl;
+                return (
+                  <div 
+                    key={p.lvl} 
+                    className={`p-3 rounded-xl border flex items-center justify-between gap-4 transition-all ${
+                      isUnlocked 
+                        ? 'bg-emerald-950/10 border-emerald-900/40 text-slate-200' 
+                        : 'bg-stone-900/40 border-stone-850 text-slate-500 opacity-60'
+                    }`}
+                  >
+                    <div className="flex items-center gap-2.5">
+                      <div className={`w-7 h-7 rounded-lg font-mono font-black text-xs flex items-center justify-center shrink-0 ${
+                        isUnlocked ? 'bg-[#81b64c] text-white' : 'bg-stone-800 text-stone-500'
+                      }`}>
+                        L{p.lvl}
+                      </div>
+                      <div className="text-left">
+                        <h5 className={`text-xs font-black ${isUnlocked ? 'text-white' : 'text-slate-400'}`}>{p.name}</h5>
+                        <p className="text-[9.5px] leading-normal font-semibold text-slate-400">{p.perk}</p>
+                      </div>
+                    </div>
+                    
+                    <div className="text-right shrink-0">
+                      <span className={`text-[10px] font-mono font-black block ${isUnlocked ? 'text-[#81b64c]' : 'text-slate-500'}`}>{p.xp} Bertanding</span>
+                      <span className="text-[9px] font-mono font-bold block text-yellow-500">{p.coins} Mingguan</span>
+                    </div>
+                  </div>
+                );
+              })}
             </div>
           </div>
 

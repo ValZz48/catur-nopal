@@ -63,18 +63,26 @@ const RANK_TIERS: RankTier[] = [
   { name: "Mythic Glory Chess", minElo: 2000, maxElo: 9999, color: "text-rose-500 font-extrabold animate-pulse", rewardCoins: 6000, rewardDiamonds: 350, rewardTitle: "Dewa Mythic Glory" }
 ];
 
-const SEASON_PASS_REWARDS: SeasonPassReward[] = [
-  { level: 1, freeReward: { type: 'coins', amount: 120, name: "120 Koin Pemula" }, premiumReward: { type: 'diamonds', amount: 15, name: "15 Berlian + Akses Lintasan Elite (Bintang)" } },
-  { level: 2, freeReward: { type: 'coins', amount: 180, name: "180 Koin Latihan" }, premiumReward: { type: 'title', amount: 0, name: "Bingkai Profil: Penantang Pass Kehormatan" } },
-  { level: 3, freeReward: { type: 'diamonds', amount: 8, name: "8 Berlian Berkilau" }, premiumReward: { type: 'coins', amount: 1000, name: "1000 Koin Emas Penakluk (Emas)" } },
-  { level: 4, freeReward: { type: 'coins', amount: 250, name: "250 Koin Tempur" }, premiumReward: { type: 'diamonds', amount: 30, name: "30 Berlian Elite Master" } },
-  { level: 5, freeReward: { type: 'title', amount: 0, name: "Gelar: Pejuang Catur Nopal (Lencana)" }, premiumReward: { type: 'coins', amount: 1500, name: "1500 Koin + Gelembung Chat Kustom" } },
-  { level: 6, freeReward: { type: 'coins', amount: 350, name: "350 Koin Tabungan" }, premiumReward: { type: 'diamonds', amount: 45, name: "45 Berlian Legendaris King" } },
-  { level: 7, freeReward: { type: 'diamonds', amount: 12, name: "12 Berlian Berkilau" }, premiumReward: { type: 'title', amount: 0, name: "Gelar Elite: Panglima Perang Catur" } },
-  { level: 8, freeReward: { type: 'coins', amount: 500, name: "500 Koin Tabungan" }, premiumReward: { type: 'coins', amount: 2500, name: "2500 Koin Emas Premium (Logam)" } },
-  { level: 9, freeReward: { type: 'coins', amount: 650, name: "650 Koin Tabungan" }, premiumReward: { type: 'diamonds', amount: 75, name: "75 Berlian Elite Dewa Permata" } },
-  { level: 10, freeReward: { type: 'title', amount: 0, name: "Gelar: Penguasa Arena Catur (Mahkota)" }, premiumReward: { type: 'title', amount: 0, name: "Skin Arena: Istana Catur Kerajaan Nopal" } }
-];
+const SEASON_PASS_REWARDS: SeasonPassReward[] = Array.from({ length: 100 }, (_, i) => {
+  const lvl = i + 1;
+  const freeCoinAmt = 100 + lvl * 15;
+  const freeDiamondAmt = Math.max(2, Math.floor(lvl * 0.8));
+  const freeReward = lvl % 4 === 0 
+    ? { type: 'diamonds' as const, amount: freeDiamondAmt, name: `${freeDiamondAmt} Berlian Berkilau gratis` }
+    : { type: 'coins' as const, amount: freeCoinAmt, name: `${freeCoinAmt} Koin Latihan Gratis` };
+
+  const premiumCoinAmt = 200 + lvl * 35;
+  const premiumDiamondAmt = 5 + lvl * 1.5;
+  const premiumReward = lvl % 2 === 0
+    ? { type: 'diamonds' as const, amount: Math.floor(premiumDiamondAmt), name: `${Math.floor(premiumDiamondAmt)} Berlian Elite Dewa Permata` }
+    : { type: 'coins' as const, amount: premiumCoinAmt, name: `${premiumCoinAmt} Koin Emas Premium` };
+
+  return {
+    level: lvl,
+    freeReward,
+    premiumReward
+  };
+});
 
 export const getAffinityTitle = (lvl: number) => {
   switch (lvl) {
@@ -118,6 +126,7 @@ interface FeaturesProps {
   setDiamondSavings: React.Dispatch<React.SetStateAction<number>>;
   friendsList: any[];
   setFriendsList: React.Dispatch<React.SetStateAction<any[]>>;
+  prefLang?: 'id' | 'en';
 }
 
 export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'social' | 'rank' | 'pass' }> = ({
@@ -126,7 +135,7 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
   triggerAudio, triggerReward, user, syncUserStats, subTab,
   passLevel, setPassLevel, passXp, setPassXp, passStatus, setPassStatus,
   claimedPassRewards, setClaimedPassRewards, claimedRankRewards, setClaimedRankRewards,
-  diamondSavings, setDiamondSavings, friendsList, setFriendsList
+  diamondSavings, setDiamondSavings, friendsList, setFriendsList, prefLang
 }) => {
 
   // --- REPLAY CHESSBOARD STATES ---
@@ -142,20 +151,15 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
 
   // --- SOCIAL STATES MAP TO ACTUAL friendsList ---
   const friends: Friend[] = friendsList.map((f: any, idx: number) => {
-    // Determine a status based on map index
-    const statusOpts: ('offline' | 'online-idle' | 'online-playing')[] = ['online-playing', 'online-idle', 'offline'];
-    const simulatedStatus = statusOpts[idx % statusOpts.length];
+    // Real friends on the friends list are offline in the database unless connected
+    const simulatedStatus: 'offline' | 'online-idle' | 'online-playing' = 'offline';
     
     // Read local affinity states synchronized by friends username
     const simulatedAffinityKey = `affinity_${f.username}`;
     const savedAffinity = localStorage.getItem(simulatedAffinityKey);
     const parsedAffinity = savedAffinity ? JSON.parse(savedAffinity) : { xp: 120 * (idx + 1), level: (idx % 3) + 1 };
 
-    const gameSnippet = simulatedStatus === 'online-playing' ? {
-      playerColor: (idx % 2 === 0 ? 'w' : 'b') as 'w' | 'b',
-      opponent: idx % 2 === 0 ? "Bot Catur Pro" : "Rival Sejati",
-      moves: ['e4', 'e5', 'Nf3', 'Nc6', 'Bc4', 'Nf6', 'd3']
-    } : undefined;
+    const gameSnippet = undefined;
 
     return {
       id: f.username,
@@ -178,13 +182,6 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
   const [receivedGifts, setReceivedGifts] = useState<{ id: string; sender: string; giftName: string; type: 'premium'; worth: 'coins' | 'diamonds'; worthAmount: number; claimed: boolean }[]>(() => {
     const saved = localStorage.getItem('receivedGifts');
     if (saved) return JSON.parse(saved);
-    if (friendsList && friendsList.length > 0) {
-      const realFriend = friendsList[0].username;
-      return [
-        { id: 'rg1', sender: realFriend, giftName: "Mahkota Kehormatan", type: 'premium', worth: 'coins', worthAmount: 1000, claimed: false },
-        { id: 'rg2', sender: realFriend, giftName: "Kristal Raksasa", type: 'premium', worth: 'diamonds', worthAmount: 30, claimed: false },
-      ];
-    }
     return [];
   });
 
@@ -377,7 +374,7 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
       localStorage.setItem('coins', String(coins + fGift.worthAmount));
       triggerReward(0, `Berhasil mencairkan hadiah: Tambahan ${fGift.worthAmount} Koin ditambahkan ke saldo.`, 'success_no_xp');
     } else {
-      setDiamonds(prev => prev + fGift.worthAmount);
+      setDiamonds(prev => prev + fGift.worthAmount, true);
       localStorage.setItem('diamonds', String(diamonds + fGift.worthAmount));
       triggerReward(0, `Berhasil mencairkan hadiah: Tambahan ${fGift.worthAmount} Berlian ditambahkan ke saldo.`, 'success_no_xp');
     }
@@ -397,7 +394,7 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
     
     setClaimedRankRewards(prev => [...prev, tier.name]);
     setCoins(prev => prev + tier.rewardCoins);
-    setDiamonds(prev => prev + tier.rewardDiamonds);
+    setDiamonds(prev => prev + tier.rewardDiamonds, true);
     localStorage.setItem('coins', String(coins + tier.rewardCoins));
     localStorage.setItem('diamonds', String(diamonds + tier.rewardDiamonds));
 
@@ -409,7 +406,7 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
     const bonusDiamonds = myRank.rewardDiamonds * 2;
 
     setCoins(prev => prev + bonusCoins);
-    setDiamonds(prev => prev + bonusDiamonds);
+    setDiamonds(prev => prev + bonusDiamonds, true);
     localStorage.setItem('coins', String(coins + bonusCoins));
     localStorage.setItem('diamonds', String(diamonds + bonusDiamonds));
 
@@ -435,8 +432,8 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
     setPassStatus(type);
 
     if (type === 'deluxe') {
-      setPassLevel(10);
-      triggerReward(0, "Deluxe Pass diaktifkan! Level langsung ditingkatkan ke 10 dan lintasan hadiah eksklusif terbuka penuh.", "level_up");
+      setPassLevel(Math.min(100, Math.max(passLevel, 25)));
+      triggerReward(0, "Deluxe Pass diaktifkan! Level langsung ditingkatkan ke 25 dan lintasan hadiah eksklusif terbuka penuh.", "level_up");
     } else {
       triggerReward(0, "Premium Pass berhasil diaktifkan! Dapatkan item kosmetik dan hadiah khusus catur.", "level_up");
     }
@@ -446,7 +443,7 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
     const nextXp = passXp + 50;
     if (nextXp >= 100) {
       setPassXp(nextXp - 100);
-      setPassLevel(prev => Math.min(10, prev + 1));
+      setPassLevel(prev => Math.min(100, prev + 1));
       triggerReward(0, "Season Pass naik Level! Hadiah baru tersedia untuk diambil.", "level_up");
     } else {
       setPassXp(nextXp);
@@ -467,7 +464,7 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
       setCoins(prev => prev + rObj.amount);
       localStorage.setItem('coins', String(coins + rObj.amount));
     } else if (rObj.type === 'diamonds') {
-      setDiamonds(prev => prev + rObj.amount);
+      setDiamonds(prev => prev + rObj.amount, true);
       localStorage.setItem('diamonds', String(diamonds + rObj.amount));
     }
 
@@ -519,7 +516,9 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
     }
 
     // Confirm daily claim and execute
-    setDiamonds(prev => prev + dailyClaimAmount20);
+    (window as any).__bypassSavingsRedirect = true;
+    setDiamonds(prev => prev + dailyClaimAmount20, true);
+    (window as any).__bypassSavingsRedirect = false;
     setDiamondSavings(prev => prev - dailyClaimAmount20);
     triggerReward(0, `Berhasil dicairkan! Penarikan harian 20% sebanyak +${dailyClaimAmount20} Berlian telah ditransfer ke saldo utama Anda.`, 'success_no_xp');
   };
@@ -532,7 +531,9 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
 
     // Season reset grants 100% savings, reset pass parameters to simulate ganti season
     const totalClaimValue = diamondSavings;
-    setDiamonds(prev => prev + totalClaimValue);
+    (window as any).__bypassSavingsRedirect = true;
+    setDiamonds(prev => prev + totalClaimValue, true);
+    (window as any).__bypassSavingsRedirect = false;
     setDiamondSavings(0);
     setPassLevel(1);
     setPassXp(0);
@@ -698,7 +699,7 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
                 <div className="p-3.5 bg-black/20 rounded-xl border border-[#3c3934] space-y-2">
                   <div className="flex justify-between items-center">
                     <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1">
-                      <Sparkles className="w-3.5 h-3.5 text-yellow-500" /> Analisis Papan Catur Nopal Bot
+                      <Sparkles className="w-3.5 h-3.5 text-yellow-500" /> Analisis Papan Pal Mate Bot
                     </span>
                     {replayMoveIdx >= 0 && (
                       <button
@@ -854,49 +855,63 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
             <div className="p-4 bg-[#262421] rounded-2xl border border-[#3c3934] space-y-4">
               <div className="flex justify-between items-center border-b border-[#3c3934]/60 pb-2.5">
                 <div className="flex items-center gap-2">
-                  <div className="w-2.5 h-2.5 rounded-full bg-red-500 animate-pulse" />
-                  <span className="text-xs font-black text-slate-200">Menonton Langsung: @{activeSpectating.name}</span>
+                  <div className={`w-2.5 h-2.5 rounded-full ${activeSpectating.status === 'offline' ? 'bg-sky-500' : 'bg-red-500 animate-pulse'}`} />
+                  <span className="text-xs font-black text-slate-200">
+                    {activeSpectating.status === 'offline' ? `Pesan DM Privat: @${activeSpectating.name}` : `Menonton Langsung: @${activeSpectating.name}`}
+                  </span>
                 </div>
                 <button 
                   onClick={() => { setActiveSpectating(null); setSpectatorChat([]); }}
                   className="text-[10px] font-black uppercase text-red-400 hover:underline cursor-pointer"
                 >
-                  Tutup Tayangan
+                  {activeSpectating.status === 'offline' ? 'Tutup Obrolan' : 'Tutup Tayangan'}
                 </button>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
-                {/* Simulated live board */}
-                <div className="md:col-span-6 flex flex-col items-center justify-center gap-2">
-                  <div className="w-full max-w-[280px] aspect-square relative border border-zinc-750 rounded-xl overflow-hidden shadow-inner bg-[#b58863]">
-                    <div className="w-full h-full grid grid-cols-8 grid-rows-8">
-                      {getSpectateBoard().map((rowArr, rIdx) => 
-                        rowArr.map((cell, cIdx) => {
-                          const isDark = (rIdx + cIdx) % 2 !== 0;
-                          const sqName = toSquare(rIdx, cIdx);
-                          return (
-                            <div 
-                              key={sqName} 
-                              style={{ backgroundColor: isDark ? '#b58863' : '#f0d9b5' }}
-                              className="relative flex items-center justify-center select-none"
-                            >
-                              {cell && (
-                                <ChessPiece type={cell.type} color={cell.color} className="w-[85%] h-[85%]" skin="standard" />
-                              )}
-                            </div>
-                          );
-                        })
-                      )}
+                {/* Simulated live board - only show if NOT offline */}
+                {activeSpectating.status !== 'offline' ? (
+                  <div className="md:col-span-6 flex flex-col items-center justify-center gap-2">
+                    <div className="w-full max-w-[280px] aspect-square relative border border-zinc-750 rounded-xl overflow-hidden shadow-inner bg-[#b58863]">
+                      <div className="w-full h-full grid grid-cols-8 grid-rows-8">
+                        {getSpectateBoard().map((rowArr, rIdx) => 
+                          rowArr.map((cell, cIdx) => {
+                            const isDark = (rIdx + cIdx) % 2 !== 0;
+                            const sqName = toSquare(rIdx, cIdx);
+                            return (
+                              <div 
+                                key={sqName} 
+                                style={{ backgroundColor: isDark ? '#b58863' : '#f0d9b5' }}
+                                className="relative flex items-center justify-center select-none"
+                              >
+                                {cell && (
+                                  <ChessPiece type={cell.type} color={cell.color} className="w-[85%] h-[85%]" skin="standard" />
+                                )}
+                              </div>
+                            );
+                          })
+                        )}
+                      </div>
                     </div>
+                    <span className="text-2xs text-slate-400 font-mono font-bold mt-1 text-center">Menonton mabar melawan {activeSpectating.gameSnippet?.opponent || 'Bot Pro'}</span>
                   </div>
-                  <span className="text-2xs text-slate-400 font-mono font-bold mt-1 text-center">Menonton mabar melawan {activeSpectating.gameSnippet?.opponent || 'Bot Pro'}</span>
-                </div>
+                ) : (
+                  <div className="md:col-span-6 flex flex-col items-center justify-center gap-3 p-6 bg-[#1c1a19] rounded-2xl border border-[#3c3934]">
+                    <MessageSquare className="w-12 h-12 text-sky-400" />
+                    <h5 className="text-white text-xs font-bold uppercase tracking-wider">Kotak Pesan Privat</h5>
+                    <p className="text-[10px] text-slate-400 text-center leading-relaxed max-w-xs">
+                      Gunakan panel ini untuk mengirim pesan obrolan privat (DM) langsung ke kawan @{activeSpectating.name} yang sedang offline.
+                    </p>
+                  </div>
+                )}
 
                 {/* Spectating chats, logs, gifts */}
                 <div className="md:col-span-6 flex flex-col justify-between h-full space-y-3 min-h-[260px]">
                   {/* Chat feed */}
                   <div className="bg-[#1c1a19] p-2.5 rounded-xl border border-[#3c3934] flex-1 max-h-[140px] overflow-y-auto font-mono text-[9.5px] space-y-1 scrollbar-thin">
-                    <span className="text-slate-500 font-bold block border-b border-[#3c3934]/30 pb-1 mb-1 bg-black/10 px-1 text-2xs uppercase">Penonton Live Chat</span>
+                    <span className="text-slate-500 font-bold block border-b border-[#3c3934]/30 pb-1 mb-1 bg-black/10 px-1 text-2xs uppercase">
+                      {activeSpectating.status === 'offline' ? 'Pesan DM Privat' : 'Penonton Live Chat'}
+                    </span>
                     {spectatorChat.length === 0 && (
                       <span className="text-slate-500 italic block py-4 text-center">Obrolan penonton belum dimulai.</span>
                     )}
@@ -1015,19 +1030,35 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
                             )}
 
                             {/* Gift Action direct quick menu */}
-                            <button
-                              onClick={() => {
-                                setActiveSpectating(f);
-                                setSpectatorChat([
-                                  { sender: "Sistem", text: `Menu interaksi khusus diaktifkan bersama kawan @${f.name}.` }
-                                ]);
-                                setBoardAnimMovesCount(0);
-                                triggerAudio('move');
-                              }}
-                              className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold rounded-lg text-[9px] uppercase tracking-wide transition-all cursor-pointer"
-                            >
-                              Interaksi
-                            </button>
+                            {f.status === 'offline' ? (
+                              <button
+                                onClick={() => {
+                                  setActiveSpectating(f);
+                                  setSpectatorChat([
+                                    { sender: "Sistem", text: `Kotak obrolan pesan langsung (DM) privat bersama @${f.name} dibuka. Silakan ketik pesan Anda!` }
+                                  ]);
+                                  setBoardAnimMovesCount(0);
+                                  triggerAudio('move');
+                                }}
+                                className="px-3 py-1.5 bg-sky-600 hover:bg-sky-500 text-white font-extrabold rounded-lg text-[9px] uppercase tracking-wide transition-all cursor-pointer shadow-md"
+                              >
+                                Kirim DM
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setActiveSpectating(f);
+                                  setSpectatorChat([
+                                    { sender: "Sistem", text: `Menu interaksi khusus diaktifkan bersama kawan @${f.name}.` }
+                                  ]);
+                                  setBoardAnimMovesCount(0);
+                                  triggerAudio('move');
+                                }}
+                                className="px-3 py-1.5 bg-cyan-600 hover:bg-cyan-500 text-white font-extrabold rounded-lg text-[9px] uppercase tracking-wide transition-all cursor-pointer"
+                              >
+                                Interaksi
+                              </button>
+                            )}
                           </div>
                         </div>
                       );
@@ -1037,33 +1068,42 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
               </div>
 
               {/* Received gifts bag cashing out */}
-              <div className="p-4 bg-[#262421] rounded-2xl border border-[#3c3934] space-y-3">
-                <span className="text-[10.5px] font-black text-slate-400 uppercase tracking-widest block flex items-center gap-1">
-                  <Gift className="w-3.5 h-3.5 text-yellow-500" /> Kantong Bingkisan Masuk dari Teman Anda
-                </span>
-                <p className="text-[10px] text-slate-400 leading-relaxed font-semibold">Simulasi kiriman hadiah dari relasi sparring Anda. Cairkan untuk menambah pundi Coin atau Berlian!</p>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                  {receivedGifts.map((rg) => (
-                    <div key={rg.id} className="p-2.5 bg-[#1c1a19] border border-[#3c3934] rounded-xl flex items-center justify-between gap-3 text-2xs">
-                      <div className="min-w-0">
-                        <span className="text-[8px] text-[#81b64c] font-black uppercase block tracking-wider font-mono">DARI @{rg.sender}</span>
-                        <h4 className="font-extrabold text-slate-200 mt-0.5">{rg.giftName}</h4>
-                        <p className="text-[9.5px] text-slate-400 font-semibold mt-0.5">Nilai cair: <span className="font-black text-yellow-500">+{rg.worthAmount} {rg.worth === 'coins' ? 'Koin' : 'Berlian'}</span></p>
-                      </div>
-
-                      {rg.claimed ? (
-                        <span className="text-[9.5px] font-black text-slate-500 uppercase px-1.5 select-none">Sudah Dicairkan</span>
-                      ) : (
-                        <button
-                          onClick={() => handleClaimGiftCell(rg.id)}
-                          className="px-3 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black rounded-lg text-[9px] uppercase tracking-wider"
-                        >
-                          Cairkan
-                        </button>
-                      )}
-                    </div>
-                  ))}
+              <div className="p-5 bg-[#262421] rounded-2xl border border-[#3c3934] flex flex-col gap-4">
+                <div>
+                  <span className="text-[11px] font-black text-slate-200 uppercase tracking-widest flex items-center gap-1.5">
+                    <Gift className="w-4 h-4 text-yellow-500 animate-bounce" /> Kantong Bingkisan Masuk dari Teman Anda
+                  </span>
+                  <p className="text-[10px] text-[#bab9b8] leading-relaxed font-semibold mt-1">Cairkan kiriman kado kawan sparring berlisensi Anda untuk mendulang Koin/Berlian!</p>
                 </div>
+                
+                {(!friendsList || friendsList.length === 0 || receivedGifts.filter(rg => friendsList.some(f => f.username.toLowerCase() === rg.sender.toLowerCase())).length === 0) ? (
+                  <div className="py-6 text-center text-slate-500 italic text-[11px] border border-dashed border-[#3c3934] rounded-xl">
+                    Kantong kado kosong. Belum ada kiriman dari teman aktif Anda.
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {receivedGifts.filter(rg => friendsList && friendsList.some(f => f.username.toLowerCase() === rg.sender.toLowerCase())).map((rg) => (
+                      <div key={rg.id} className="p-3 bg-[#1c1a19] border border-[#3c3934] rounded-xl flex items-center justify-between gap-4 text-2xs transition-all hover:border-[#81b64c]/40">
+                        <div className="min-w-0 flex-1">
+                          <span className="text-[8px] text-[#81b64c] font-black uppercase block tracking-wider font-mono">DARI @{rg.sender}</span>
+                          <h4 className="font-extrabold text-slate-200 mt-0.5 truncate">{rg.giftName}</h4>
+                          <p className="text-[9.5px] text-slate-400 font-semibold mt-0.5">Nilai cair: <span className="font-black text-yellow-500">+{rg.worthAmount} {rg.worth === 'coins' ? 'Koin' : 'Berlian'}</span></p>
+                        </div>
+
+                        {rg.claimed ? (
+                          <span className="text-[9.5px] font-black text-slate-500 uppercase px-1.5 select-none shrink-0">Sudah Dicairkan</span>
+                        ) : (
+                          <button
+                            onClick={() => handleClaimGiftCell(rg.id)}
+                            className="px-3.5 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black rounded-lg text-[9px] uppercase tracking-wider shrink-0 shadow-sm active:translate-y-0.5 transition-all cursor-pointer"
+                          >
+                            Cairkan
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             </div>
           )}
@@ -1333,7 +1373,7 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
           {/* DUAL STREAM EXPANSIVE JOURNEY TIMELINE */}
           <div className="p-4 bg-[#262421] border border-[#3c3934] rounded-2xl font-sans">
             <h4 className="text-2xs font-extrabold text-slate-300 uppercase tracking-widest mb-3 flex items-center justify-between">
-              <span>Garis Waktu Perjalanan Reward Battle Pass (Level 1 - 10)</span>
+              <span>Garis Waktu Perjalanan Reward Battle Pass (Level 1 - 100)</span>
               <button 
                 onClick={claimAllEligiblePassRewards}
                 className="text-[9.5px] text-yellow-500 font-extrabold underline cursor-pointer hover:text-yellow-400"

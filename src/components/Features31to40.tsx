@@ -10,6 +10,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import { SukuDashboard } from './SukuDashboard';
 import { SukuMembers } from './SukuMembers';
 import { SukuActivities } from './SukuActivities';
+import { getLevelFromXP } from '../utils';
+import { AvatarWithFrame } from './AvatarWithFrame';
 
 // =========================================================================
 // INTERFACES & PROPS
@@ -40,6 +42,10 @@ interface Features31to40Props {
   setUnlockedFrames: React.Dispatch<React.SetStateAction<string[]>>;
   initialTab?: 'guild' | 'tournament' | 'posts' | 'deals' | 'stats';
   hideTabsSelector?: boolean;
+  diamondSavings?: number;
+  setDiamondSavings?: React.Dispatch<React.SetStateAction<number>>;
+  friendsList?: any[];
+  prefLang?: 'id' | 'en';
 }
 
 // -------------------------------------------------------------------------
@@ -57,12 +63,16 @@ interface TourneyMatch {
 }
 
 export const renderGuildLogo = (logoKey: string) => {
-  const norm = String(logoKey).toLowerCase();
-  if (norm === 'pedang') return <Swords className="w-8 h-8 text-amber-500 shrink-0" />;
-  if (norm === 'mahkota') return <Crown className="w-8 h-8 text-yellow-500 shrink-0" />;
-  if (norm === 'medali') return <Award className="w-8 h-8 text-orange-400 shrink-0" />;
-  if (norm === 'piala') return <Trophy className="w-8 h-8 text-yellow-450 shrink-0" />;
-  return <Shield className="w-8 h-8 text-[#81b64c] shrink-0" />;
+  const norm = String(logoKey);
+  if (norm.startsWith('data:') || norm.startsWith('http') || norm.startsWith('/')) {
+    return <img src={norm} alt="Suku Logo" className="absolute inset-0 w-full h-full object-cover rounded-[inherit] shrink-0" referrerPolicy="no-referrer" />;
+  }
+  const normLower = norm.toLowerCase();
+  if (normLower === 'pedang') return <Swords className="w-11 h-11 text-amber-500 shrink-0" />;
+  if (normLower === 'mahkota') return <Crown className="w-11 h-11 text-yellow-500 shrink-0" />;
+  if (normLower === 'medali') return <Award className="w-11 h-11 text-orange-400 shrink-0" />;
+  if (normLower === 'piala') return <Trophy className="w-11 h-11 text-yellow-450 shrink-0" />;
+  return <Shield className="w-11 h-11 text-[#81b64c] shrink-0" />;
 };
 
 export const Features31to40: React.FC<Features31to40Props> = ({
@@ -74,7 +84,11 @@ export const Features31to40: React.FC<Features31to40Props> = ({
   unlockedThemes, setUnlockedThemes,
   unlockedFrames, setUnlockedFrames,
   initialTab,
-  hideTabsSelector = false
+  hideTabsSelector = false,
+  diamondSavings,
+  setDiamondSavings,
+  friendsList,
+  prefLang
 }) => {
   // Navigation for Features 31-40 tabs
   const [activeTab, setActiveTab] = useState<'guild' | 'tournament' | 'posts' | 'deals' | 'stats'>(initialTab || 'guild');
@@ -113,6 +127,62 @@ export const Features31to40: React.FC<Features31to40Props> = ({
     window.addEventListener('storage', handleStorageChange);
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
+
+  const getUserDetails = (name: string) => {
+    if (name === username) {
+      let activeAvatar = '';
+      let activeFrame = 'none';
+      let activeLvl = 15;
+      try {
+        const saved = localStorage.getItem('user');
+        if (saved) {
+          const uObj = JSON.parse(saved);
+          activeAvatar = uObj.profileAvatar || '';
+          activeFrame = uObj.selectedFrame || 'none';
+          activeLvl = uObj.level || 15;
+        }
+      } catch (e) {}
+      if (!activeAvatar) {
+        const guestLvlStr = localStorage.getItem('guestLevel') || '5';
+        activeLvl = parseInt(guestLvlStr, 10) || 5;
+        activeFrame = localStorage.getItem('selectedFrame') || 'none';
+        activeAvatar = localStorage.getItem('profileAvatar') || '';
+      }
+      return {
+        avatar: activeAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150',
+        frameId: activeFrame,
+        lvl: activeLvl
+      };
+    }
+    
+    if (name === 'Isna Caturia') {
+      return {
+        avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&h=150',
+        frameId: 'gold',
+        lvl: 34
+      };
+    }
+    if (name === 'Naufal_Catur') {
+      return {
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150',
+        frameId: 'bronze',
+        lvl: 28
+      };
+    }
+    if (name === 'Grandmaster_X') {
+      return {
+        avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&h=150',
+        frameId: 'cyber',
+        lvl: 50
+      };
+    }
+    
+    return {
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150',
+      frameId: 'none',
+      lvl: 10
+    };
+  };
 
   const [realPlayers, setRealPlayers] = useState<any[]>([]);
   const [inviteQuery, setInviteQuery] = useState('');
@@ -330,7 +400,7 @@ export const Features31to40: React.FC<Features31to40Props> = ({
           });
 
           triggerAudio('win');
-          triggerReward(100, 'KAMPION UTAMA! Anda meledakkan grand final dan menjuarai Turnamen Mingguan Catur Nopal: +500 Koin dan +15 Diamond!', 'level_up');
+          triggerReward(100, 'KAMPION UTAMA! Anda meledakkan grand final dan menjuarai Turnamen Mingguan Pal Mate: +500 Koin dan +15 Diamond!', 'level_up');
           
           // Increment hidden achievement checker
           triggerHiddenAchievement('ach_tourney_conqueror');
@@ -373,10 +443,12 @@ export const Features31to40: React.FC<Features31to40Props> = ({
   // FEATURE 32: KLUB & GUILD STATES
   // -------------------------------------------------------------------------
   const [hasGuild, setHasGuild] = useState<boolean>(() => {
+    const isGuest = localStorage.getItem('user') === null;
+    if (isGuest) return false;
     const saved = localStorage.getItem('guild_has_owner');
     if (saved) return saved === 'true';
-    localStorage.setItem('guild_has_owner', 'true');
-    return true;
+    localStorage.setItem('guild_has_owner', 'false');
+    return false;
   });
 
   const [guildProfile, setGuildProfile] = useState<{
@@ -393,7 +465,7 @@ export const Features31to40: React.FC<Features31to40Props> = ({
       if (saved) return JSON.parse(saved);
     } catch(e) {}
     return {
-      name: 'Klub Catur Nopal Mandiri',
+      name: 'Klub Pal Mate Mandiri',
       description: 'Markas para ksatria papan hitam putih taktis Indonesia! Tempat mabar santai tapi ber-bintang.',
       tag: 'Kompetitif',
       logo: 'perisai',
@@ -427,21 +499,47 @@ export const Features31to40: React.FC<Features31to40Props> = ({
   const [editJoinSystem, setEditJoinSystem] = useState(guildProfile.joinSystem);
 
   const [guildMembers, setGuildMembers] = useState<Array<{ name: string; role: string; rating: number; status: string; contribution: number; level: number }>>(() => {
+    const playerLevel = getLevelFromXP(xp);
     try {
       const saved = localStorage.getItem('guild_members');
       if (saved) {
         const parsed = JSON.parse(saved);
-        return parsed.map((m: any) => ({
-          ...m,
-          contribution: m.contribution !== undefined ? m.contribution : 0,
-          level: m.level !== undefined ? m.level : Math.floor((m.rating || 600) / 30) + 1
-        }));
+        return parsed.map((m: any) => {
+          const cleanMemberName = m.name.replace(/\s*\(Kamu\)\s*/gi, '').trim().toLowerCase();
+          const cleanUsername = username.replace(/\s*\(Kamu\)\s*/gi, '').trim().toLowerCase();
+          const isMe = cleanMemberName === cleanUsername || m.name === username;
+          return {
+            ...m,
+            contribution: m.contribution !== undefined ? m.contribution : 0,
+            level: isMe ? playerLevel : (m.level !== undefined ? m.level : Math.floor((m.rating || 600) / 30) + 1)
+          };
+        });
       }
     } catch(e) {}
     return [
-      { name: username, role: 'Founder', rating: onlineRating, status: 'Online', contribution: 1250, level: Math.floor(onlineRating / 30) + 1 }
+      { name: username, role: 'Founder', rating: onlineRating, status: 'Online', contribution: 1250, level: playerLevel }
     ];
   });
+
+  useEffect(() => {
+    const playerLevel = getLevelFromXP(xp);
+    const hasWrongLevel = guildMembers.some(m => {
+      const cleanMemberName = m.name.replace(/\s*\(Kamu\)\s*/gi, '').trim().toLowerCase();
+      const cleanUsername = username.replace(/\s*\(Kamu\)\s*/gi, '').trim().toLowerCase();
+      return (cleanMemberName === cleanUsername || m.name === username) && m.level !== playerLevel;
+    });
+
+    if (hasWrongLevel) {
+      setGuildMembers(prev => prev.map(m => {
+        const cleanMemberName = m.name.replace(/\s*\(Kamu\)\s*/gi, '').trim().toLowerCase();
+        const cleanUsername = username.replace(/\s*\(Kamu\)\s*/gi, '').trim().toLowerCase();
+        if (cleanMemberName === cleanUsername || m.name === username) {
+          return { ...m, level: playerLevel };
+        }
+        return m;
+      }));
+    }
+  }, [xp, username, guildMembers]);
 
   const [guildJoinRequests, setGuildJoinRequests] = useState<Array<{ name: string; rating: number; role: string }>>(() => {
     try {
@@ -522,11 +620,7 @@ export const Features31to40: React.FC<Features31to40Props> = ({
       const saved = localStorage.getItem('guild_fragment_requests');
       if (saved) return JSON.parse(saved);
     } catch (e) {}
-    return [
-      { id: 'req_isna', name: 'Isna Caturia', skin: 'Golden Knight', coinsVal: 150, currentProgress: 3, maxProgress: 5 },
-      { id: 'req_martin', name: 'Martin_Pratama', skin: 'Retro 8-bit', coinsVal: 120, currentProgress: 4, maxProgress: 5 },
-      { id: 'req_naufal', name: 'Naufal_Catur', skin: 'Neon Skin', coinsVal: 140, currentProgress: 1, maxProgress: 3 }
-    ];
+    return [];
   });
 
   useEffect(() => {
@@ -543,11 +637,17 @@ export const Features31to40: React.FC<Features31to40Props> = ({
     }
   }, [fragmentRequestCooldown]);
 
-  const [guildChatMessages, setGuildChatMessages] = useState<Array<{ sender: string; text: string; time: string }>>([
-    { sender: 'Isna Caturia', text: 'Halo kawan-kawan klub, mari kita sapu bersih turnamen mingguan besok!', time: '09:12' },
-    { sender: 'Naufal_Catur', text: 'Koin Guild kita melesat kencang, donasikan koin kalian yuk biar level klub naik!', time: '10:04' },
-    { sender: 'Martin_Pratama', text: 'Saya butuh Fragment Skin Neon nih, tolong bantuannya ya, terima kasih kawan.', time: '10:35' }
-  ]);
+  const [guildChatMessages, setGuildChatMessages] = useState<Array<{ sender: string; text: string; time: string }>>(() => {
+    try {
+      const saved = localStorage.getItem('guild_chat_messages');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('guild_chat_messages', JSON.stringify(guildChatMessages));
+  }, [guildChatMessages]);
 
   // Guild War states & Minigame
   const [conqueredBoards, setConqueredBoards] = useState<string[]>(() => {
@@ -579,8 +679,102 @@ export const Features31to40: React.FC<Features31to40Props> = ({
     localStorage.setItem('conquered_boards_list', JSON.stringify(conqueredBoards));
   }, [hasGuild, guildProfile, guildLevel, guildTreasury, guildBlacklist, guildLogs, guildMembers, guildJoinRequests, requestedFragmentSkin, hasActiveFragmentReq, todayFragmentDonationCount, conqueredBoards]);
 
+  useEffect(() => {
+    const isGuest = localStorage.getItem('user') === null;
+    if (isGuest) {
+      setHasGuild(false);
+      setGuildProfile({
+        name: 'Klub Pal Mate Mandiri',
+        description: 'Markas para ksatria papan hitam putih taktis Indonesia! Tempat mabar santai tapi ber-bintang.',
+        tag: 'Kompetitif',
+        logo: 'perisai',
+        frame: 'gold',
+        minRating: 600,
+        joinSystem: 'Bebas'
+      });
+      const playerLevel = getLevelFromXP(xp);
+      setGuildMembers([
+        { name: username, role: 'Founder', rating: onlineRating, status: 'Online', contribution: 1250, level: playerLevel }
+      ]);
+      setGuildJoinRequests([]);
+      setGuildLevel(1);
+      setGuildTreasury(250);
+      setGuildBlacklist([]);
+      setGuildLogs([
+        'Klub Catur didirikan secara resmi.',
+        'Sistem donasi treasury dan sumbangan fragment diaktifkan.'
+      ]);
+      setRequestedFragmentSkin('');
+      setHasActiveFragmentReq(false);
+      setTodayFragmentDonationCount(0);
+      setConqueredBoards([]);
+      return;
+    }
+
+    const savedHasOwner = localStorage.getItem('guild_has_owner');
+    if (savedHasOwner === null) {
+      setHasGuild(false);
+      setGuildProfile({
+        name: 'Klub Pal Mate Mandiri',
+        description: 'Markas para ksatria papan hitam putih taktis Indonesia! Tempat mabar santai tapi ber-bintang.',
+        tag: 'Kompetitif',
+        logo: 'perisai',
+        frame: 'gold',
+        minRating: 600,
+        joinSystem: 'Bebas'
+      });
+      const playerLevel = getLevelFromXP(xp);
+      setGuildMembers([
+        { name: username, role: 'Founder', rating: onlineRating, status: 'Online', contribution: 1250, level: playerLevel }
+      ]);
+      setGuildJoinRequests([]);
+      setGuildLevel(1);
+      setGuildTreasury(250);
+      setGuildBlacklist([]);
+      setGuildLogs([
+        'Klub Catur didirikan secara resmi.',
+        'Sistem donasi treasury dan sumbangan fragment diaktifkan.'
+      ]);
+      setRequestedFragmentSkin('');
+      setHasActiveFragmentReq(false);
+      setTodayFragmentDonationCount(0);
+      setConqueredBoards([]);
+    } else {
+      setHasGuild(savedHasOwner === 'true');
+      try {
+        const pObj = localStorage.getItem('guild_profile_data');
+        if (pObj) setGuildProfile(JSON.parse(pObj));
+      } catch (e) {}
+      try {
+        const mObj = localStorage.getItem('guild_members');
+        if (mObj) setGuildMembers(JSON.parse(mObj));
+      } catch (e) {}
+      try {
+        const rObj = localStorage.getItem('guild_join_requests');
+        if (rObj) setGuildJoinRequests(JSON.parse(rObj));
+      } catch (e) {}
+      setGuildLevel(Number(localStorage.getItem('guild_lvl')) || 1);
+      setGuildTreasury(Number(localStorage.getItem('guild_treasury_gold')) || 250);
+      try {
+        const bObj = localStorage.getItem('guild_blacklist_list');
+        if (bObj) setGuildBlacklist(JSON.parse(bObj));
+      } catch (e) {}
+      try {
+        const lObj = localStorage.getItem('guild_action_history');
+        if (lObj) setGuildLogs(JSON.parse(lObj));
+      } catch (e) {}
+      setRequestedFragmentSkin(localStorage.getItem('requested_fragment_skin') || '');
+      setHasActiveFragmentReq(localStorage.getItem('has_active_fragment_req') === 'true');
+      setTodayFragmentDonationCount(Number(localStorage.getItem('today_fragment_donation_count')) || 0);
+      try {
+        const cObj = localStorage.getItem('conquered_boards_list');
+        if (cObj) setConqueredBoards(JSON.parse(cObj));
+      } catch (e) {}
+    }
+  }, [username]);
+
   // Guild Form State
-  const [formName, setFormName] = useState('Klub Catur Nopal Mandiri');
+  const [formName, setFormName] = useState('Klub Pal Mate Mandiri');
   const [formDesc, setFormDesc] = useState('Markas para ksatria papan hitam putih taktis Indonesia!');
   const [formTag, setFormTag] = useState('Kompetitif');
   const [formJoin, setFormJoin] = useState<'Bebas' | 'Persetujuan' | 'Undangan'>('Bebas');
@@ -698,19 +892,15 @@ export const Features31to40: React.FC<Features31to40Props> = ({
 
     // Simulate co-members donating after short time
     setTimeout(() => {
-      setTodayFragmentDonationCount(p => {
-        const next = p + 2;
-        triggerAudio('win');
-        triggerReward(0, `Isna Caturia dan Naufal_Catur mengirimkan +2 Fragment Skin ${skinType.toUpperCase()} untuk tabungan Anda!`, 'success_no_xp');
-        
-        // Add thank you message
-        setGuildChatMessages(prev => [
-          ...prev,
-          { sender: username, text: `Terimakasih banyak @Isna Caturia @Naufal_Catur atas donasinya, top sekali kawan.`, time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) }
-        ]);
-
-        return next;
-      });
+      setTodayFragmentDonationCount(p => Math.min(5, p + 2));
+      triggerAudio('win');
+      triggerReward(0, `Isna Caturia dan Naufal_Catur mengirimkan +2 Fragment Skin ${skinType.toUpperCase()} untuk tabungan Anda!`, 'success_no_xp');
+      
+      // Add thank you message
+      setGuildChatMessages(prev => [
+        ...prev,
+        { sender: username, text: `Terimakasih banyak @Isna Caturia @Naufal_Catur atas donasinya, top sekali kawan.`, time: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) }
+      ]);
     }, 4500);
   };
 
@@ -727,33 +917,51 @@ export const Features31to40: React.FC<Features31to40Props> = ({
     likes: number;
     hasLiked?: boolean;
     comments: Array<{ user: string; text: string }>;
-  }>>([
-    {
-      id: 'p1',
-      author: 'Master Alfin',
-      lvl: 12,
-      title: 'Solusi Pembukaan Ruy Lopez Melawan Bot Nelson',
-      category: 'Pembukaan Catur',
-      content: 'Langkah taktis Ruy Lopez (1.e4 e5 2.Nf3 Nc6 3.Bb5) sangat efektif mengurung mental Bot Nelson catur. Selalu posisikan gajah putih di b5 untuk menekan pergerakan ksatria g6 musuh secepatnya. Jika bot Nelson menyerang menteri, pastikan menteri Anda bersembunyi di petak a4.',
-      likes: 18,
-      comments: [
-        { user: 'Ihsan Taktis', text: 'Info bermutu master! Kebetulan saya keok terus lawan Nelson.' },
-        { user: 'Nawa Catur', text: 'Udah coba, mantap gajah d6 mati langkah jadinya!' }
-      ]
-    },
-    {
-      id: 'p2',
-      author: 'Pecatur Militan',
-      lvl: 8,
-      title: 'Teka-Teki Pengorbanan Menteri Tepat Guna!',
-      category: 'Analisa Match',
-      content: 'Saat mabar catur lokal di e4, pancing lawan Anda ke d5. Pengorbanan menteri di petak d5 (Qxd5!) dapat diubah menjadi skakmat kavaleri maut lewat garpu ksatria di c7. Sangat direkomendasikan untuk menembus taktik ELO di bawah 1000!',
-      likes: 12,
-      comments: [
-        { user: 'Isna Cantiq', text: 'Kelihatannya sangat berisiko tapi sangat seru dicoba.' }
-      ]
-    }
-  ]);
+    frameId?: string;
+    avatar?: string;
+  }>>(() => {
+    try {
+      const saved = localStorage.getItem('chess_posts');
+      if (saved) return JSON.parse(saved);
+    } catch (e) {}
+    return [
+      {
+        id: 'p-default-1',
+        author: 'Isna Caturia',
+        lvl: 34,
+        title: 'Pembukaan Ruy Lopez - Varian Marshall Attack',
+        category: 'Pembukaan Catur',
+        content: 'Bagi teman-teman yang bermain hitam, Marshall Attack adalah senjata taktis luar biasa untuk melawan Ruy Lopez. Setelah 1.e4 e5 2.Nf3 Nc6 3.Bb5 a6 4.Ba4 Nf6 5.O-O Be7 6.Re1 b5 7.Bb3 O-O 8.c3 d5! Kita mengorbankan bidak d5 untuk mendapatkan inisiatif serangan yang luar biasa di sayap raja. Bagaimana tanggapan kalian?',
+        likes: 18,
+        hasLiked: false,
+        comments: [
+          { user: 'Naufal_Catur', text: 'Sangat tajam! Saya sering kewalahan menghadapi ini sebagai putih.' },
+          { user: 'Grandmaster_X', text: 'Marshall Attack membutuhkan akurasi tinggi dari pihak putih untuk bertahan.' }
+        ],
+        frameId: 'gold',
+        avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&h=150'
+      },
+      {
+        id: 'p-default-2',
+        author: 'Naufal_Catur',
+        lvl: 28,
+        title: 'Tips Taktik: Garpu Kuda di Petak c2/c7',
+        category: 'Tips Taktik',
+        content: 'Selalu awasi petak c2 (untuk putih) dan c7 (untuk hitam). Seringkali pemula lupa melindunginya sehingga terkena garpu dari kuda lawan yang mengancam Raja dan Benteng sekaligus. Cara terbaik melindunginya adalah dengan menempatkan menteri atau perwira ringan secara aktif.',
+        likes: 12,
+        hasLiked: false,
+        comments: [
+          { user: 'Catur_Mania', text: 'Klasik sekali tapi masih sering terjadi di ELO 1000!' }
+        ],
+        frameId: 'cyber',
+        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150'
+      }
+    ];
+  });
+
+  useEffect(() => {
+    localStorage.setItem('chess_posts', JSON.stringify(chessPosts));
+  }, [chessPosts]);
 
   const [newPostTitle, setNewPostTitle] = useState('');
   const [newPostCat, setNewPostCat] = useState<'Analisa Match' | 'Pembukaan Catur' | 'Tips Taktik'>('Analisa Match');
@@ -763,15 +971,32 @@ export const Features31to40: React.FC<Features31to40Props> = ({
     e.preventDefault();
     if (!newPostTitle || !newPostContent) return;
 
+    // Load active frame/avatar to save
+    let activeFrame = 'none';
+    let activeAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150';
+    try {
+      const savedU = localStorage.getItem('user');
+      if (savedU) {
+        const parsed = JSON.parse(savedU);
+        activeFrame = parsed.selectedFrame || 'none';
+        activeAvatar = parsed.profileAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150';
+      } else {
+        activeFrame = localStorage.getItem('selectedFrame') || 'none';
+        activeAvatar = localStorage.getItem('guestAvatar') || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150';
+      }
+    } catch (err) {}
+
     const newPost = {
       id: `p-${Date.now()}`,
       author: username,
-      lvl: Math.floor(xp / 100) + 1,
+      lvl: getLevelFromXP(xp),
       title: newPostTitle,
       category: newPostCat,
       content: newPostContent,
       likes: 0,
-      comments: []
+      comments: [],
+      frameId: activeFrame,
+      avatar: activeAvatar
     };
 
     setChessPosts([newPost, ...chessPosts]);
@@ -780,24 +1005,7 @@ export const Features31to40: React.FC<Features31to40Props> = ({
     triggerAudio('win');
     triggerReward(25, 'Catatan Kontribusi Forum Cemerlang! Postingan strategi catur diunggah. Dapatkan feedback dari master yang lain!', 'success');
 
-    // Simulate AI feedback review response
-    setTimeout(() => {
-      setChessPosts(current => current.map(p => {
-        if (p.id === newPost.id) {
-          return {
-            ...p,
-            likes: p.likes + 1,
-            comments: [
-              ...p.comments,
-              { user: 'Kecerdikan GM Catur', text: 'Analisa yang sangat menakjubkan bung! Pertahankan kejelian visi catur dinamis semacam ini.' }
-            ]
-          };
-        }
-        return p;
-      }));
-      triggerAudio('win');
-      triggerReward(0, 'Pesan Anda mendapatkan Feedback Komentar Analis dan Like Baru dari master komunitas!', 'success_no_xp');
-    }, 7000);
+
   };
 
   const handleLikePost = (postId: string) => {
@@ -864,22 +1072,33 @@ export const Features31to40: React.FC<Features31to40Props> = ({
 
     if (newlyUnlocked) {
       triggerAudio('win');
+      const addDiamondsWithSavings = (amt: number) => {
+        if (setDiamondSavings) {
+          setDiamondSavings(prev => {
+            const next = prev + amt;
+            return next > 150 ? 150 : next;
+          });
+        } else {
+          setDiamonds(d => d + amt);
+        }
+      };
+
       if (achId === 'ach_quick_win') {
         setXp(x => x + 150);
-        setDiamonds(d => d + 5);
-        triggerReward(150, 'Bonus RAHASIA TERBONGKAR! Achievement Tersembunyi [Kilat Singkat] terbuka! Hadiah: +150 XP & +5 Diamond!', 'level_up');
+        addDiamondsWithSavings(5);
+        triggerReward(150, 'Bonus RAHASIA TERBONGKAR! Achievement Tersembunyi [Kilat Singkat] terbuka! Hadiah: +150 XP & +5 Diamond (Dipindahkan ke Tabungan)!', 'level_up');
       } else if (achId === 'ach_treasury_lord') {
         setXp(x => x + 100);
-        setDiamonds(d => d + 5);
-        triggerReward(100, 'Bonus RAHASIA TERBONGKAR! Achievement Tersembunyi [Juragan Donatur] terbuka! Hadiah: +100 XP & +5 Diamond!', 'level_up');
+        addDiamondsWithSavings(5);
+        triggerReward(100, 'Bonus RAHASIA TERBONGKAR! Achievement Tersembunyi [Juragan Donatur] terbuka! Hadiah: +100 XP & +5 Diamond (Dipindahkan ke Tabungan)!', 'level_up');
       } else if (achId === 'ach_tourney_conqueror') {
         setXp(x => x + 200);
-        setDiamonds(d => d + 10);
-        triggerReward(200, 'Bonus RAHASIA TERBONGKAR! Achievement Tersembunyi [Penakluk Liga] terbuka! Hadiah: +200 XP & +10 Diamond!', 'level_up');
+        addDiamondsWithSavings(10);
+        triggerReward(200, 'Bonus RAHASIA TERBONGKAR! Achievement Tersembunyi [Penakluk Liga] terbuka! Hadiah: +200 XP & +10 Diamond (Dipindahkan ke Tabungan)!', 'level_up');
       } else if (achId === 'ach_spammer') {
         setXp(x => x + 75);
-        setDiamonds(d => d + 2);
-        triggerReward(75, 'Bonus RAHASIA TERBONGKAR! Achievement Tersembunyi [Sahabat Karib] terbuka! Hadiah: +75 XP & +2 Diamond!', 'level_up');
+        addDiamondsWithSavings(2);
+        triggerReward(75, 'Bonus RAHASIA TERBONGKAR! Achievement Tersembunyi [Sahabat Karib] terbuka! Hadiah: +75 XP & +2 Diamond (Dipindahkan ke Tabungan)!', 'level_up');
       }
     }
   };
@@ -892,9 +1111,17 @@ export const Features31to40: React.FC<Features31to40Props> = ({
   // -------------------------------------------------------------------------
   // FEATURE 39: GIFT FRIEND SOCIAL & AFFINITY SYSTEM (NO EMOJIS IN UI)
   // -------------------------------------------------------------------------
-  const [giftTargetUser, setGiftTargetUser] = useState('Martin_Pratama');
+  const [giftTargetUser, setGiftTargetUser] = useState('');
   const [selectedGiftId, setSelectedGiftId] = useState<'coffee' | 'book' | 'crystal' | 'crown'>('coffee');
   const [giftMsgCustom, setGiftMsgCustom] = useState('Tetap semangat mengasah otak kawan!');
+
+  useEffect(() => {
+    if (friendsList && friendsList.length > 0) {
+      setGiftTargetUser(friendsList[0].username || friendsList[0].name || '');
+    } else if (realPlayers && realPlayers.length > 0) {
+      setGiftTargetUser(realPlayers[0].name || '');
+    }
+  }, [friendsList, realPlayers]);
 
   const [friendAffinities, setFriendAffinities] = useState<{ [key: string]: { points: number; level: number } }>(() => {
     try {
@@ -902,10 +1129,10 @@ export const Features31to40: React.FC<Features31to40Props> = ({
       if (saved) return JSON.parse(saved);
     } catch (e) {}
     return {
-      'Martin_Pratama': { points: 60, level: 1 },
-      'Nelson_Grandmaster': { points: 120, level: 2 },
       'Isna Caturia': { points: 280, level: 3 },
-      'Catur Overlord': { points: 15, level: 1 }
+      'Rizky Hidayat': { points: 120, level: 2 },
+      'Siti Caturia': { points: 60, level: 1 },
+      'Dewi Saraswati': { points: 15, level: 1 }
     };
   });
 
@@ -1005,28 +1232,6 @@ export const Features31to40: React.FC<Features31to40Props> = ({
 
     if (giftTargetUser !== username) {
       triggerHiddenAchievement('ach_spammer');
-      
-      setTimeout(() => {
-        if (Math.random() > 0.4) {
-          const isIncomingPremium = Math.random() > 0.6;
-          const newG: ReceivedGift = {
-            id: 'rg_bot_' + Date.now(),
-            from: giftTargetUser,
-            giftName: isIncomingPremium ? 'Bidak Perak Solid' : 'Kue Kering Persahabatan',
-            msg: `Hai kawan, terima kasih atas hadiahnya! Ini bingkisan sederhana dariku.`,
-            isPremium: isIncomingPremium,
-            cashValueCoins: isIncomingPremium ? 200 : 40,
-            cashValueDiamonds: isIncomingPremium ? 5 : 0,
-            affinityPoints: isIncomingPremium ? 120 : 40
-          };
-          setReceivedGifts(prev => {
-            const next = [newG, ...prev];
-            localStorage.setItem('received_gifts', JSON.stringify(next));
-            return next;
-          });
-          triggerReward(0, `Kotak Masuk! Anda menerima balasan kiriman paket hadiah dari ${giftTargetUser}! Periksa kotak masuk untuk mencairkannya.`, 'info');
-        }
-      }, 3000);
     }
   };
 
@@ -1181,8 +1386,16 @@ export const Features31to40: React.FC<Features31to40Props> = ({
       });
       triggerReward(0, 'Pembelian Berhasil! Tampilan bidak kustom "Ksatria Kerajaan" berhasil dibuka!', 'success_no_xp');
     } else if (deal.rewardType === 'diamond_sack') {
-      setDiamonds(d => d + 50);
-      triggerReward(0, 'Tarik Berhasil! Karung Koin dibuka, +50 Diamond berhasil masuk ke saldo!', 'success_no_xp');
+      if (setDiamondSavings) {
+        setDiamondSavings(prev => {
+          const next = prev + 50;
+          return next > 150 ? 150 : next;
+        });
+        triggerReward(0, 'Tarik Berhasil! Karung Diamond dibuka, +50 Diamond berhasil dipindahkan ke Tabungan!', 'success_no_xp');
+      } else {
+        setDiamonds(d => d + 50);
+        triggerReward(0, 'Tarik Berhasil! Karung Diamond dibuka, +50 Diamond berhasil masuk ke saldo!', 'success_no_xp');
+      }
     } else if (deal.rewardType === 'gold_heavy') {
       setCoins(c => c + 1200);
       triggerReward(0, 'Penarikan Koin sukses! +1200 Koin Tabunan berhasil ditambahkan.', 'success_no_xp');
@@ -1210,9 +1423,9 @@ export const Features31to40: React.FC<Features31to40Props> = ({
           {/* Main Feature Menu Navigation Tabs */}
           <div className="flex border-b border-[#3c3934] overflow-x-auto scroller-hidden gap-1.5">
             {[
-              { id: 'guild', label: 'Arena Klub', desc: 'Komunitas & War', Icon: Shield },
-              { id: 'tournament', label: 'Turnamen', desc: 'Braket Liga Mingguan', Icon: Trophy },
-              { id: 'deals', label: 'Gift Kawan', desc: 'Kirim Bingkisan Persahabatan', Icon: Gift }
+              { id: 'guild', label: prefLang === 'en' ? 'Club Arena' : 'Arena Klub', desc: prefLang === 'en' ? 'Community & War' : 'Komunitas & War', Icon: Shield },
+              { id: 'tournament', label: prefLang === 'en' ? 'Tournament' : 'Turnamen', desc: prefLang === 'en' ? 'Weekly League Bracket' : 'Braket Liga Mingguan', Icon: Trophy },
+              { id: 'deals', label: prefLang === 'en' ? 'Friend Gift' : 'Gift Kawan', desc: prefLang === 'en' ? 'Send Friendly Pack' : 'Kirim Bingkisan Persahabatan', Icon: Gift }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -1349,7 +1562,7 @@ export const Features31to40: React.FC<Features31to40Props> = ({
                   <div className="absolute top-0 right-0 w-32 h-32 bg-[#81b64c]/5 rounded-full blur-2xl pointer-events-none" />
                   <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6">
                     <div className="flex items-center gap-4">
-                      <div className="w-16 h-16 bg-[#1c1a19] border-2 border-yellow-500 rounded-2xl flex items-center justify-center shadow-xl shrink-0">
+                      <div className="w-16 h-16 bg-[#1c1a19] border-2 border-yellow-500 rounded-2xl flex items-center justify-center shadow-xl shrink-0 overflow-hidden relative">
                         {renderGuildLogo(guildProfile.logo || 'perisai')}
                       </div>
                       <div>
@@ -1488,6 +1701,7 @@ export const Features31to40: React.FC<Features31to40Props> = ({
                           activityDetail={activityDetail}
                           setActivityDetail={setActivityDetail}
                           guildMembers={guildMembers}
+                          setGuildMembers={setGuildMembers}
                           username={username}
                           coins={coins}
                           setCoins={setCoins}
@@ -1524,6 +1738,7 @@ export const Features31to40: React.FC<Features31to40Props> = ({
                           setUnlockedSkins={setUnlockedSkins}
                           triggerAudio={triggerAudio}
                           triggerReward={triggerReward}
+                          prefLang={prefLang}
                         />
                       </motion.div>
                     )}
@@ -2619,7 +2834,9 @@ export const Features31to40: React.FC<Features31to40Props> = ({
           >
             <div className="bg-[#312e2b] p-6 rounded-3xl border border-[#3c3934] flex flex-col md:flex-row items-center justify-between gap-6 relative overflow-hidden">
               <div className="space-y-2">
-                <span className="text-[9px] font-black tracking-wider text-yellow-500 uppercase block font-mono">LIGA CATUR NASIONAL NOPAL</span>
+                <span className="text-[9px] font-black tracking-wider text-yellow-500 uppercase block font-mono">
+                  {prefLang === 'en' ? 'PAL MATE NATIONAL CHESS LEAGUE' : 'LIGA CATUR NASIONAL PAL MATE'}
+                </span>
                 <h3 className="text-xl font-black text-white uppercase flex items-center gap-1.5">
                   <Trophy className="w-5.5 h-5.5 text-yellow-500" /> Turnamen Catur Braket Mingguan
                 </h3>
@@ -2791,42 +3008,58 @@ export const Features31to40: React.FC<Features31to40Props> = ({
             {/* LEFT COLUMN: ACTIVE DISCUSSION FORM */}
             <div className="md:col-span-4 bg-[#312e2b] p-6 rounded-3xl border border-[#3c3934] space-y-4">
               <div>
-                <h4 className="text-xs font-black text-white uppercase tracking-wider">Bagikan Strategi & Analisa</h4>
-                <p className="text-[10px] text-slate-400 mt-1">Kirim taktik jitu, minta umpan balik visual analisis, atau bagikan tip opening catur Anda.</p>
+                <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                  {prefLang === 'en' ? 'Share Strategy & Analysis' : 'Bagikan Strategi & Analisa'}
+                </h4>
+                <p className="text-[10px] text-slate-400 mt-1">
+                  {prefLang === 'en' ? 'Post tactics, ask for visual analysis, or share your opening tips.' : 'Kirim taktik jitu, minta umpan balik visual analisis, atau bagikan tip opening catur Anda.'}
+                </p>
               </div>
 
               <form onSubmit={handleCreatePost} className="space-y-4">
                 <div>
-                  <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Judul Strategi</label>
+                  <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">
+                    {prefLang === 'en' ? 'Strategy Title' : 'Judul Strategi'}
+                  </label>
                   <input
                     type="text"
                     value={newPostTitle}
                     onChange={(e) => setNewPostTitle(e.target.value)}
-                    placeholder="Contoh: Gambit Menteri Untuk ELO 1200"
+                    placeholder={prefLang === 'en' ? 'Example: Queens Gambit for 1200 ELO' : 'Contoh: Gambit Menteri Untuk ELO 1200'}
                     className="w-full p-2.5 bg-[#1c1a19] border border-[#3c3934] focus:border-[#81b64c] text-xs text-white rounded-xl focus:outline-none"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Kategori Taktik</label>
+                  <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">
+                    {prefLang === 'en' ? 'Tactics Category' : 'Kategori Taktik'}
+                  </label>
                   <select
                     value={newPostCat}
                     onChange={(e: any) => setNewPostCat(e.target.value)}
                     className="w-full p-2.5 bg-[#1c1a19] border border-[#3c3934] text-xs text-slate-300 font-extrabold rounded-xl focus:outline-none"
                   >
-                    <option value="Analisa Match">Cari Analisa Tanding Board</option>
-                    <option value="Pembukaan Catur">Buku Pembukaan Catur Klasik</option>
-                    <option value="Tips Taktik">Otak Tips Taktik & Jebakan</option>
+                    <option value="Analisa Match">
+                      {prefLang === 'en' ? 'Match Analysis' : 'Cari Analisa Tanding Board'}
+                    </option>
+                    <option value="Pembukaan Catur">
+                      {prefLang === 'en' ? 'Chess Openings' : 'Buku Pembukaan Catur Klasik'}
+                    </option>
+                    <option value="Tips Taktik">
+                      {prefLang === 'en' ? 'Tactics & Traps' : 'Otak Tips Taktik & Jebakan'}
+                    </option>
                   </select>
                 </div>
 
                 <div>
-                  <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">Narasi Deskripsi Taktik</label>
+                  <label className="text-[9px] font-black text-slate-400 uppercase block mb-1">
+                    {prefLang === 'en' ? 'Tactics Description' : 'Narasi Deskripsi Taktik'}
+                  </label>
                   <textarea
                     value={newPostContent}
                     onChange={(e) => setNewPostContent(e.target.value)}
-                    placeholder="Tulis detail langkah koordinat catur di sini..."
+                    placeholder={prefLang === 'en' ? 'Write detailed chess coordinate steps here...' : 'Tulis detail langkah koordinat catur di sini...'}
                     rows={4}
                     className="w-full p-2.5 bg-[#1c1a19] border border-[#3c3934] focus:border-[#81b64c] text-xs text-slate-205 rounded-xl focus:outline-none"
                     required
@@ -2837,91 +3070,122 @@ export const Features31to40: React.FC<Features31to40Props> = ({
                   type="submit"
                   className="w-full py-2.5 bg-[#81b64c] hover:bg-[#92ca5a] text-white text-xs font-black uppercase rounded-xl transition-all shadow-md cursor-pointer"
                 >
-                  Kirim Postingan Forum
+                  {prefLang === 'en' ? 'Submit Forum Post' : 'Kirim Postingan Forum'}
                 </button>
               </form>
             </div>
 
             {/* RIGHT COLUMN: DISCUSSION BOARD CHANNELS */}
             <div className="md:col-span-8 space-y-4">
-              {chessPosts.map((post) => (
-                <div key={post.id} className="bg-[#312e2b] p-6 rounded-3xl border border-[#3c3934] space-y-4">
-                  <div className="flex justify-between items-start gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-[#1c1a19] border border-stone-700 flex items-center justify-center font-bold text-xs text-white uppercase">
-                        {post.author.substring(0,2).toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-1.5 flex-wrap">
-                          <h4 className="text-xs font-black text-white">{post.author}</h4>
-                          <span className="text-[8px] font-black bg-stone-900 border border-stone-800 text-yellow-500 px-1.5 py-0.5 rounded">
-                            LVL {post.lvl}
-                          </span>
-                        </div>
-                        <span className="text-[8.5px] text-[#81b64c] font-black tracking-wider uppercase font-mono">{post.category}</span>
-                      </div>
-                    </div>
-
-                    <button 
-                      onClick={() => handleLikePost(post.id)}
-                      className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase flex items-center gap-1.5 transition-colors cursor-pointer border ${
-                        post.hasLiked 
-                          ? 'bg-[#81b64c]/10 border-[#81b64c] text-[#81b64c]' 
-                          : 'bg-[#1c1a19] border-[#3c3934] text-slate-450 hover:text-white'
-                      }`}
-                    >
-                      <ThumbsUp className="w-3.5 h-3.5" /> {post.likes} Like
-                    </button>
-                  </div>
-
-                  <div className="space-y-2">
-                    <h5 className="text-sm font-black text-white">{post.title}</h5>
-                    <p className="text-[11.5px] text-slate-350 leading-relaxed font-medium font-sans whitespace-pre-wrap">{post.content}</p>
-                  </div>
-
-                  {/* COMMENTS BOX */}
-                  <div className="border-t border-[#3c3934]/40 pt-4 space-y-2">
-                    <span className="text-[8.5px] font-black text-slate-500 uppercase tracking-wide">Umpan Balik Taktis Master ({post.comments.length})</span>
-                    <div className="space-y-2">
-                      {post.comments.map((comment, cIndex) => (
-                        <div key={cIndex} className="p-2.5 bg-black/10 rounded-xl border border-stone-800 text-[10.5px]">
-                          <span className="font-extrabold text-[#cdc2af]">{comment.user}: </span>
-                          <span className="text-slate-400 font-semibold">{comment.text}</span>
-                        </div>
-                      ))}
-                    </div>
-
-                    {/* Append mock comment */}
-                    <div className="flex gap-2 pt-2">
-                      <input
-                        type="text"
-                        placeholder="Tambahkan umpan balik taktis..."
-                        onKeyDown={(e) => {
-                          if (e.key === 'Enter') {
-                            const input = e.currentTarget;
-                            if (!input.value) return;
-                            
-                            const updatedPosts = chessPosts.map(p => {
-                              if (p.id === post.id) {
-                                return {
-                                  ...p,
-                                  comments: [...p.comments, { user: username, text: input.value }]
-                                };
-                              }
-                              return p;
-                            });
-                            setChessPosts(updatedPosts);
-                            input.value = '';
-                            triggerAudio('move');
-                          }
-                        }}
-                        className="flex-1 bg-[#1c1a19] border border-[#3c3934] text-[10px] p-2 rounded-lg text-white focus:outline-none"
-                      />
-                    </div>
-                  </div>
-
+              {chessPosts.length === 0 ? (
+                <div className="bg-[#312e2b] p-8 rounded-3xl border border-[#3c3934] text-center space-y-3">
+                  <MessageSquare className="w-10 h-10 text-[#81b64c] mx-auto" />
+                  <h4 className="text-white text-xs font-black uppercase tracking-wider">
+                    {prefLang === 'en' ? 'Chess Analysis Forum is Empty' : 'Forum Analisis Catur Kosong'}
+                  </h4>
+                  <p className="text-[10px] text-slate-400 font-medium leading-normal max-w-sm mx-auto">
+                    {prefLang === 'en' ? 'No theory, tactics, or opening posts in this forum yet. Be the first to share!' : 'Belum ada postingan teori, taktik, atau pembukaan catur di forum ini. Jadilah pemain pertama yang membagikan analisamu menggunakan formulir di sebelah kiri!'}
+                  </p>
                 </div>
-              ))}
+              ) : (
+                chessPosts.map((post) => (
+                  <div key={post.id} className="bg-[#312e2b] p-6 rounded-3xl border border-[#3c3934] space-y-4">
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="flex items-center gap-3">
+                        <AvatarWithFrame
+                          src={post.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150'}
+                          frameId={post.frameId || 'none'}
+                          size="sm"
+                        />
+                        <div>
+                          <div className="flex items-center gap-1.5 flex-wrap">
+                            <h4 className="text-xs font-black text-white">{post.author}</h4>
+                            <span className="text-[8px] font-black bg-stone-900 border border-stone-800 text-yellow-500 px-1.5 py-0.5 rounded">
+                              LVL {post.lvl}
+                            </span>
+                          </div>
+                          <span className="text-[8.5px] text-[#81b64c] font-black tracking-wider uppercase font-mono">{post.category}</span>
+                        </div>
+                      </div>
+
+                      <button 
+                        onClick={() => handleLikePost(post.id)}
+                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase flex items-center gap-1.5 transition-colors cursor-pointer border ${
+                          post.hasLiked 
+                            ? 'bg-[#81b64c]/10 border-[#81b64c] text-[#81b64c]' 
+                            : 'bg-[#1c1a19] border-[#3c3934] text-slate-450 hover:text-white'
+                        }`}
+                      >
+                        <ThumbsUp className="w-3.5 h-3.5" /> {post.likes} Like
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      <h5 className="text-sm font-black text-white">{post.title}</h5>
+                      <p className="text-[11.5px] text-slate-350 leading-relaxed font-medium font-sans whitespace-pre-wrap">{post.content}</p>
+                    </div>
+
+                    {/* COMMENTS BOX */}
+                    <div className="border-t border-[#3c3934]/40 pt-4 space-y-2">
+                      <span className="text-[8.5px] font-black text-slate-500 uppercase tracking-wide">Umpan Balik Taktis Master ({post.comments.length})</span>
+                      <div className="space-y-2">
+                        {post.comments.map((comment, cIndex) => {
+                          const details = getUserDetails(comment.user);
+                          return (
+                            <div key={cIndex} className="p-2.5 bg-black/15 rounded-xl border border-stone-800/80 text-[10.5px] flex items-center justify-between gap-3">
+                              <div className="flex items-center gap-2.5">
+                                <AvatarWithFrame
+                                  src={details.avatar}
+                                  frameId={details.frameId}
+                                  size="xs"
+                                />
+                                <div>
+                                  <div className="flex items-center gap-1.5 flex-wrap">
+                                    <span className="font-extrabold text-[#cdc2af]">{comment.user}</span>
+                                    <span className="text-[7px] font-black bg-stone-900 border border-stone-800 text-yellow-500 px-1.5 py-0.2 rounded font-mono">
+                                      LVL {details.lvl}
+                                    </span>
+                                  </div>
+                                  <p className="text-slate-400 font-semibold mt-0.5">{comment.text}</p>
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+
+                      {/* Append mock comment */}
+                      <div className="flex gap-2 pt-2">
+                        <input
+                          type="text"
+                          placeholder="Tambahkan umpan balik taktis..."
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter') {
+                              const input = e.currentTarget;
+                              if (!input.value) return;
+                              
+                              const updatedPosts = chessPosts.map(p => {
+                                if (p.id === post.id) {
+                                  return {
+                                    ...p,
+                                    comments: [...p.comments, { user: username, text: input.value }]
+                                  };
+                                }
+                                return p;
+                              });
+                              setChessPosts(updatedPosts);
+                              input.value = '';
+                              triggerAudio('move');
+                            }
+                          }}
+                          className="flex-1 bg-[#1c1a19] border border-[#3c3934] text-[10px] p-2 rounded-lg text-white focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                  </div>
+                ))
+              )}
             </div>
 
           </motion.div>
@@ -2957,10 +3221,22 @@ export const Features31to40: React.FC<Features31to40Props> = ({
                       onChange={(e) => setGiftTargetUser(e.target.value)}
                       className="w-full bg-[#1c1a19] border border-[#3c3934] text-xs p-2.5 rounded-xl text-slate-200 font-extrabold focus:outline-none focus:border-indigo-400"
                     >
-                      <option value="Martin_Pratama">Martin_Pratama (Rekan Latihan)</option>
-                      <option value="Nelson_Grandmaster">Nelson_Grandmaster (Ahli Kavaleri)</option>
-                      <option value="Isna Caturia">Isna Caturia (Rekan Klan)</option>
-                      <option value="Catur Overlord">Catur Overlord (Musuh Bebuyutan)</option>
+                      {friendsList && friendsList.length > 0 ? (
+                        friendsList.map(f => (
+                          <option key={f.username || f.name} value={f.username || f.name}>
+                            {f.username || f.name} (Rekan Duel)
+                          </option>
+                        ))
+                      ) : (
+                        <option value="" disabled>Belum ada rekan duel terhubung</option>
+                      )}
+                      {realPlayers && realPlayers.length > 0 && (
+                        <optgroup label="Pemain Online Teraktif">
+                          {realPlayers.map(p => (
+                            <option key={p.name} value={p.name}>{p.name} (Pemain Online)</option>
+                          ))}
+                        </optgroup>
+                      )}
                     </select>
                   </div>
 
@@ -2991,7 +3267,7 @@ export const Features31to40: React.FC<Features31to40Props> = ({
                 </div>
 
                 <div className="flex justify-between items-center pt-3 border-t border-[#3c3934]/35 gap-4">
-                  <span className="text-[9px] text-slate-400 italic">Kirim ke Martin_Pratama atau Nelson_Grandmaster untuk unlock achievement rahasia!</span>
+                  <span className="text-[9px] text-slate-400 italic">Kirim ke Isna Caturia atau Rizky Hidayat untuk meningkatkan poin afinitas klan bersama!</span>
                   <button
                     onClick={handleSendGift}
                     className="px-5 py-2.5 bg-[#81b64c] hover:bg-[#92ca5a] text-white font-black uppercase text-[10px] rounded-xl cursor-pointer shadow-md transition-all active:translate-y-0.5"

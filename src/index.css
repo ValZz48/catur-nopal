@@ -55,3 +55,106 @@ body {
   transform: translateY(2px);
   border-bottom-width: 2px;
 }
+
+/* Sunrise Light Theme Overrides */
+html.light, html.light body {
+  background-color: #f7f5f0 !important;
+  color: #1c1a19 !important;
+}
+
+/* Overriding ALL dark backgrounds to light grays/whites */
+html.light .bg-\[\#161512\],
+html.light .bg-\[\#1c1a19\],
+html.light .bg-\[\#22201e\],
+html.light .bg-\[\#1e1c1b\],
+html.light .bg-stone-950,
+html.light .bg-zinc-950,
+html.light .bg-neutral-950,
+html.light .bg-black,
+html.light .bg-black\/50,
+html.light .bg-black\/40,
+html.light .bg-black\/30 {
+  background-color: #f7f5f0 !important;
+}
+
+html.light .bg-\[\#262421\],
+html.light .bg-\[\#2a2826\],
+html.light .bg-\[\#22211f\],
+html.light .bg-\[\#2a2927\],
+html.light .bg-stone-900,
+html.light .bg-zinc-900 {
+  background-color: #ebe7dd !important;
+}
+
+html.light .bg-\[\#312e2b\],
+html.light .bg-\[\#272522\],
+html.light .bg-\[\#2d2b28\],
+html.light .bg-\[\#2e2c2a\],
+html.light .bg-stone-800,
+html.light .bg-zinc-800 {
+  background-color: #ffffff !important;
+  color: #1c1a19 !important;
+  border-color: #dcd7ca !important;
+}
+
+/* Input fields and special text areas */
+html.light input,
+html.light textarea,
+html.light select,
+html.light .bg-stone-900\/50 {
+  background-color: #ffffff !important;
+  color: #1c1a19 !important;
+  border-color: #dcd7ca !important;
+}
+
+/* Overriding ALL dark borders to soft light borders */
+html.light .border-\[\#3c3934\],
+html.light .border-\[\#211f1d\],
+html.light .border-stone-800,
+html.light .border-stone-750,
+html.light .border-stone-700,
+html.light .border-stone-850,
+html.light .border-stone-900,
+html.light .border-zinc-800,
+html.light .border-zinc-700 {
+  border-color: #dcd7ca !important;
+}
+
+/* High contrast text color rules */
+html.light h1,
+html.light h2,
+html.light h3,
+html.light h4,
+html.light h5,
+html.light .light-dark {
+  color: #1a1917 !important;
+}
+
+html.light .text-white,
+html.light .text-slate-100,
+html.light .text-slate-200,
+html.light .text-slate-300,
+html.light .text-stone-100,
+html.light .text-stone-200,
+html.light .text-stone-300 {
+  color: #1c1a19 !important;
+}
+
+html.light .text-slate-400,
+html.light .text-slate-500,
+html.light .text-stone-400,
+html.light .text-stone-500,
+html.light .text-stone-650 {
+  color: #5d5952 !important;
+}
+
+html.light .text-amber-500,
+html.light .text-amber-400 {
+  color: #b36b00 !important;
+}
+
+/* Modals & Dialog overlays */
+html.light .bg-black\/70,
+html.light .bg-black\/80 {
+  background-color: rgba(0, 0, 0, 0.45) !important;
+}

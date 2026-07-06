@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Sparkles, Crown, Gift, Coins, Gem, Info, AlertCircle, Check, 
-  HelpCircle, Star, ArrowRight, Hourglass, Lock, Settings, ChevronRight
+  HelpCircle, Star, ArrowRight, Hourglass, Lock, Settings, ChevronRight, User
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { ChessPiece } from './ChessPieces';
 
 // =========================================================================
 // TYPES & DATA STRUCTURES FOR GACHA (FEATURES 26-30)
@@ -50,11 +51,7 @@ export const GACHA_ITEMS_POOL: GachaItem[] = [
 
   // Custom SFX
   { id: 'sfx_robotic', name: 'SFX Robot Logam', category: 'sfx', rarity: 'Uncommon', desc: 'Suara gesekan robot setiap kali bidak melangkah.', color: 'border-slate-400 text-slate-300' },
-  { id: 'sfx_laser', name: 'SFX Tembakan Laser', category: 'sfx', rarity: 'Epic', desc: 'Guntur tembakan laser berdesing tinggi.', color: 'border-purple-400 text-purple-300' },
-
-  // Special visual Effects & Checkmate animations
-  { id: 'effect_fire', name: 'Efek Langkah Bara Api', category: 'effect', rarity: 'Epic', desc: 'Efek visual membakar jejak petak langkah catur.', color: 'border-rose-600 text-red-400' },
-  { id: 'checkmate_explode', name: 'Animasi Skakmat Meledak', category: 'checkmate', rarity: 'Legendary', desc: 'Ledakan supernova dahsyat saat raja lawan terjepit!', color: 'border-yellow-500 text-yellow-400' }
+  { id: 'sfx_laser', name: 'SFX Tembakan Laser', category: 'sfx', rarity: 'Epic', desc: 'Guntur tembakan laser berdesing tinggi.', color: 'border-purple-400 text-purple-300' }
 ];
 
 interface Features26to30Props {
@@ -572,7 +569,7 @@ export const Features26to30: React.FC<Features26to30Props> = ({
           </div>
 
           {/* Render by sub categories */}
-          {['skin', 'board', 'frame', 'pfp', 'sfx', 'effect', 'checkmate'].map((cat) => {
+          {['skin', 'board', 'frame', 'pfp', 'sfx'].map((cat) => {
             const catItems = GACHA_ITEMS_POOL.filter(i => i.category === cat);
             const titleMap: Record<string, { t: string; desc: string }> = {
               skin: { t: 'Skin Bidak Catur', desc: 'Ganti rupa ornamen pion, kuda, benteng, dan raja Anda.' },
@@ -600,9 +597,9 @@ export const Features26to30: React.FC<Features26to30Props> = ({
                     if (item.category === 'skin') {
                       isUnlocked = unlockedSkins.includes(item.id) || membershipStatus === 'premium' || item.id === 'standard';
                     } else if (item.category === 'board') {
-                      isUnlocked = unlockedThemes.includes(item.id) || item.id === 'classic' || item.id === 'forest' || item.id === 'cosmic';
+                      isUnlocked = unlockedThemes.includes(item.id) || item.id === 'classic' || item.id === 'forest' || item.id === 'cosmic' || membershipStatus === 'premium';
                     } else if (item.category === 'frame') {
-                      isUnlocked = unlockedFrames.includes(item.id) || item.id === 'none';
+                      isUnlocked = unlockedFrames.includes(item.id) || item.id === 'none' || membershipStatus === 'premium';
                     } else {
                       const list = JSON.parse(localStorage.getItem(`unlocked_${item.category}_items`) || '[]');
                       isUnlocked = list.includes(item.id) || (item.id === 'pfp_knight');
@@ -628,7 +625,7 @@ export const Features26to30: React.FC<Features26to30Props> = ({
 
                     return (
                       <div 
-                        key={item.id}
+                        key={`${item.category}-${item.id}`}
                         className={`p-3 rounded-xl border relative flex flex-col justify-between min-h-[9.5rem] transition-all ${
                           !isUnlocked 
                             ? 'bg-black/15 border-[#3c3934]/30 opacity-45' 
@@ -707,11 +704,11 @@ export const Features26to30: React.FC<Features26to30Props> = ({
                                   : 'bg-[#312e2b] text-slate-300 border-[#3c3934] hover:bg-[#3d3a36] hover:text-white'
                               }`}
                             >
-                              {isEquipped ? 'Aktif Aktif' : 'Gunakan'}
+                              {isEquipped ? 'Aktif' : 'Gunakan'}
                             </button>
                           ) : (
                             <span className="block text-center text-[8.5px] font-black uppercase tracking-wider text-slate-500 bg-[#121110] py-1 rounded-lg select-none border border-black/10">
-                              Terkunci Terkunci
+                              Terkunci
                             </span>
                           )}
                         </div>
@@ -1039,13 +1036,56 @@ export const Features26to30: React.FC<Features26to30Props> = ({
                       </span>
 
                       <div className="w-12 h-12 rounded-xl bg-black/15 flex items-center justify-center shrink-0">
-                        {item.category === 'skin' ? (
-                          <div className="w-8 h-8"><Sparkles className="w-full h-full text-yellow-400" /></div>
-                        ) : item.category === 'board' ? (
-                          <div className="w-8 h-8"><Settings className="w-full h-full text-emerald-400" /></div>
-                        ) : (
-                          <div className="w-8 h-8 font-extrabold text-[10px] text-cyan-400 uppercase flex items-center justify-center border-2 border-cyan-400/25 rounded-md">{item.category}</div>
-                        )}
+                        {(() => {
+                          const id = item.id;
+                          if (item.category === 'skin') {
+                            const skinCode = id.replace('skin_', '');
+                            return <div className="w-10 h-10"><ChessPiece type="q" color="w" skin={skinCode} className="w-full h-full select-none drop-shadow-md" /></div>;
+                          }
+                          if (item.category === 'board') {
+                            let darkCol = '#b58863';
+                            let lightCol = '#f0d9b5';
+                            if (id === 'forest') { darkCol = '#1a3a1e'; lightCol = '#4d8055'; }
+                            else if (id === 'cosmic') { darkCol = '#0d011c'; lightCol = '#56258a'; }
+                            else if (id === 'magma_lava') { darkCol = '#3a0209'; lightCol = '#d12411'; }
+                            else if (id === 'ice_freeze') { darkCol = '#103952'; lightCol = '#4ca6a4'; }
+                            return (
+                              <div className="w-10 h-10 grid grid-cols-2 grid-rows-2 rounded-lg border border-[#3c3934] overflow-hidden shadow-md">
+                                <div style={{ backgroundColor: darkCol }} />
+                                <div style={{ backgroundColor: lightCol }} />
+                                <div style={{ backgroundColor: lightCol }} />
+                                <div style={{ backgroundColor: darkCol }} />
+                              </div>
+                            );
+                          }
+                          if (item.category === 'frame') {
+                            let ringStyles = 'border-slate-500 bg-slate-800';
+                            let miniLabel = 'F';
+                            if (id === 'gold') { ringStyles = 'border-yellow-400 bg-amber-950/40 shadow-[0_0_12px_rgba(234,179,8,0.4)]'; miniLabel = 'GD'; }
+                            else if (id === 'cosmic') { ringStyles = 'border-purple-500 bg-slate-900 shadow-[0_0_12px_rgba(168,85,247,0.4)]'; miniLabel = 'NG'; }
+                            else if (id === 'bronze') { ringStyles = 'border-[#cd7f32] bg-amber-900/10'; miniLabel = 'BR'; }
+                            else if (id === 'silver') { ringStyles = 'border-[#c0c0c0] bg-slate-700/20'; miniLabel = 'SV'; }
+                            return (
+                              <div className={`w-10 h-10 rounded-full border-[2.5px] p-0.5 flex items-center justify-center relative ${ringStyles} text-white`}>
+                                <div className="w-full h-full rounded-full bg-slate-800/80 border border-black/40 flex items-center justify-center text-[8px] shadow-inner font-black">
+                                  {miniLabel}
+                                </div>
+                              </div>
+                            );
+                          }
+                          if (item.category === 'pfp') {
+                            return (
+                              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#81b64c] to-[#5d8a32] flex items-center justify-center border border-white/20">
+                                <User className="w-6 h-6 text-white" />
+                              </div>
+                            );
+                          }
+                          return (
+                            <div className="w-8 h-8 font-extrabold text-[9px] text-cyan-400 uppercase flex items-center justify-center border border-cyan-400/25 rounded-md">
+                              {item.category.substring(0, 3)}
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       <div>

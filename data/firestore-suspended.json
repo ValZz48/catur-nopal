@@ -1,0 +1,4 @@
+{
+  "suspendedUntil": 1812835200000,
+  "reason": "Quota limit exceeded. Automatically fell back to secure local users JSON persistence to protect system stability."
+}

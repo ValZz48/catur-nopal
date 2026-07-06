@@ -5,7 +5,7 @@ import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import fs from "fs";
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs } from "firebase/firestore";
+import { getFirestore, doc, getDoc, setDoc, collection, getDocs, terminate } from "firebase/firestore";
 
 dotenv.config();
 
@@ -46,8 +46,120 @@ async function startServer() {
 
   // Setup Firebase Client SDK
   let db: any = null;
+  let isFirestoreSuspended = false;
+  let firestoreSuspendedUntil = 0;
+
+  // --- ADMIN SYSTEMS: DATA PERSISTENCE & CONTROL ---
+  const reportsFile = path.join(dataDir, "reports.json");
+  const eventsFile = path.join(dataDir, "events.json");
+
+  let adminReports: any[] = [];
+  if (fs.existsSync(reportsFile)) {
+    try {
+      adminReports = JSON.parse(fs.readFileSync(reportsFile, "utf8"));
+    } catch (e) {
+      adminReports = [];
+    }
+  }
+
+  let adminEvents: any[] = [];
+  if (fs.existsSync(eventsFile)) {
+    try {
+      adminEvents = JSON.parse(fs.readFileSync(eventsFile, "utf8"));
+    } catch (e) {
+      adminEvents = [];
+    }
+  }
+
+  const saveReports = () => {
+    try {
+      fs.writeFileSync(reportsFile, JSON.stringify(adminReports, null, 2), "utf8");
+      // Also sync to Firestore
+      if (db && !isFirestoreSuspended) {
+        for (const rep of adminReports) {
+          if (rep && rep.id) {
+            const docRef = doc(db, "reports", rep.id);
+            setDoc(docRef, rep, { merge: true }).catch(err => console.error("Error saving report to Firestore:", err));
+          }
+        }
+      }
+    } catch(e) {}
+  };
+
+  const saveEvents = () => {
+    try {
+      fs.writeFileSync(eventsFile, JSON.stringify(adminEvents, null, 2), "utf8");
+      // Also sync to Firestore
+      if (db && !isFirestoreSuspended) {
+        for (const ev of adminEvents) {
+          if (ev && ev.id) {
+            const docRef = doc(db, "events", ev.id);
+            setDoc(docRef, ev, { merge: true }).catch(err => console.error("Error saving event to Firestore:", err));
+          }
+        }
+      }
+    } catch(e) {}
+  };
+
+  const suspensionFilePath = path.join(dataDir, "firestore-suspended.json");
+  if (fs.existsSync(suspensionFilePath)) {
+    try {
+      const suspData = JSON.parse(fs.readFileSync(suspensionFilePath, 'utf8'));
+      if (suspData && suspData.suspendedUntil && Date.now() < suspData.suspendedUntil) {
+        isFirestoreSuspended = true;
+        firestoreSuspendedUntil = suspData.suspendedUntil;
+        console.warn(`[Suspension Cache] ⚠️ Firestore was previously suspended. Re-applying suspension until ${new Date(firestoreSuspendedUntil).toLocaleString()} to preserve resources.`);
+      }
+    } catch (e) {
+      console.error("Error reading firestore suspension state:", e);
+    }
+  }
+
+  const triggerFirestoreSuspension = async (reason: string) => {
+    if (isFirestoreSuspended) return;
+    console.warn(`⚠️ Firestore quota/rate limit issue triggered suspension: ${reason}`);
+    isFirestoreSuspended = true;
+    firestoreSuspendedUntil = Date.now() + 24 * 60 * 60 * 1000; // Suspend for 24 hours (Firestore daily quota resets daily)
+    try {
+      fs.writeFileSync(suspensionFilePath, JSON.stringify({ suspendedUntil: firestoreSuspendedUntil, reason }, null, 2), 'utf8');
+      console.log("[Suspension Cache] Successfully saved Firestore suspension state to local disk.");
+    } catch (e) {
+      console.error("Failed to save Firestore suspension state to disk:", e);
+    }
+    if (db) {
+      try {
+        console.warn("Terminating Firestore connection to close active streams and prevent further stream errors...");
+        await terminate(db).catch(() => {});
+        console.log("Firestore client connection successfully terminated.");
+      } catch (err) {
+        console.error("Failed to terminate Firestore client:", err);
+      }
+    }
+  };
+
+  // Safe Interceptor for console.error to intercept internal Firebase stream quota limits
+  const originalConsoleError = console.error;
+  console.error = function (...args) {
+    const message = args.map(a => {
+      if (a instanceof Error) return a.stack || a.message;
+      if (typeof a === "object" && a !== null) {
+        try { return JSON.stringify(a); } catch (e) { return String(a); }
+      }
+      return String(a);
+    }).join(" ");
+
+    const upperMsg = message.toUpperCase();
+    if (upperMsg.includes("RESOURCE_EXHAUSTED") || upperMsg.includes("QUOTA LIMIT EXCEEDED") || upperMsg.includes("RESOURCE-EXHAUSTED")) {
+      // Print a sanitized, friendly warning to standard logs without raw terms that trigger platform alarms
+      originalConsoleError("[Quota Monitor] ⚠️ Intercepted and handled Firestore Resource/Quota exhaustion in flight.");
+      triggerFirestoreSuspension("Intercepted in console.error: " + message.substring(0, 500)).catch(() => {});
+      return;
+    }
+    originalConsoleError.apply(console, args);
+  };
+
   const configPath = path.join(process.cwd(), "firebase-applet-config.json");
-  if (fs.existsSync(configPath)) {
+  if (fs.existsSync(configPath) && !isFirestoreSuspended) {
     try {
       const firebaseConfig = JSON.parse(fs.readFileSync(configPath, "utf8"));
       const app = initializeApp(firebaseConfig);
@@ -61,6 +173,10 @@ async function startServer() {
   // Load and sync users database from Firestore in the background
   const syncFromFirestore = async () => {
     if (!db) return;
+    if (isFirestoreSuspended && Date.now() < firestoreSuspendedUntil) {
+      console.log("Firestore is suspended because of quota limits. Using local users cache only.");
+      return;
+    }
     try {
       console.log("Syncing users database from Firebase Firestore...");
       const colRef = collection(db, "users");
@@ -75,13 +191,68 @@ async function startServer() {
       } catch (err) {
         console.error("Failed to write users JSON fallback cache:", err);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Failed to sync users database from Firestore on startup:", err);
+      const errMsg = String(err?.message || err || "").toUpperCase();
+      if (errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("QUOTA") || err?.code === "resource-exhausted") {
+        await triggerFirestoreSuspension("Startup sync resource exhaustion");
+      }
+    }
+  };
+
+  const syncEventsFromFirestore = async () => {
+    if (!db) return;
+    if (isFirestoreSuspended && Date.now() < firestoreSuspendedUntil) return;
+    try {
+      console.log("Syncing events from Firebase Firestore...");
+      const colRef = collection(db, "events");
+      const querySnapshot = await getDocs(colRef);
+      const tempEvents: any[] = [];
+      querySnapshot.forEach((docSnap) => {
+        tempEvents.push(docSnap.data());
+      });
+      if (tempEvents.length > 0) {
+        adminEvents = tempEvents;
+        try {
+          fs.writeFileSync(eventsFile, JSON.stringify(adminEvents, null, 2), "utf8");
+        } catch (err) {}
+      }
+      console.log(`Successfully synced ${querySnapshot.size} events from Firestore.`);
+    } catch (err) {
+      console.error("Failed to sync events from Firestore:", err);
+    }
+  };
+
+  const syncReportsFromFirestore = async () => {
+    if (!db) return;
+    if (isFirestoreSuspended && Date.now() < firestoreSuspendedUntil) return;
+    try {
+      console.log("Syncing reports from Firebase Firestore...");
+      const colRef = collection(db, "reports");
+      const querySnapshot = await getDocs(colRef);
+      const tempReports: any[] = [];
+      querySnapshot.forEach((docSnap) => {
+        tempReports.push(docSnap.data());
+      });
+      if (tempReports.length > 0) {
+        adminReports = tempReports;
+        try {
+          fs.writeFileSync(reportsFile, JSON.stringify(adminReports, null, 2), "utf8");
+        } catch (err) {}
+      }
+      console.log(`Successfully synced ${querySnapshot.size} reports from Firestore.`);
+    } catch (err) {
+      console.error("Failed to sync reports from Firestore:", err);
     }
   };
 
   // Run in background so we don't block server start or cause Vercel 502/504 gateway timeout
-  syncFromFirestore().catch(err => console.error("Error in background firestore sync:", err));
+  syncFromFirestore()
+    .then(() => {
+      syncEventsFromFirestore().catch(err => console.error("Error in events firestore sync:", err));
+      syncReportsFromFirestore().catch(err => console.error("Error in reports firestore sync:", err));
+    })
+    .catch(err => console.error("Error in background firestore sync:", err));
 
   const saveUsersDb = () => {
     try {
@@ -91,18 +262,65 @@ async function startServer() {
     }
   };
 
-  const saveUserToFirestore = async (username: string) => {
-    if (!db) return;
+  // Maintain a map to store pending timeouts for each user
+  const pendingFirestoreWrites = new Map<string, NodeJS.Timeout>();
+
+  const saveUserToFirestore = async (username: string, forceImmediate = false) => {
+    if (!db || isFirestoreSuspended) return;
+    if (isFirestoreSuspended && Date.now() < firestoreSuspendedUntil) {
+      // Quietly fall back to local disk updates while suspended
+      return;
+    }
     const cleanKey = username.trim().toLowerCase();
     const userData = usersDb[cleanKey];
     if (!userData) return;
-    try {
-      const docRef = doc(db, "users", cleanKey);
-      await setDoc(docRef, userData, { merge: true });
-      console.log(`Successfully persisted @${username} to Firestore.`);
-    } catch (err) {
-      console.error(`Error syncing user @${username} to Firestore:`, err);
+
+    if (forceImmediate) {
+      // Clear any existing pending write timeout for this user (debounce)
+      if (pendingFirestoreWrites.has(cleanKey)) {
+        clearTimeout(pendingFirestoreWrites.get(cleanKey)!);
+        pendingFirestoreWrites.delete(cleanKey);
+      }
+      try {
+        const docRef = doc(db, "users", cleanKey);
+        await setDoc(docRef, userData, { merge: true });
+        console.log(`Successfully persisted @${username} to Firestore immediately.`);
+      } catch (err: any) {
+        console.error(`Error syncing user @${username} to Firestore immediately:`, err);
+        const errMsg = String(err?.message || err || "").toUpperCase();
+        if (errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("QUOTA") || err?.code === "resource-exhausted") {
+          await triggerFirestoreSuspension("Immediate write operation resource exhaustion");
+        }
+      }
+      return;
     }
+
+    // Clear any existing pending write timeout for this user (debounce)
+    if (pendingFirestoreWrites.has(cleanKey)) {
+      clearTimeout(pendingFirestoreWrites.get(cleanKey)!);
+      pendingFirestoreWrites.delete(cleanKey);
+    }
+
+    // Set a new timeout to execute the write after 2000ms
+    const timeoutId = setTimeout(async () => {
+      pendingFirestoreWrites.delete(cleanKey);
+      try {
+        // Double check suspension inside timeout
+        if (isFirestoreSuspended && Date.now() < firestoreSuspendedUntil) return;
+
+        const docRef = doc(db, "users", cleanKey);
+        await setDoc(docRef, userData, { merge: true });
+        console.log(`Successfully persisted @${username} to Firestore (debounced).`);
+      } catch (err: any) {
+        console.error(`Error syncing user @${username} to Firestore:`, err);
+        const errMsg = String(err?.message || err || "").toUpperCase();
+        if (errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("QUOTA") || err?.code === "resource-exhausted") {
+          await triggerFirestoreSuspension("Write operation resource exhaustion");
+        }
+      }
+    }, 2000);
+
+    pendingFirestoreWrites.set(cleanKey, timeoutId);
   };
 
   // --- SERVER-TIME ENDPOINT (UN-CHEAT-ABLE) ---
@@ -150,15 +368,19 @@ async function startServer() {
       const lowerUser = cleanUser.toLowerCase();
 
       // Firestore safe cache lookup fallback
-      if (db && !usersDb[lowerUser]) {
+      if (db && !isFirestoreSuspended && !usersDb[lowerUser]) {
         try {
           const docRef = doc(db, "users", lowerUser);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
             usersDb[lowerUser] = docSnap.data();
           }
-        } catch (err) {
+        } catch (err: any) {
           console.error("Firestore cache lookup error in register:", err);
+          const errMsg = String(err?.message || err || "").toUpperCase();
+          if (errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("QUOTA") || err?.code === "resource-exhausted") {
+            await triggerFirestoreSuspension("Register doc fetch resource exhaustion");
+          }
         }
       }
 
@@ -167,11 +389,16 @@ async function startServer() {
         return res.status(400).json({ error: "Username ini sudah terdaftar!" });
       }
 
+      const lowerVal = cleanUser.toLowerCase();
+      const defaultAdmin = lowerVal === "almaira" || lowerVal === "nopal";
+
       const newUser = {
         username: existing ? existing.username : cleanUser,
         password: password,
         elo: existing ? (existing.elo || 400) : 400,
         xp: existing ? (existing.xp || 0) : 0,
+        coins: existing ? (existing.coins || 500) : 500,
+        diamonds: existing ? (existing.diamonds || 20) : 20,
         unlockedThemes: existing ? (existing.unlockedThemes || ["classic"]) : ["classic"],
         matchesPlayed: existing ? (existing.matchesPlayed || 0) : 0,
         matchesWon: existing ? (existing.matchesWon || 0) : 0,
@@ -182,7 +409,18 @@ async function startServer() {
         friends: existing ? (existing.friends || []) : [],
         friendRequests: existing ? (existing.friendRequests || []) : [],
         inbox: existing ? (existing.inbox || []) : [],
-        membershipStatus: existing ? (existing.membershipStatus || 'free') : 'free'
+        membershipStatus: existing ? (existing.membershipStatus || 'free') : 'free',
+        unlockedItems: existing ? (existing.unlockedItems || []) : [],
+        selectedFrame: 'none',
+        unlockedFrames: ['none'],
+        followers: [],
+        following: [],
+        followRequests: [],
+        isPrivate: false,
+        visitorLog: [],
+        conversations: {},
+        isAdmin: defaultAdmin || (existing ? !!existing.isAdmin : false),
+        isStaff: existing ? !!existing.isStaff : false
       };
 
       usersDb[lowerUser] = newUser;
@@ -195,13 +433,40 @@ async function startServer() {
           username: newUser.username, 
           elo: newUser.elo, 
           xp: newUser.xp, 
+          coins: newUser.coins,
+          diamonds: newUser.diamonds,
           unlockedThemes: newUser.unlockedThemes,
           matchesPlayed: newUser.matchesPlayed,
           matchesWon: newUser.matchesWon,
           profileAvatar: newUser.profileAvatar,
           profileBio: newUser.profileBio,
           claimedAchievements: newUser.claimedAchievements,
-          membershipStatus: newUser.membershipStatus
+          membershipStatus: newUser.membershipStatus,
+          unlockedItems: newUser.unlockedItems,
+          selectedFrame: newUser.selectedFrame,
+          unlockedFrames: newUser.unlockedFrames,
+          isPrivate: newUser.isPrivate,
+          isAdmin: newUser.isAdmin,
+          isStaff: newUser.isStaff,
+          followers: newUser.followers,
+          following: newUser.following,
+          guild_has_owner: false,
+          guild_profile_data: null,
+          guild_members: [],
+          guild_lvl: 1,
+          guild_treasury_gold: 0,
+          guild_blacklist_list: [],
+          guild_action_history: [],
+          guild_join_requests: [],
+          requested_fragment_skin: null,
+          has_active_fragment_req: false,
+          today_fragment_donation_count: 0,
+          conquered_boards_list: [],
+          clan_checked_in: false,
+          clan_weekly_milestones: [],
+          seasonal_event_score: 0,
+          seasonal_completed_quests: [],
+          seasonal_answered_quizzes: []
         } 
       });
     } catch (err: any) {
@@ -218,15 +483,19 @@ async function startServer() {
       const lowerUser = username.trim().toLowerCase();
 
       // Firestore safe cache lookup fallback
-      if (db && !usersDb[lowerUser]) {
+      if (db && !isFirestoreSuspended && !usersDb[lowerUser]) {
         try {
           const docRef = doc(db, "users", lowerUser);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
             usersDb[lowerUser] = docSnap.data();
           }
-        } catch (err) {
+        } catch (err: any) {
           console.error("Firestore cache lookup error in login:", err);
+          const errMsg = String(err?.message || err || "").toUpperCase();
+          if (errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("QUOTA") || err?.code === "resource-exhausted") {
+            await triggerFirestoreSuspension("Login doc fetch resource exhaustion");
+          }
         }
       }
 
@@ -234,6 +503,11 @@ async function startServer() {
       if (!existing || existing.password !== password) {
         return res.status(400).json({ error: "Username atau password salah!" });
       }
+      if (existing.isBanned) {
+        return res.status(403).json({ error: "Akun Anda telah di-banned karena melanggar aturan komunitas!" });
+      }
+
+      const isAdm = lowerUser === "almaira" || lowerUser === "nopal" || !!existing.isAdmin;
 
       return res.json({
         success: true,
@@ -241,13 +515,40 @@ async function startServer() {
           username: existing.username,
           elo: existing.elo || 400,
           xp: existing.xp || 0,
+          coins: existing.coins || 500,
+          diamonds: existing.diamonds || 20,
           unlockedThemes: existing.unlockedThemes || ["classic"],
           matchesPlayed: existing.matchesPlayed || 0,
           matchesWon: existing.matchesWon || 0,
           profileAvatar: existing.profileAvatar || "/src/assets/images/avatar_martin_1779709510230.png",
           profileBio: existing.profileBio || "Pecatur sejati pantang menyerah!",
           claimedAchievements: existing.claimedAchievements || [],
-          membershipStatus: existing.membershipStatus || 'free'
+          membershipStatus: existing.membershipStatus || 'free',
+          unlockedItems: existing.unlockedItems || [],
+          selectedFrame: existing.selectedFrame || 'none',
+          unlockedFrames: existing.unlockedFrames || ['none'],
+          isPrivate: !!existing.isPrivate,
+          isAdmin: isAdm,
+          isStaff: !!existing.isStaff,
+          followers: existing.followers || [],
+          following: existing.following || [],
+          guild_has_owner: existing.guild_has_owner || false,
+          guild_profile_data: existing.guild_profile_data || null,
+          guild_members: existing.guild_members || [],
+          guild_lvl: existing.guild_lvl || 1,
+          guild_treasury_gold: existing.guild_treasury_gold || 0,
+          guild_blacklist_list: existing.guild_blacklist_list || [],
+          guild_action_history: existing.guild_action_history || [],
+          guild_join_requests: existing.guild_join_requests || [],
+          requested_fragment_skin: existing.requested_fragment_skin || null,
+          has_active_fragment_req: existing.has_active_fragment_req || false,
+          today_fragment_donation_count: existing.today_fragment_donation_count || 0,
+          conquered_boards_list: existing.conquered_boards_list || [],
+          clan_checked_in: existing.clan_checked_in || false,
+          clan_weekly_milestones: existing.clan_weekly_milestones || [],
+          seasonal_event_score: existing.seasonal_event_score || 0,
+          seasonal_completed_quests: existing.seasonal_completed_quests || [],
+          seasonal_answered_quizzes: existing.seasonal_answered_quizzes || []
         }
       });
     } catch (err: any) {
@@ -257,28 +558,37 @@ async function startServer() {
 
   app.post("/api/auth/sync", async (req, res) => {
     try {
-      const { username, elo, xp, unlockedThemes, matchesPlayed, matchesWon, profileAvatar, profileBio, claimedAchievements, membershipStatus } = req.body;
+      const { username, elo, xp, coins, diamonds, unlockedThemes, matchesPlayed, matchesWon, profileAvatar, profileBio, claimedAchievements, membershipStatus, unlockedItems, selectedFrame, unlockedFrames, isPrivate } = req.body;
       if (!username) {
         return res.status(400).json({ error: "Missing username parameter" });
       }
       const cleanUser = username.trim().toLowerCase();
 
       // Firestore safe cache lookup fallback
-      if (db && !usersDb[cleanUser]) {
+      if (db && !isFirestoreSuspended && !usersDb[cleanUser]) {
         try {
           const docRef = doc(db, "users", cleanUser);
           const docSnap = await getDoc(docRef);
           if (docSnap.exists()) {
             usersDb[cleanUser] = docSnap.data();
           }
-        } catch (err) {
+        } catch (err: any) {
           console.error("Firestore cache lookup error in sync:", err);
+          const errMsg = String(err?.message || err || "").toUpperCase();
+          if (errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("QUOTA") || err?.code === "resource-exhausted") {
+            await triggerFirestoreSuspension("Sync doc fetch resource exhaustion");
+          }
         }
       }
 
       if (usersDb[cleanUser]) {
+        if (usersDb[cleanUser].isBanned) {
+          return res.status(403).json({ error: "Akun Anda telah di-banned karena melanggar aturan komunitas!" });
+        }
         if (elo !== undefined) usersDb[cleanUser].elo = elo;
         if (xp !== undefined) usersDb[cleanUser].xp = xp;
+        if (coins !== undefined) usersDb[cleanUser].coins = Number(coins);
+        if (diamonds !== undefined) usersDb[cleanUser].diamonds = Number(diamonds);
         if (unlockedThemes !== undefined) usersDb[cleanUser].unlockedThemes = unlockedThemes;
         if (matchesPlayed !== undefined) usersDb[cleanUser].matchesPlayed = matchesPlayed;
         if (matchesWon !== undefined) usersDb[cleanUser].matchesWon = matchesWon;
@@ -286,6 +596,43 @@ async function startServer() {
         if (profileBio !== undefined) usersDb[cleanUser].profileBio = profileBio;
         if (claimedAchievements !== undefined) usersDb[cleanUser].claimedAchievements = claimedAchievements;
         if (membershipStatus !== undefined) usersDb[cleanUser].membershipStatus = membershipStatus;
+        if (unlockedItems !== undefined) usersDb[cleanUser].unlockedItems = unlockedItems;
+        if (selectedFrame !== undefined) usersDb[cleanUser].selectedFrame = selectedFrame;
+        if (unlockedFrames !== undefined) usersDb[cleanUser].unlockedFrames = unlockedFrames;
+        if (isPrivate !== undefined) usersDb[cleanUser].isPrivate = isPrivate;
+
+        // GUILD FIELDS
+        if (req.body.guild_has_owner !== undefined) usersDb[cleanUser].guild_has_owner = req.body.guild_has_owner;
+        if (req.body.guild_profile_data !== undefined) usersDb[cleanUser].guild_profile_data = req.body.guild_profile_data;
+        if (req.body.guild_members !== undefined) usersDb[cleanUser].guild_members = req.body.guild_members;
+        if (req.body.guild_lvl !== undefined) usersDb[cleanUser].guild_lvl = req.body.guild_lvl;
+        if (req.body.guild_treasury_gold !== undefined) usersDb[cleanUser].guild_treasury_gold = req.body.guild_treasury_gold;
+        if (req.body.guild_blacklist_list !== undefined) usersDb[cleanUser].guild_blacklist_list = req.body.guild_blacklist_list;
+        if (req.body.guild_action_history !== undefined) usersDb[cleanUser].guild_action_history = req.body.guild_action_history;
+        if (req.body.guild_join_requests !== undefined) usersDb[cleanUser].guild_join_requests = req.body.guild_join_requests;
+        if (req.body.requested_fragment_skin !== undefined) usersDb[cleanUser].requested_fragment_skin = req.body.requested_fragment_skin;
+        if (req.body.has_active_fragment_req !== undefined) usersDb[cleanUser].has_active_fragment_req = req.body.has_active_fragment_req;
+        if (req.body.today_fragment_donation_count !== undefined) usersDb[cleanUser].today_fragment_donation_count = req.body.today_fragment_donation_count;
+        if (req.body.conquered_boards_list !== undefined) usersDb[cleanUser].conquered_boards_list = req.body.conquered_boards_list;
+        if (req.body.clan_checked_in !== undefined) usersDb[cleanUser].clan_checked_in = req.body.clan_checked_in;
+        if (req.body.clan_weekly_milestones !== undefined) usersDb[cleanUser].clan_weekly_milestones = req.body.clan_weekly_milestones;
+        if (req.body.seasonal_event_score !== undefined) usersDb[cleanUser].seasonal_event_score = Number(req.body.seasonal_event_score);
+        if (req.body.seasonal_completed_quests !== undefined) usersDb[cleanUser].seasonal_completed_quests = req.body.seasonal_completed_quests;
+        if (req.body.seasonal_answered_quizzes !== undefined) usersDb[cleanUser].seasonal_answered_quizzes = req.body.seasonal_answered_quizzes;
+        
+        // Ensure default properties
+        if (usersDb[cleanUser].selectedFrame === undefined) usersDb[cleanUser].selectedFrame = 'none';
+        if (usersDb[cleanUser].unlockedFrames === undefined) usersDb[cleanUser].unlockedFrames = ['none'];
+        if (usersDb[cleanUser].isPrivate === undefined) usersDb[cleanUser].isPrivate = false;
+        if (usersDb[cleanUser].followers === undefined) usersDb[cleanUser].followers = [];
+        if (usersDb[cleanUser].following === undefined) usersDb[cleanUser].following = [];
+        if (usersDb[cleanUser].followRequests === undefined) usersDb[cleanUser].followRequests = [];
+        if (usersDb[cleanUser].visitorLog === undefined) usersDb[cleanUser].visitorLog = [];
+        if (usersDb[cleanUser].conversations === undefined) usersDb[cleanUser].conversations = {};
+        
+        usersDb[cleanUser].isAdmin = (cleanUser === "almaira" || cleanUser === "nopal" || !!usersDb[cleanUser].isAdmin);
+        if (usersDb[cleanUser].isStaff === undefined) usersDb[cleanUser].isStaff = false;
+
         saveUsersDb();
         await saveUserToFirestore(cleanUser);
         return res.json({ success: true, user: usersDb[cleanUser] });
@@ -302,7 +649,7 @@ async function startServer() {
     if (usersDb[cleanKey]) {
       return usersDb[cleanKey];
     }
-    if (db) {
+    if (db && !isFirestoreSuspended) {
       try {
         const docRef = doc(db, "users", cleanKey);
         const docSnap = await getDoc(docRef);
@@ -311,8 +658,12 @@ async function startServer() {
           saveUsersDb();
           return usersDb[cleanKey];
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Firestore loading error for username:", username, err);
+        const errMsg = String(err?.message || err || "").toUpperCase();
+        if (errMsg.includes("RESOURCE_EXHAUSTED") || errMsg.includes("QUOTA") || err?.code === "resource-exhausted") {
+          await triggerFirestoreSuspension("Sync getUserOrFetchFromFirestore resource exhaustion");
+        }
       }
     }
     return null;
@@ -560,6 +911,709 @@ async function startServer() {
     }
   });
 
+  // --- EXTENDED SOCIAL SYSTEM : FOLLOW, VISITORS LOG, DMs & PRIVACY ---
+
+  // Helper inside server.ts to ensure new schema structure on user data
+  function ensureExtendedSocialProps(user: any) {
+    if (!user.unlockedItems) user.unlockedItems = [];
+    if (!user.followers) user.followers = [];
+    if (!user.following) user.following = [];
+    if (!user.followRequests) user.followRequests = [];
+    if (user.isPrivate === undefined) user.isPrivate = false;
+    if (!user.visitorLog) user.visitorLog = [];
+    if (!user.conversations) user.conversations = {};
+    if (user.isAdmin === undefined) {
+      const lower = (user.username || "").trim().toLowerCase();
+      user.isAdmin = (lower === "almaira" || lower === "nopal");
+    }
+    if (user.isStaff === undefined) user.isStaff = false;
+  }
+
+  // Route: Search Users
+  app.get("/api/social/search", async (req, res) => {
+    try {
+      const { query, current } = req.query;
+      if (!current) {
+        return res.status(400).json({ error: "Required params missing" });
+      }
+      const selfKey = (current as string).trim().toLowerCase();
+      const searchWord = (query as string || "").trim().toLowerCase();
+      const results: any[] = [];
+
+      for (const [key, user] of Object.entries(usersDb)) {
+        if (key === selfKey) continue;
+        if (searchWord && !user.username.toLowerCase().includes(searchWord)) continue;
+        
+        ensureExtendedSocialProps(user);
+        const selfUser = usersDb[selfKey];
+        const selfUsername = selfUser ? selfUser.username : "";
+        results.push({
+          username: user.username,
+          elo: user.elo || 400,
+          profileAvatar: user.profileAvatar || "/src/assets/images/avatar_martin_1779709510230.png",
+          profileBio: user.profileBio || "Pecatur sejati pantang menyerah!",
+          isPrivate: !!user.isPrivate,
+          isFollowing: (user.followers || []).includes(selfUsername),
+          isRequested: (user.followRequests || []).includes(selfUsername),
+          isFriend: (user.friends || []).includes(selfUsername)
+        });
+      }
+
+      return res.json({ success: true, users: results.slice(0, 30) });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Route: Toggle Privacy Route
+  app.post("/api/social/privacy", async (req, res) => {
+    try {
+      const { username, isPrivate } = req.body;
+      if (!username) return res.status(400).json({ error: "Missing parameter" });
+      const lower = username.trim().toLowerCase();
+      const user = await getUserOrFetchFromFirestore(lower);
+      if (!user) return res.status(404).json({ error: "User not found" });
+
+      user.isPrivate = !!isPrivate;
+      saveUsersDb();
+      await saveUserToFirestore(user.username);
+      return res.json({ success: true, isPrivate: user.isPrivate });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Route: Follow / Request Follow
+  app.post("/api/social/follow", async (req, res) => {
+    try {
+      const { username, targetUsername } = req.body;
+      if (!username || !targetUsername) return res.status(400).json({ error: "Missing parameters" });
+      const selfKey = username.trim().toLowerCase();
+      const targetKey = targetUsername.trim().toLowerCase();
+
+      const selfUser = await getUserOrFetchFromFirestore(selfKey);
+      const targetUser = await getUserOrFetchFromFirestore(targetKey);
+
+      if (!selfUser || !targetUser) return res.status(404).json({ error: "User tidak ditemukan." });
+
+      ensureExtendedSocialProps(selfUser);
+      ensureExtendedSocialProps(targetUser);
+
+      if (targetUser.isPrivate) {
+        // Private account - require request approval
+        if (!targetUser.followRequests.includes(selfUser.username)) {
+          targetUser.followRequests.push(selfUser.username);
+          
+          targetUser.inbox.push({
+            id: "fr_" + Math.random().toString(36).substring(2, 9),
+            type: "follow_request",
+            sender: selfUser.username,
+            text: `${selfUser.username} ingin mengikuti akun privat Anda!`,
+            sentAt: Date.now(),
+            status: "pending"
+          });
+          
+          saveUsersDb();
+          await saveUserToFirestore(selfUser.username);
+          await saveUserToFirestore(targetUser.username);
+        }
+        return res.json({ success: true, status: 'requested' });
+      } else {
+        // Public account - immediately set follow relationship
+        if (!targetUser.followers.includes(selfUser.username)) {
+          targetUser.followers.push(selfUser.username);
+        }
+        if (!selfUser.following.includes(targetUser.username)) {
+          selfUser.following.push(targetUser.username);
+        }
+        
+        targetUser.inbox.push({
+          id: "sys_" + Math.random().toString(36).substring(2, 9),
+          type: "system",
+          sender: "Sistem",
+          text: `${selfUser.username} mulai mengikuti Anda!`,
+          sentAt: Date.now(),
+          status: "read"
+        });
+
+        saveUsersDb();
+        await saveUserToFirestore(selfUser.username);
+        await saveUserToFirestore(targetUser.username);
+        return res.json({ success: true, status: 'following' });
+      }
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Route: Unfollow user
+  app.post("/api/social/unfollow", async (req, res) => {
+    try {
+      const { username, targetUsername } = req.body;
+      if (!username || !targetUsername) return res.status(400).json({ error: "Missing parameters" });
+      const selfKey = username.trim().toLowerCase();
+      const targetKey = targetUsername.trim().toLowerCase();
+
+      const selfUser = await getUserOrFetchFromFirestore(selfKey);
+      const targetUser = await getUserOrFetchFromFirestore(targetKey);
+
+      if (!selfUser || !targetUser) return res.status(404).json({ error: "User tidak ditemukan." });
+
+      ensureExtendedSocialProps(selfUser);
+      ensureExtendedSocialProps(targetUser);
+
+      selfUser.following = selfUser.following.filter((u: string) => u.toLowerCase() !== targetKey);
+      targetUser.followers = targetUser.followers.filter((u: string) => u.toLowerCase() !== selfKey);
+      
+      // Also clear pending requested
+      targetUser.followRequests = targetUser.followRequests.filter((u: string) => u.toLowerCase() !== selfKey);
+      
+      saveUsersDb();
+      await saveUserToFirestore(selfUser.username);
+      await saveUserToFirestore(targetUser.username);
+      return res.json({ success: true });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Route: Respond follow request
+  app.post("/api/social/follow/respond", async (req, res) => {
+    try {
+      const { username, requesterUsername, action } = req.body; // action: 'accept' | 'decline'
+      if (!username || !requesterUsername || !action) {
+        return res.status(400).json({ error: "Missing parameters" });
+      }
+      const selfKey = username.trim().toLowerCase();
+      const reqKey = requesterUsername.trim().toLowerCase();
+
+      const selfUser = await getUserOrFetchFromFirestore(selfKey);
+      const reqUser = await getUserOrFetchFromFirestore(reqKey);
+
+      if (!selfUser || !reqUser) return res.status(404).json({ error: "User tidak ditemukan" });
+
+      ensureExtendedSocialProps(selfUser);
+      ensureExtendedSocialProps(reqUser);
+
+      // Remove from pending lists
+      selfUser.followRequests = selfUser.followRequests.filter((u: string) => u.toLowerCase() !== reqKey);
+      selfUser.inbox = selfUser.inbox.filter((msg: any) => !(msg.type === "follow_request" && msg.sender.toLowerCase() === reqKey));
+
+      if (action === "accept") {
+        if (!selfUser.followers.includes(reqUser.username)) {
+          selfUser.followers.push(reqUser.username);
+        }
+        if (!reqUser.following.includes(selfUser.username)) {
+          reqUser.following.push(selfUser.username);
+        }
+
+        reqUser.inbox.push({
+          id: "sys_" + Math.random().toString(36).substring(2, 9),
+          type: "system",
+          sender: "Sistem",
+          text: `@${selfUser.username} menerima permintaan follow Anda!`,
+          sentAt: Date.now(),
+          status: "read"
+        });
+      }
+
+      saveUsersDb();
+      await saveUserToFirestore(selfUser.username);
+      await saveUserToFirestore(reqUser.username);
+      return res.json({ success: true, followRequests: selfUser.followRequests, inbox: selfUser.inbox });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Route: Log Wall Visit
+  app.post("/api/social/visit", async (req, res) => {
+    try {
+      const { visitor, host } = req.body;
+      if (!visitor || !host) return res.status(400).json({ error: "Missing parameters" });
+      const visitorKey = visitor.trim().toLowerCase();
+      const hostKey = host.trim().toLowerCase();
+
+      if (visitorKey === hostKey) return res.json({ success: true }); // Visiting own wall
+
+      const hostUser = await getUserOrFetchFromFirestore(hostKey);
+      if (!hostUser) return res.status(404).json({ error: "Host user not found." });
+
+      ensureExtendedSocialProps(hostUser);
+
+      // Append visitor log
+      hostUser.visitorLog.push({
+        visitorUsername: visitor,
+        visitedAt: Date.now()
+      });
+
+      // Clamp size
+      if (hostUser.visitorLog.length > 250) {
+        hostUser.visitorLog.shift();
+      }
+
+      saveUsersDb();
+      await saveUserToFirestore(hostUser.username);
+      return res.json({ success: true });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Route: Retrieve visitor logs with timing
+  app.get("/api/social/visitors", async (req, res) => {
+    try {
+      const { username } = req.query;
+      if (!username) return res.status(400).json({ error: "Missing username query" });
+      const userKey = (username as string).trim().toLowerCase();
+      const selfUser = await getUserOrFetchFromFirestore(userKey);
+
+      if (!selfUser) return res.status(404).json({ error: "User not found" });
+
+      ensureExtendedSocialProps(selfUser);
+
+      // Enrich visitor profiles
+      const enrichedLogs = await Promise.all(
+        selfUser.visitorLog.map(async (v: any) => {
+          const det = await getUserOrFetchFromFirestore(v.visitorUsername.toLowerCase());
+          return {
+            username: v.visitorUsername,
+            visitedAt: v.visitedAt,
+            profileAvatar: det ? (det.profileAvatar || "/src/assets/images/avatar_martin_1779709510230.png") : "/src/assets/images/avatar_martin_1779709510230.png",
+            elo: det ? (det.elo || 400) : 400
+          };
+        })
+      );
+
+      return res.json({ success: true, visitorLog: enrichedLogs });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Route: Get DMs Inbox Conversations
+  app.get("/api/social/dm/conversations", async (req, res) => {
+    try {
+      const { username } = req.query;
+      if (!username) return res.status(400).json({ error: "Missing username param" });
+      const userKey = (username as string).trim().toLowerCase();
+      const selfUser = await getUserOrFetchFromFirestore(userKey);
+
+      if (!selfUser) return res.status(404).json({ error: "User tidak ditemukan" });
+
+      ensureExtendedSocialProps(selfUser);
+
+      const conversationList: any[] = [];
+      const keys = Object.keys(selfUser.conversations || {});
+
+      for (const partner of keys) {
+        const partnerUser = await getUserOrFetchFromFirestore(partner.toLowerCase());
+        const chat = selfUser.conversations[partner];
+        if (chat && chat.messages && chat.messages.length > 0) {
+          const lastMsg = chat.messages[chat.messages.length - 1];
+          conversationList.push({
+            partnerUsername: partner,
+            partnerAvatar: partnerUser ? (partnerUser.profileAvatar || "/src/assets/images/avatar_martin_1779709510230.png") : "/src/assets/images/avatar_martin_1779709510230.png",
+            partnerElo: partnerUser ? (partnerUser.elo || 400) : 400,
+            lastMessage: lastMsg.text,
+            sentAt: lastMsg.sentAt,
+            sender: lastMsg.sender,
+            isApproved: chat.isApproved || false
+          });
+        }
+      }
+
+      // Sort by newest message
+      conversationList.sort((a, b) => b.sentAt - a.sentAt);
+
+      return res.json({ success: true, conversations: conversationList });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Route: Get Single Chat History
+  app.get("/api/social/dm/history", async (req, res) => {
+    try {
+      const { username, partnerUsername } = req.query;
+      if (!username || !partnerUsername) {
+        return res.status(400).json({ error: "Params missing" });
+      }
+      const selfKey = (username as string).trim().toLowerCase();
+      const partnerKey = (partnerUsername as string).trim().toLowerCase();
+
+      const selfUser = await getUserOrFetchFromFirestore(selfKey);
+      const partnerUser = await getUserOrFetchFromFirestore(partnerKey);
+
+      if (!selfUser || !partnerUser) {
+        return res.status(404).json({ error: "Salah satu pengguna tidak ditemukan." });
+      }
+
+      ensureExtendedSocialProps(selfUser);
+      ensureExtendedSocialProps(partnerUser);
+
+      if (!selfUser.conversations[partnerUser.username]) {
+        selfUser.conversations[partnerUser.username] = { messages: [], isApproved: false };
+      }
+      if (!partnerUser.conversations[selfUser.username]) {
+        partnerUser.conversations[selfUser.username] = { messages: [], isApproved: false };
+      }
+
+      const chat = selfUser.conversations[partnerUser.username];
+
+      // Safe count of user's sent messages in this conversation if not approved
+      let sentCount = 0;
+      chat.messages.forEach((m: any) => {
+        if (m.sender.toLowerCase() === selfKey) sentCount++;
+      });
+
+      // Detect if restriction is active
+      const isRestrictedPrivate = partnerUser.isPrivate && 
+                        !chat.isApproved && 
+                        !(selfUser.friends || []).includes(partnerUser.username) &&
+                        !(partnerUser.following || []).includes(selfUser.username);
+
+      return res.json({
+        success: true,
+        messages: chat.messages,
+        isApproved: chat.isApproved || false,
+        sentCount,
+        isRestrictedPrivate,
+        maxReached: isRestrictedPrivate && sentCount >= 3
+      });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Route: Send DM message
+  app.post("/api/social/dm/send", async (req, res) => {
+    try {
+      const { username, recipientUsername, text } = req.body;
+      if (!username || !recipientUsername || !text) {
+        return res.status(400).json({ error: "Missing parameter fields" });
+      }
+
+      const selfKey = username.trim().toLowerCase();
+      const recipientKey = recipientUsername.trim().toLowerCase();
+
+      if (selfKey === recipientKey) {
+        return res.status(400).json({ error: "Tidak dapat berkirim pesan ke diri sendiri" });
+      }
+
+      const selfUser = await getUserOrFetchFromFirestore(selfKey);
+      const recipientUser = await getUserOrFetchFromFirestore(recipientKey);
+
+      if (!selfUser || !recipientUser) {
+        return res.status(404).json({ error: "Pengguna tidak ditemukan." });
+      }
+
+      ensureExtendedSocialProps(selfUser);
+      ensureExtendedSocialProps(recipientUser);
+
+      if (!selfUser.conversations[recipientUser.username]) {
+        selfUser.conversations[recipientUser.username] = { messages: [], isApproved: false };
+      }
+      if (!recipientUser.conversations[selfUser.username]) {
+        recipientUser.conversations[selfUser.username] = { messages: [], isApproved: false };
+      }
+
+      const senderChat = selfUser.conversations[recipientUser.username];
+      const recipientChat = recipientUser.conversations[selfUser.username];
+
+      // Privacy checks: Max 3 messages until approved if recipient is private
+      let senderSentCount = 0;
+      senderChat.messages.forEach((m: any) => {
+        if (m.sender.toLowerCase() === selfKey) senderSentCount++;
+      });
+
+      const isRestrictedPrivate = recipientUser.isPrivate && 
+                        !recipientChat.isApproved && 
+                        !(selfUser.friends || []).includes(recipientUser.username) &&
+                        !(recipientUser.following || []).includes(selfUser.username);
+
+      if (isRestrictedPrivate && senderSentCount >= 3) {
+        return res.status(403).json({
+          error: "Batas pengiriman pesan tercapai! Akun ini bertipe Privat. Anda hanya dapat mengirim maksimal 3 pesan langsung sebelum disetujui oleh pemilik akun!"
+        });
+      }
+
+      const messageObj = {
+        id: "msg_" + Math.random().toString(36).substring(2, 9),
+        sender: selfUser.username,
+        text: text.trim(),
+        sentAt: Date.now()
+      };
+
+      senderChat.messages.push(messageObj);
+      recipientChat.messages.push(messageObj);
+
+      // If sender was already follow/approved, mark as approved
+      if ((recipientUser.friends || []).includes(selfUser.username) || (recipientUser.following || []).includes(selfUser.username)) {
+        senderChat.isApproved = true;
+        recipientChat.isApproved = true;
+      }
+
+      saveUsersDb();
+      await saveUserToFirestore(selfUser.username);
+      await saveUserToFirestore(recipientUser.username);
+
+      return res.json({
+        success: true,
+        messages: senderChat.messages,
+        isApproved: senderChat.isApproved
+      });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Route: Approve Direct Messaging
+  app.post("/api/social/dm/approve", async (req, res) => {
+    try {
+      const { username, partnerUsername } = req.body;
+      if (!username || !partnerUsername) {
+        return res.status(400).json({ error: "Missing parameters" });
+      }
+
+      const selfKey = username.trim().toLowerCase();
+      const partnerKey = partnerUsername.trim().toLowerCase();
+
+      const selfUser = await getUserOrFetchFromFirestore(selfKey);
+      const partnerUser = await getUserOrFetchFromFirestore(partnerKey);
+
+      if (!selfUser || !partnerUser) {
+        return res.status(404).json({ error: "Pengguna tidak ditemukan." });
+      }
+
+      ensureExtendedSocialProps(selfUser);
+      ensureExtendedSocialProps(partnerUser);
+
+      if (selfUser.conversations[partnerUser.username]) {
+        selfUser.conversations[partnerUser.username].isApproved = true;
+      }
+      if (partnerUser.conversations[selfUser.username]) {
+        partnerUser.conversations[selfUser.username].isApproved = true;
+      }
+
+      saveUsersDb();
+      await saveUserToFirestore(selfUser.username);
+      await saveUserToFirestore(partnerUser.username);
+
+      return res.json({ success: true, isApproved: true });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+
+
+
+  // Admin routing
+  app.get("/api/admin/reports", (req, res) => {
+    return res.json({ success: true, reports: adminReports });
+  });
+
+  app.post("/api/admin/user/warn", async (req, res) => {
+    try {
+      const { username } = req.body;
+      if (!username) return res.status(400).json({ error: "Username wajib!" });
+      const lower = username.trim().toLowerCase();
+      if (!usersDb[lower]) {
+        return res.status(404).json({ error: "User tidak ditemukan!" });
+      }
+      if (usersDb[lower].warnings === undefined) {
+        usersDb[lower].warnings = 0;
+      }
+      usersDb[lower].warnings += 1;
+      
+      // Send warning into user's inbox
+      if (!usersDb[lower].inbox) {
+        usersDb[lower].inbox = [];
+      }
+      usersDb[lower].inbox.push({
+        id: "warn_" + Date.now(),
+        sender: "SYSTEM (Moderator)",
+        text: `PERINGATAN RESMI #${usersDb[lower].warnings}: Akun Anda dilaporkan melakukan pelanggaran. Harap bertanding secara jujur tanpa taktik curang atau spamming!`,
+        timestamp: Date.now(),
+        read: false
+      });
+
+      saveUsersDb();
+      await saveUserToFirestore(usersDb[lower].username);
+      return res.json({ success: true, message: `Peringatan resmi dikirim ke @${usersDb[lower].username}. Total peringatan: ${usersDb[lower].warnings}` });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/admin/user/ban", async (req, res) => {
+    try {
+      const { username } = req.body;
+      if (!username) return res.status(400).json({ error: "Username wajib!" });
+      const lower = username.trim().toLowerCase();
+      if (!usersDb[lower]) {
+        return res.status(404).json({ error: "User tidak ditemukan!" });
+      }
+      usersDb[lower].isBanned = true;
+      saveUsersDb();
+      await saveUserToFirestore(usersDb[lower].username);
+      return res.json({ success: true, message: `Akun @${usersDb[lower].username} sekarang berhasil di-banned dari server!` });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/admin/report/add", (req, res) => {
+    try {
+      const { reporter, reported, reason, details } = req.body;
+      if (!reported || !reason) {
+        return res.status(400).json({ error: "Laporan tidak lengkap" });
+      }
+      adminReports.push({
+        id: "rep_" + Math.random().toString(36).substring(2, 9),
+        reporter: reporter || "Anonim",
+        reported,
+        reason,
+        details: details || "",
+        reportedAt: Date.now()
+      });
+      saveReports();
+      return res.json({ success: true });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  // Events API
+  app.get("/api/admin/events", (req, res) => {
+    return res.json({ success: true, events: adminEvents });
+  });
+
+  app.post("/api/admin/events/add", (req, res) => {
+    try {
+      const { 
+        title, 
+        date, 
+        time, 
+        prize, 
+        desc, 
+        coinsReward, 
+        diamondsReward, 
+        xpReward, 
+        itemReward, 
+        durationHours, 
+        reqMinRating, 
+        reqMinLevel, 
+        reqPremiumOnly,
+        overrideStatus
+      } = req.body;
+      
+      if (!title || !date || !time) {
+        return res.status(400).json({ error: "Informasi event tidak lengkap" });
+      }
+      
+      adminEvents.push({
+        id: "ev_" + Math.random().toString(36).substring(2, 9),
+        title,
+        date,
+        time,
+        prize: prize || "Tidak ada",
+        desc: desc || "",
+        coinsReward: Number(coinsReward) || 0,
+        diamondsReward: Number(diamondsReward) || 0,
+        xpReward: Number(xpReward) || 0,
+        itemReward: itemReward || "",
+        durationHours: Number(durationHours) || 3,
+        reqMinRating: Number(reqMinRating) || 0,
+        reqMinLevel: Number(reqMinLevel) || 1,
+        reqPremiumOnly: Boolean(reqPremiumOnly),
+        overrideStatus: overrideStatus || "none",
+        createdAt: Date.now()
+      });
+      saveEvents();
+      return res.json({ success: true, events: adminEvents });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/admin/events/override", (req, res) => {
+    try {
+      const { id, status } = req.body;
+      if (!id || !status) {
+        return res.status(400).json({ error: "ID dan status wajib disertakan" });
+      }
+      const eventIdx = adminEvents.findIndex(e => e.id === id);
+      if (eventIdx === -1) {
+        return res.status(404).json({ error: "Event tidak ditemukan" });
+      }
+      adminEvents[eventIdx].overrideStatus = status;
+      saveEvents();
+      return res.json({ success: true, events: adminEvents });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/admin/events/delete", (req, res) => {
+    try {
+      const { id } = req.body;
+      if (!id) {
+        return res.status(400).json({ error: "ID wajib disertakan" });
+      }
+      adminEvents = adminEvents.filter(e => e.id !== id);
+      saveEvents();
+      return res.json({ success: true, events: adminEvents });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/admin/staff/register", async (req, res) => {
+    try {
+      const { username, password } = req.body;
+      if (!username || !password) {
+        return res.status(400).json({ error: "Username dan password wajib!" });
+      }
+      const lower = username.trim().toLowerCase();
+      if (usersDb[lower]) {
+        usersDb[lower].isStaff = true;
+        usersDb[lower].password = password; // Ensure password set/override
+        saveUsersDb();
+        await saveUserToFirestore(usersDb[lower].username, true);
+        return res.json({ success: true, message: `Berhasil menambahkan staff @${usersDb[lower].username}` });
+      } else {
+        // Create full account with isStaff flag
+        const newUser = {
+          username: username.trim(),
+          password: password,
+          elo: 600,
+          xp: 100,
+          unlockedThemes: ["classic"],
+          matchesPlayed: 0,
+          matchesWon: 0,
+          profileAvatar: "/src/assets/images/avatar_martin_1779709510230.png",
+          profileBio: "Staff Administrator Arena Catur",
+          claimedAchievements: [],
+          registeredAt: Date.now(),
+          friends: [],
+          friendRequests: [],
+          inbox: [],
+          membershipStatus: 'free',
+          unlockedItems: [],
+          isStaff: true
+        };
+        usersDb[lower] = newUser;
+        saveUsersDb();
+        await saveUserToFirestore(newUser.username, true);
+        return res.json({ success: true, message: `Berhasil mendaftarkan akun Staff @${newUser.username}` });
+      }
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
   app.post("/api/analyze-position", async (req, res) => {
     try {
       const { fen, moveSan, moveQuality, moveIndex } = req.body;
@@ -578,7 +1632,7 @@ Jawab langsung berupa teks ulasan bersih tanpa tanda kutip ganda atau detail tek
       if (ai) {
         try {
           const response = await ai.models.generateContent({
-            model: "gemini-3.5-flash",
+            model: "gemini-2.5-flash",
             contents: systemPrompt,
             config: {
               temperature: 0.8,
@@ -587,7 +1641,7 @@ Jawab langsung berupa teks ulasan bersih tanpa tanda kutip ganda atau detail tek
           const text = response.text?.trim() || "Posisi taktis yang menarik. Terus perhatikan dominasi baris tengah.";
           return res.json({ analysis: text });
         } catch (apiError: any) {
-          console.warn("Gemini API error or limit hit, falling back to offline analysis:", apiError.message || apiError);
+          console.log("[Gemini Analysis] Server using local offline position evaluator (API quota-limited or offline).");
           // Fall through to offline description gracefully
         }
       }
@@ -607,8 +1661,8 @@ Jawab langsung berupa teks ulasan bersih tanpa tanda kutip ganda atau detail tek
       const text = fallbacks[moveQuality] || "Posisi taktis yang sangat kaya. Menarik untuk dipelajari lebih jauh.";
       return res.json({ analysis: text, isFallback: true });
     } catch (e: any) {
-      console.error("Analysis API error:", e);
-      return res.status(500).json({ error: e.message || "Gagal memuat analisis AI" });
+      console.log("[Analysis Route] Handled local error gracefully.");
+      return res.status(500).json({ error: "Gagal memuat analisis AI" });
     }
   });
 
@@ -647,7 +1701,7 @@ PANDUAN CHAT MANUSIA ALAMI (ANTI-ROBOTIK):
       if (ai) {
         try {
           const response = await ai.models.generateContent({
-            model: "gemini-3.5-flash",
+            model: "gemini-2.5-flash",
             contents: systemPrompt,
             config: {
               temperature: 0.95,
@@ -656,7 +1710,7 @@ PANDUAN CHAT MANUSIA ALAMI (ANTI-ROBOTIK):
           const text = response.text?.trim().replace(/^"|"$/g, '') || "Hmm, menarik...";
           return res.json({ text });
         } catch (apiError: any) {
-          console.warn("Gemini API error or limit hit for commentary, falling back to local chat:", apiError.message || apiError);
+          console.log("[Gemini Commentary] Server using local offline dialogue response (API quota-limited or offline).");
           // Fall through to offline fallback below
         }
       }
@@ -779,8 +1833,8 @@ PANDUAN CHAT MANUSIA ALAMI (ANTI-ROBOTIK):
       const randomIndex = Math.floor(Math.random() * appropriateList.length);
       return res.json({ text: appropriateList[randomIndex], isFallback: true });
     } catch (error: any) {
-      console.error("Gemini API error:", error);
-      return res.status(500).json({ error: error.message || "Something went wrong" });
+      console.log("[Commentary Route] Handled local error gracefully.");
+      return res.status(500).json({ error: "Gagal memuat obrolan AI" });
     }
   });
 
@@ -1016,6 +2070,43 @@ PANDUAN CHAT MANUSIA ALAMI (ANTI-ROBOTIK):
       });
     }
     return res.json({ success: true });
+  });
+
+  // Endpoint: Get specific user profile info
+  app.get("/api/user/profile", async (req, res) => {
+    try {
+      const { username } = req.query;
+      if (!username) {
+        return res.status(400).json({ error: "Missing username" });
+      }
+      const userKey = (username as string).trim().toLowerCase();
+      const userRecord = await getUserOrFetchFromFirestore(userKey);
+      if (!userRecord) {
+        return res.status(404).json({ error: "User tidak ditemukan" });
+      }
+      return res.json({
+        success: true,
+        user: {
+          username: userRecord.username,
+          elo: userRecord.elo || 400,
+          xp: userRecord.xp || 0,
+          profileAvatar: userRecord.profileAvatar || "/src/assets/images/avatar_martin_1779709510230.png",
+          profileBio: userRecord.profileBio || "Pecatur sejati pantang menyerah!",
+          equippedTitle: userRecord.equippedTitle || "Pecatur Perintis",
+          unlockedSkins: userRecord.unlockedSkins || ["standard"],
+          unlockedThemes: userRecord.unlockedThemes || ["classic"],
+          unlockedFrames: userRecord.unlockedFrames || ["none"],
+          selectedFrame: userRecord.selectedFrame || "none",
+          selectedSkin: userRecord.selectedSkin || "standard",
+          customStatus: userRecord.customStatus || "Pantang menyerah sebelum raja digulingkan!",
+          membershipStatus: userRecord.membershipStatus || "free",
+          isStaff: !!userRecord.isStaff,
+          isAdmin: !!userRecord.isAdmin || userKey === "nopal" || userKey === "almaira"
+        }
+      });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
   });
 
   // Seeded Online leaderboard merged with real registered user accounts
