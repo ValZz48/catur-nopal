@@ -6,7 +6,7 @@ export interface Character {
   id: string;
   name: string;
   avatar: string;
-  difficulty: 'Sangat Mudah' | 'Mudah' | 'Sedang' | 'Sulit';
+  difficulty: string;
   elo: number;
   playstyle: string;
   bio: string;
@@ -19,7 +19,7 @@ export interface Character {
 export interface Puzzle {
   id: string;
   title: string;
-  difficulty: 'Mudah' | 'Sedang' | 'Sulit';
+  difficulty: string;
   description: string;
   fen: string;
   solution: string[]; // e.g., ["Qxf7+"] or keys like ["f7g8", "h8h7"]
@@ -40,7 +40,7 @@ export interface Lesson {
   title: string;
   description: string;
   icon: string;
-  difficulty: 'Dasar' | 'Menengah';
+  difficulty: string;
   steps: LessonStep[];
   points: number;
 }

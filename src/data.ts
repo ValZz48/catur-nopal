@@ -5,6 +5,17 @@ import nelsonAvatar from './assets/images/nelson_avatar_1779712159293.png';
 import wallyAvatar from './assets/images/wally_avatar_1779712178593.png';
 import magnusAvatar from './assets/images/magnus_avatar_1779712198066.png';
 
+import duoAvatar from './assets/images/duo_avatar_1779707455306.png';
+import lilyAvatar from './assets/images/lily_avatar_1779707473241.png';
+import oscarAvatar from './assets/images/oscar_avatar_1779707493065.png';
+import zariAvatar from './assets/images/zari_avatar_1779707508891.png';
+import eddyAvatar from './assets/images/eddy_duo_style_1784811264758.jpg';
+import juniorAvatar from './assets/images/junior_duo_style_1784811276328.jpg';
+import linAvatar from './assets/images/lin_duo_style_1784811286442.jpg';
+import vikramAvatar from './assets/images/vikram_duo_style_1784811297014.jpg';
+import beaAvatar from './assets/images/bea_duo_style_1784811329878.jpg';
+import falstaffAvatar from './assets/images/falstaff_duo_style_1784811342155.jpg';
+
 export const CHARACTERS: Character[] = [
   {
     id: 'martin',
@@ -20,11 +31,37 @@ export const CHARACTERS: Character[] = [
     color: 'from-amber-400 to-orange-500'
   },
   {
+    id: 'junior',
+    name: 'Junior',
+    avatar: juniorAvatar,
+    difficulty: 'Pemula',
+    elo: 500,
+    playstyle: 'Suka Menyerang Tanpa Rencana Panjang',
+    bio: 'Junior adalah pemain cilik yang penuh semangat. Dia suka memajukan perwira dengan cepat, tetapi sering lupa mengamankan Rajanya.',
+    welcomeMsg: 'Ayo main cepat! Aku suka langsung menyerang perwira depanmu!',
+    checkmateMsg: 'Aduh, pertahananku bobol! Kamu hebat sekali!',
+    blunderMsg: 'Wah, perwiraku kejebak! Lain kali aku harus lebih hati-hati.',
+    color: 'from-yellow-400 to-amber-500'
+  },
+  {
+    id: 'oscar',
+    name: 'Oscar',
+    avatar: oscarAvatar,
+    difficulty: 'Pemula Plus',
+    elo: 800,
+    playstyle: 'Posisi Dasar & Suka Pertukaran Bidak',
+    bio: 'Oscar mulai memahami prinsip dasar catur seperti menguasai pusat dan melakukan rokade. Dia lawan yang pas untuk melatih taktik menengah.',
+    welcomeMsg: 'Selamat datang! Mari kita uji seberapa rapi pembukaan caturmu.',
+    checkmateMsg: 'Langkah taktis yang sangat rapi! Aku belajar banyak dari kekalahan ini.',
+    blunderMsg: 'Aduh, aku salah memperhitungkan ancaman gajahmu!',
+    color: 'from-lime-500 to-emerald-600'
+  },
+  {
     id: 'nelson',
     name: 'Nelson',
     avatar: nelsonAvatar,
-    difficulty: 'Sedang',
-    elo: 1300,
+    difficulty: 'Menengah',
+    elo: 1100,
     playstyle: 'Agresif & Serbuan Ratu Terlalu Dini',
     bio: 'Nelson terkenal sangat agresif dan gemar meluncurkan serangan Ratu langsung sejak langkah kedua. Bersiaplah mengoordinasikan pertahanan sayap raja kamu!',
     welcomeMsg: 'Waktunya bertanding! Bersiaplah menahan amukan Ratu saya sejak langkah pertama. Pertahankan Rajamu!',
@@ -33,11 +70,24 @@ export const CHARACTERS: Character[] = [
     color: 'from-yellow-500 to-amber-600'
   },
   {
+    id: 'lily',
+    name: 'Lily',
+    avatar: lilyAvatar,
+    difficulty: 'Sedang',
+    elo: 1400,
+    playstyle: 'Pertahanan Sayap & Kontra Taktik',
+    bio: 'Lily memiliki gaya bermain tenang dan disiplin. Dia membalas gempuran agresif dengan serangan balik yang terukur di sayap menteri.',
+    welcomeMsg: 'Tenang dan fokus. Jangan terburu-buru melangkah tanpa memperhitungkan akibatnya.',
+    checkmateMsg: 'Permainan yang indah! Kamu berhasil menembus pertahanan terkuatku.',
+    blunderMsg: 'Langkah balasan yang sangat tajam, aku lengah di sektor tengah.',
+    color: 'from-teal-500 to-cyan-600'
+  },
+  {
     id: 'wally',
     name: 'Wally',
     avatar: wallyAvatar,
-    difficulty: 'Sulit',
-    elo: 1800,
+    difficulty: 'Tingkat Lanjut',
+    elo: 1700,
     playstyle: 'Strategis, Posisi Solid & Defensif',
     bio: 'Wally adalah master kawakan dengan kalkulasi posisi yang sangat matang. Dia suka bergurau ramah, namun pertahanannya kokoh terorganisasi tanpa celah.',
     welcomeMsg: 'Selamat datang di arena. Santai saja ya, tidak perlu grogi. Mari kita lihat koordinasi taktis perwiramu.',
@@ -46,11 +96,24 @@ export const CHARACTERS: Character[] = [
     color: 'from-blue-500 to-indigo-600'
   },
   {
+    id: 'vikram',
+    name: 'Vikram',
+    avatar: vikramAvatar,
+    difficulty: 'Master',
+    elo: 2100,
+    playstyle: 'Posisional & Penguasaan Endgame',
+    bio: 'Vikram menghitung puluhan kombinasi langkah ke depan. Dia ahli mengonversi keunggulan kecil menjadi kemenangan mutlak di babak akhir.',
+    welcomeMsg: 'Tunjukkan ketajaman kalkulasimu. Di level ini, satu kesalahan kecil menentukan hasil akhir.',
+    checkmateMsg: 'Eksekusi endgame yang sempurna. Selamat atas kemenangan berhargamu!',
+    blunderMsg: 'Pengorbanan perwira yang luar biasa! Kalkulasiku meleset.',
+    color: 'from-purple-600 to-indigo-900'
+  },
+  {
     id: 'magnus',
     name: 'Magnus',
     avatar: magnusAvatar,
-    difficulty: 'Sulit',
-    elo: 2850,
+    difficulty: 'Grandmaster',
+    elo: 2500,
     playstyle: 'Sempurna, Tanpa Celah & Taktik Mematikan',
     bio: 'Simulasi kecerdasan sang juara catur terhebat sepanjang masa. Bermain tanpa ampun, strategi akhir permainan menyerupai mesin komputer sempurna.',
     welcomeMsg: 'Mari kita mulai papan ini. Tunjukkan langkah terbaikmu sejak pembukaan dimulai.',
@@ -119,7 +182,67 @@ export const PUZZLES: Puzzle[] = [
     fen: '6rk/6pp/8/6N1/8/8/1Q6/4K3 w - - 0 1',
     solution: ['g5f7'],
     explanation: 'Kuda berada di f7 mengurung Raja hitam yang sama sekali tidak bisa menghindar karena terhimpit bidaknya sendiri.',
+    points: 60
+  },
+  {
+    id: 'p7',
+    title: '7. Serangan Terbuka (Discovered Attack)',
+    difficulty: 'Sedang',
+    description: 'Geser Kuda untuk membuka jalur tembak Benteng ke Raja lawan sambil melancarkan ancaman tambahan!',
+    fen: '3r2k1/5ppp/8/3N4/8/8/5PPP/3R2K1 w - - 0 1',
+    solution: ['d5f6'],
+    explanation: 'Kuda bergerak membebaskan tembakan Benteng langsung di jalur d sekaligus memberi skak ganda.',
+    points: 70
+  },
+  {
+    id: 'p8',
+    title: '8. Jebakan Ratu Terjebak (Queen Trap)',
+    difficulty: 'Sulit',
+    description: 'Ratu lawan terlalu jauh menyusup tanpa pengawalan. Kurung jalurnya menggunakan perwira ringan Anda!',
+    fen: 'r1b1kb1r/pppp1ppp/2n5/4p3/2B1P2q/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 1',
+    solution: ['f3h4'],
+    explanation: 'Kuda putih memakan Ratu h4 yang tidak terlindungi!',
+    points: 80
+  },
+  {
+    id: 'p9',
+    title: '9. Pengorbanan Benteng Maut',
+    difficulty: 'Sangat Sulit',
+    description: 'Korbankan Benteng untuk menghancurkan barisan pion pelindung Raja musuh!',
+    fen: '5rk1/5ppp/8/8/8/8/5PPP/1R4K1 w - - 0 1',
+    solution: ['b1b8'],
+    explanation: 'Benteng meluncur ke b8 memaksa pertukaran atau skakmat koridor.',
+    points: 90
+  },
+  {
+    id: 'p10',
+    title: '10. Garpu Ganda Ratu & Raja',
+    difficulty: 'Menengah',
+    description: 'Gunakan serangan beruntun Kuda untuk mendapatkan posisi unggul perwira.',
+    fen: 'r3k2r/8/8/3N4/8/8/8/4K3 w kq - 0 1',
+    solution: ['d5c7'],
+    explanation: 'Garpu ganda Kuda mengancam Raja di e8 dan Benteng di a8.',
     points: 100
+  },
+  {
+    id: 'p11',
+    title: '11. Mating Net di Sayap Raja',
+    difficulty: 'Sangat Sulit',
+    description: 'Gunakan Ratu dan Gajah bersilang untuk mengunci pergerakan Raja.',
+    fen: '6k1/5p1p/6p1/8/8/1B6/5Q2/6K1 w - - 0 1',
+    solution: ['f2f7'],
+    explanation: 'Ratu memakan f7 didukung oleh Gajah b3 mengunci skakmat!',
+    points: 120
+  },
+  {
+    id: 'p12',
+    title: '12. Taktik Pengalihan (Deflection)',
+    difficulty: 'Master',
+    description: 'Umpan pertahanan lawan agar meninggalkan pengawalan petak kritis.',
+    fen: '3r2k1/1q3ppp/8/8/8/8/1Q3PPP/3R2K1 w - - 0 1',
+    solution: ['d1d8'],
+    explanation: 'Benteng d1 memakan d8 skakmat instan!',
+    points: 150
   }
 ];
 
@@ -258,6 +381,74 @@ export const LESSONS: Lesson[] = [
         fen: 'r1bqkbnr/ppp2ppp/2np4/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 0 4',
         highlightSquares: ['h5', 'f7'],
         requiredMove: { from: 'h5', to: 'f7' }
+      }
+    ]
+  },
+  {
+    id: 'l7',
+    title: 'Pertahanan French Defense',
+    description: 'Pertahanan solid dengan struktur benteng e6 d5 yang menahan gempuran putih.',
+    icon: 'Shield',
+    difficulty: 'Menengah',
+    points: 50,
+    steps: [
+      {
+        title: 'Persiapan Dorongan d5',
+        description: 'Majukan pion e7 ke e6 untuk mempersiapkan benteng d5 di langkah berikutnya.',
+        fen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
+        highlightSquares: ['e7', 'e6'],
+        requiredMove: { from: 'e7', to: 'e6' }
+      }
+    ]
+  },
+  {
+    id: 'l8',
+    title: 'Pertahanan Caro-Kann',
+    description: 'Alternatif pertahanan paling kokoh tanpa mengurung jalur tembak gajah terang.',
+    icon: 'BookOpen',
+    difficulty: 'Menengah',
+    points: 50,
+    steps: [
+      {
+        title: 'Pion c6 Kokoh',
+        description: 'Buka dengan c6 untuk mendukung fondasi d5 yang stabil.',
+        fen: 'rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1',
+        highlightSquares: ['c7', 'c6'],
+        requiredMove: { from: 'c7', to: 'c6' }
+      }
+    ]
+  },
+  {
+    id: 'l9',
+    title: 'Gambit Menteri (Queen\'s Gambit)',
+    description: 'Tawarkan pengorbanan pion c4 untuk menguasai pusat permainan secara dominan.',
+    icon: 'Award',
+    difficulty: 'Lanjutan',
+    points: 60,
+    steps: [
+      {
+        title: 'Dorongan d4 Pertama',
+        description: 'Buka dengan d4 untuk merebut kontrol penuh petak pusat.',
+        fen: 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1',
+        highlightSquares: ['d2', 'd4'],
+        requiredMove: { from: 'd2', to: 'd4' }
+      }
+    ]
+  },
+  {
+    id: 'l10',
+    title: 'Endgame: Penguncian Raja & Benteng',
+    description: 'Kuasai teknik skakmat mendasar menggunakan Benteng dan Raja di babak akhir.',
+    icon: 'Flame',
+    difficulty: 'Lanjutan',
+    points: 70,
+    steps: [
+      {
+        title: 'Mengunci Baris Belakang',
+        description: 'Gunakan Benteng di d8 untuk memotong pergerakan Raja lawan ke baris belakang.',
+        fen: '6k1/8/8/8/8/8/8/3R2K1 w - - 0 1',
+        highlightSquares: ['d1', 'd8'],
+        requiredMove: { from: 'd1', to: 'd8' }
       }
     ]
   }

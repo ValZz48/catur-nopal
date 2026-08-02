@@ -1,0 +1,68 @@
+<svg viewBox="0 0 200 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <style>
+    @keyframes floatRating {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-8px); }
+    }
+    @keyframes starPulse {
+      0%, 100% { transform: scale(1) rotate(0deg); }
+      50% { transform: scale(1.12) rotate(4deg); }
+    }
+    .rating-body { animation: floatRating 2.5s ease-in-out infinite; transform-origin: center bottom; }
+    .main-star { animation: starPulse 1.8s ease-in-out infinite; transform-origin: 100px 145px; }
+  </style>
+
+  <!-- Shadow -->
+  <ellipse cx="100" cy="188" rx="50" ry="8" fill="#000000" opacity="0.2" />
+
+  <g class="rating-body">
+    <!-- Tail -->
+    <path d="M140 135 C 165 125, 170 155, 150 168 C 138 175, 128 160, 132 148" fill="none" stroke="#FF8000" stroke-width="12" stroke-linecap="round" />
+
+    <!-- Cat Body -->
+    <path d="M62 110 C 62 88, 138 88, 138 110 L 142 170 C 142 180, 58 180, 58 170 Z" fill="#FF9600" />
+    <path d="M82 120 C 82 112, 118 112, 118 120 C 118 150, 82 150, 82 120 Z" fill="#FFD9A0" />
+
+    <!-- Cat Head -->
+    <path d="M52 65 L 36 25 L 76 45 Z" fill="#FF8000" />
+    <path d="M55 60 L 43 32 L 71 47 Z" fill="#FF80B3" />
+    <path d="M148 65 L 164 25 L 124 45 Z" fill="#FF8000" />
+    <path d="M145 60 L 157 32 L 129 47 Z" fill="#FF80B3" />
+
+    <!-- Head Circle -->
+    <ellipse cx="100" cy="72" rx="50" ry="40" fill="#FF9600" />
+    <ellipse cx="100" cy="80" rx="34" ry="20" fill="#FFE8C8" />
+
+    <!-- Star Eyes (Loving / Rating Eyes) -->
+    <!-- Left Star Eye -->
+    <path d="M78 68 L 80 73 L 85 74 L 81 77 L 82 82 L 78 79 L 74 82 L 75 77 L 71 74 L 76 73 Z" fill="#FFD700" stroke="#D97706" stroke-width="1" />
+    <!-- Right Star Eye -->
+    <path d="M122 68 L 124 73 L 129 74 L 125 77 L 126 82 L 122 79 L 118 82 L 119 77 L 115 74 L 120 73 Z" fill="#FFD700" stroke="#D97706" stroke-width="1" />
+
+    <!-- Pink Nose & Big Happy Smile -->
+    <polygon points="96,79 104,79 100,84" fill="#FF5588" />
+    <path d="M90 87 C 95 96, 105 96, 110 87" fill="#8B4513" />
+    <!-- Tongue -->
+    <path d="M96 92 C 98 96, 102 96, 104 92 Z" fill="#FF5588" />
+
+    <!-- Paws Holding Big Star -->
+    <ellipse cx="68" cy="138" rx="10" ry="8" fill="#FF8000" />
+    <ellipse cx="132" cy="138" rx="10" ry="8" fill="#FF8000" />
+
+    <!-- Whiskers -->
+    <path d="M42 76 L 18 73 M 40 82 L 16 84" stroke="#D97706" stroke-width="2.5" stroke-linecap="round" />
+    <path d="M158 76 L 182 73 M 160 82 L 184 84" stroke="#D97706" stroke-width="2.5" stroke-linecap="round" />
+
+    <!-- MAIN HELD GOLDEN RATING STAR -->
+    <g class="main-star">
+      <path d="M100 115 L 109 133 L 129 136 L 114 150 L 118 170 L 100 160 L 82 170 L 86 150 L 71 136 L 91 133 Z" fill="#FFD700" stroke="#F59E0B" stroke-width="3" stroke-linejoin="round" />
+      <!-- Star Inner Glow -->
+      <path d="M100 122 L 105 133 L 117 135 L 108 144 L 110 156 L 100 150 L 90 156 L 92 144 L 83 135 L 95 133 Z" fill="#FFF3B0" opacity="0.7" />
+    </g>
+  </g>
+
+  <!-- Floating Mini Stars above head -->
+  <path d="M50 25 L 52 29 L 56 30 L 53 33 L 54 37 L 50 35 L 46 37 L 47 33 L 44 30 L 48 29 Z" fill="#FFD700" />
+  <path d="M150 25 L 152 29 L 156 30 L 153 33 L 154 37 L 150 35 L 146 37 L 147 33 L 144 30 L 148 29 Z" fill="#FFD700" />
+  <path d="M100 15 L 102 19 L 106 20 L 103 23 L 104 27 L 100 25 L 96 27 L 97 23 L 94 20 L 98 19 Z" fill="#FFD700" />
+</svg>

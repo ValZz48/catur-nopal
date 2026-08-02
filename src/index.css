@@ -4,11 +4,75 @@
 @theme {
   --font-sans: "Plus Jakarta Sans", "Inter", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
+
+  --color-primary: var(--bg-primary);
+  --color-secondary: var(--bg-secondary);
+  --color-tertiary: var(--bg-tertiary);
+  --color-card: var(--bg-card);
+  --color-card-hover: var(--bg-card-hover);
+  --color-panel: var(--bg-panel);
+
+  --color-txt-main: var(--text-primary);
+  --color-txt-sub: var(--text-secondary);
+  --color-txt-white: var(--text-white);
+  --color-txt-dark: var(--text-dark);
+
+  --color-bdr-main: var(--border-primary);
+  --color-bdr-sub: var(--border-secondary);
+}
+
+:root {
+  /* Default Dark Theme Variables */
+  --bg-primary: #262421;
+  --bg-secondary: #2a2826;
+  --bg-tertiary: #161512;
+  --bg-card: #312e2b;
+  --bg-card-hover: #3c3934;
+  --bg-panel: #22201e;
+  
+  --text-primary: #bab9b8;
+  --text-secondary: #9babaf;
+  --text-white: #ffffff;
+  --text-dark: #1c1a19;
+  
+  --border-primary: #3c3934;
+  --border-secondary: #211f1d;
+  
+  --color-green: #81b64c;
+  --color-green-hover: #92ca5a;
+  --color-green-border: #5d8a32;
+  --color-green-border-hover: #6b9c3a;
+}
+
+html.light {
+  /* Light Theme Variables - Warm Cream Brand Palette */
+  --bg-primary: #F5EFE6;
+  --bg-secondary: #EDE4D3;
+  --bg-tertiary: #F5EFE6;
+  --bg-card: #EDE4D3;
+  --bg-card-hover: #E2D7C3;
+  --bg-panel: #EDE4D3;
+  
+  --text-primary: #201B15;
+  --text-secondary: #5C4A32;
+  --text-white: #201B15;
+  --text-dark: #F5EFE6;
+  
+  --border-primary: #C9B89A;
+  --border-secondary: #C9B89A;
+  
+  --color-green: #81B64C;
+  --color-green-hover: #92CA5A;
+  --color-green-border: #5D8A32;
+  --color-green-border-hover: #6B9C3A;
+
+  --color-gold: #E0A81A;
+  --color-gold-hover: #F0B41E;
 }
 
 body {
-  background-color: #262421; /* Chess.com dark gray/wood background */
-  color: #bab9b8;
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
   font-family: "Plus Jakarta Sans", "Inter", ui-sans-serif, sans-serif;
   margin: 0;
   padding: 0;
@@ -16,9 +80,9 @@ body {
 
 /* Chess.com style buttons */
 .btn-chess-green {
-  background-color: #81b64c;
+  background-color: var(--color-green);
   color: #ffffff;
-  border-bottom: 4px solid #5d8a32;
+  border-bottom: 4px solid var(--color-green-border);
   border-radius: 0.75rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -27,8 +91,8 @@ body {
   cursor: pointer;
 }
 .btn-chess-green:hover {
-  background-color: #92ca5a;
-  border-bottom-color: #6b9c3a;
+  background-color: var(--color-green-hover);
+  border-bottom-color: var(--color-green-border-hover);
 }
 .btn-chess-green:active {
   transform: translateY(2px);
@@ -36,10 +100,10 @@ body {
 }
 
 .btn-chess-dark {
-  background-color: #312e2b;
-  color: #bab9b8;
-  border: 2px solid #3c3934;
-  border-bottom: 4px solid #211f1d;
+  background-color: var(--bg-card);
+  color: var(--text-primary);
+  border: 2px solid var(--border-primary);
+  border-bottom: 4px solid var(--border-secondary);
   border-radius: 0.75rem;
   font-weight: 800;
   text-transform: uppercase;
@@ -48,86 +112,191 @@ body {
   cursor: pointer;
 }
 .btn-chess-dark:hover {
-  background-color: #3c3934;
-  color: #ffffff;
+  background-color: var(--bg-card-hover);
+  color: var(--text-white);
 }
 .btn-chess-dark:active {
   transform: translateY(2px);
   border-bottom-width: 2px;
 }
 
-/* Sunrise Light Theme Overrides */
+/* Warm Cream Light Theme Targeted Overrides */
 html.light, html.light body {
-  background-color: #f7f5f0 !important;
-  color: #1c1a19 !important;
+  background-color: #F5EFE6 !important;
+  color: #201B15 !important;
 }
 
-/* Overriding ALL dark backgrounds to light grays/whites */
+/* Navbar / Top Header background, text, icons, and borders */
+html.light #hud-nav,
+html.light nav#hud-nav {
+  background-color: #EDE4D3 !important;
+  border-color: #C9B89A !important;
+}
+
+html.light #hud-nav *:not(.bg-\[\#81b64c\]):not(.bg-\[\#E0A81A\]) {
+  color: #201B15 !important;
+}
+
+html.light #hud-nav svg {
+  color: #201B15 !important;
+}
+
+/* Bottom Tab Bar background, inactive items (#5C4A32), and active item (#81B64C) */
+html.light #bottom-tab-bar {
+  background-color: #EDE4D3 !important;
+  border-color: #C9B89A !important;
+}
+
+html.light #bottom-tab-bar button {
+  color: #5C4A32 !important;
+}
+
+html.light #bottom-tab-bar button svg,
+html.light #bottom-tab-bar button span {
+  color: #5C4A32 !important;
+}
+
+html.light #bottom-tab-bar button:hover,
+html.light #bottom-tab-bar button:hover svg {
+  color: #201B15 !important;
+}
+
+html.light #bottom-tab-bar button.text-\[\#81b64c\],
+html.light #bottom-tab-bar button.text-\[\#81b64c\] *,
+html.light #bottom-tab-bar button.text-\[\#81b64c\] svg {
+  color: #81B64C !important;
+}
+
+/* Hero Section Warm Cream Background */
+html.light .hero-section,
+html.light [id*="hero"],
+html.light section.hero,
+html.light .hero-bg,
+html.light div[class*="hero"] {
+  background-color: #F5EFE6 !important;
+  background-image: none !important;
+}
+
+/* Overriding dark backgrounds to Warm Cream palette */
 html.light .bg-\[\#161512\],
 html.light .bg-\[\#1c1a19\],
-html.light .bg-\[\#22201e\],
-html.light .bg-\[\#1e1c1b\],
 html.light .bg-stone-950,
 html.light .bg-zinc-950,
 html.light .bg-neutral-950,
-html.light .bg-black,
-html.light .bg-black\/50,
-html.light .bg-black\/40,
-html.light .bg-black\/30 {
-  background-color: #f7f5f0 !important;
+html.light .bg-black {
+  background-color: #F5EFE6 !important;
 }
 
 html.light .bg-\[\#262421\],
 html.light .bg-\[\#2a2826\],
+html.light .bg-\[\#22201e\],
+html.light .bg-\[\#1e1c1b\],
 html.light .bg-\[\#22211f\],
 html.light .bg-\[\#2a2927\],
-html.light .bg-stone-900,
-html.light .bg-zinc-900 {
-  background-color: #ebe7dd !important;
-}
-
 html.light .bg-\[\#312e2b\],
 html.light .bg-\[\#272522\],
 html.light .bg-\[\#2d2b28\],
 html.light .bg-\[\#2e2c2a\],
+html.light .bg-stone-900,
 html.light .bg-stone-800,
-html.light .bg-zinc-800 {
-  background-color: #ffffff !important;
-  color: #1c1a19 !important;
-  border-color: #dcd7ca !important;
+html.light .bg-zinc-900,
+html.light .bg-zinc-800,
+html.light .bg-stone-900\/50,
+html.light .bg-stone-900\/80,
+html.light .bg-stone-900\/90,
+html.light .bg-stone-950\/80 {
+  background-color: #EDE4D3 !important;
+  color: #201B15 !important;
 }
 
-/* Input fields and special text areas */
+/* Primary Gold Buttons & Secondary Green Buttons */
+html.light .btn-chess-gold,
+html.light .btn-primary,
+html.light .btn-gold,
+html.light button.bg-amber-500,
+html.light button.bg-yellow-500,
+html.light button.bg-amber-600 {
+  background-color: #E0A81A !important;
+  color: #201B15 !important;
+  border-bottom: 4px solid #B5840D !important;
+  font-weight: 800;
+}
+
+html.light .btn-chess-gold:hover,
+html.light .btn-primary:hover,
+html.light .btn-gold:hover {
+  background-color: #F0B41E !important;
+}
+
+html.light .btn-chess-green,
+html.light .btn-secondary,
+html.light .btn-green,
+html.light button.bg-\[\#81b64c\],
+html.light button.bg-emerald-600 {
+  background-color: #81B64C !important;
+  color: #ffffff !important;
+  border-bottom: 4px solid #5D8A32 !important;
+  font-weight: 800;
+}
+
+html.light .btn-chess-green:hover,
+html.light .btn-secondary:hover,
+html.light .btn-green:hover {
+  background-color: #92CA5A !important;
+}
+
+html.light .btn-chess-dark {
+  background-color: #EDE4D3 !important;
+  color: #201B15 !important;
+  border: 2px solid #C9B89A !important;
+  border-bottom: 4px solid #B2A183 !important;
+}
+
+html.light .btn-chess-dark:hover {
+  background-color: #E2D7C3 !important;
+  color: #201B15 !important;
+}
+
+/* Input fields and text areas */
 html.light input,
 html.light textarea,
-html.light select,
-html.light .bg-stone-900\/50 {
-  background-color: #ffffff !important;
-  color: #1c1a19 !important;
-  border-color: #dcd7ca !important;
+html.light select {
+  background-color: #EDE4D3 !important;
+  color: #201B15 !important;
+  border-color: #C9B89A !important;
 }
 
-/* Overriding ALL dark borders to soft light borders */
+html.light input::placeholder,
+html.light textarea::placeholder {
+  color: #5C4A32 !important;
+  opacity: 0.8;
+}
+
+/* Overriding dark borders to brand divider color */
 html.light .border-\[\#3c3934\],
 html.light .border-\[\#211f1d\],
+html.light .border-\[\#4d4a44\],
 html.light .border-stone-800,
 html.light .border-stone-750,
 html.light .border-stone-700,
 html.light .border-stone-850,
 html.light .border-stone-900,
 html.light .border-zinc-800,
-html.light .border-zinc-700 {
-  border-color: #dcd7ca !important;
+html.light .border-zinc-700,
+html.light hr,
+html.light .divide-stone-800 > * + * {
+  border-color: #C9B89A !important;
 }
 
-/* High contrast text color rules */
+/* Typography contrast and hierarchy */
 html.light h1,
 html.light h2,
 html.light h3,
 html.light h4,
 html.light h5,
+html.light h6,
 html.light .light-dark {
-  color: #1a1917 !important;
+  color: #201B15 !important;
 }
 
 html.light .text-white,
@@ -136,25 +305,42 @@ html.light .text-slate-200,
 html.light .text-slate-300,
 html.light .text-stone-100,
 html.light .text-stone-200,
-html.light .text-stone-300 {
-  color: #1c1a19 !important;
+html.light .text-stone-300,
+html.light .text-\[\#bab9b8\],
+html.light .text-\[\#e2e8f0\] {
+  color: #201B15 !important;
 }
 
 html.light .text-slate-400,
 html.light .text-slate-500,
 html.light .text-stone-400,
 html.light .text-stone-500,
-html.light .text-stone-650 {
-  color: #5d5952 !important;
+html.light .text-stone-600,
+html.light .text-stone-650,
+html.light .text-\[\#9babaf\],
+html.light .text-\[\#8b9b9e\] {
+  color: #5C4A32 !important;
 }
 
 html.light .text-amber-500,
-html.light .text-amber-400 {
-  color: #b36b00 !important;
+html.light .text-amber-400,
+html.light .text-yellow-500,
+html.light .text-yellow-400 {
+  color: #E0A81A !important;
+}
+
+html.light .text-emerald-400,
+html.light .text-emerald-500,
+html.light .text-green-500,
+html.light .text-green-400 {
+  color: #81B64C !important;
 }
 
 /* Modals & Dialog overlays */
 html.light .bg-black\/70,
-html.light .bg-black\/80 {
-  background-color: rgba(0, 0, 0, 0.45) !important;
+html.light .bg-black\/80,
+html.light .bg-black\/50,
+html.light .bg-black\/40,
+html.light .bg-black\/30 {
+  background-color: rgba(32, 27, 21, 0.45) !important;
 }

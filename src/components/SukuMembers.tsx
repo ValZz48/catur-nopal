@@ -1,5 +1,8 @@
 import React from 'react';
 import { Crown, Users, Search, Plus, Trash2, Shield, Award, UserCheck } from 'lucide-react';
+import { AvatarWithFrame } from './AvatarWithFrame';
+import martinAvatar from '../assets/images/avatar_martin_1779709510230.png';
+import { getLevelFromXP } from '../utils';
 
 interface SukuMembersProps {
   guildMembers: any[];
@@ -107,9 +110,11 @@ export const SukuMembers: React.FC<SukuMembersProps> = ({
         setHasGuild(false);
         setGuildMembers([]);
         setGuildJoinRequests([]);
-        localStorage.removeItem('guild_has_owner');
+        localStorage.setItem('guild_explicitly_left', 'true');
+        localStorage.setItem('guild_has_owner', 'false');
         localStorage.removeItem('guild_members');
         localStorage.removeItem('guild_profile_data');
+        window.dispatchEvent(new Event('guild_state_updated'));
         triggerAudio('lose');
         triggerReward(0, 'Anda resmi keluar dari Suku Klan.', 'info');
       }
@@ -132,8 +137,43 @@ export const SukuMembers: React.FC<SukuMembersProps> = ({
         {/* Member cards list */}
         <div className="space-y-3">
           {guildMembers.map((member) => {
-            const isUserSelf = member.name === username;
+            const cleanMemberName = member.name.replace(/\s*\(Kamu\)\s*/gi, '').trim().toLowerCase();
+            const cleanUsername = username.replace(/\s*\(Kamu\)\s*/gi, '').trim().toLowerCase();
+            const isUserSelf = cleanMemberName === cleanUsername || member.name === username;
             const canManage = hasAuthority && !isUserSelf && member.role !== 'Founder';
+
+            // Resolve avatar accurately
+            let memberAvatar = member.profileAvatar || member.avatar;
+            let memberFrame = member.selectedFrame || 'none';
+            if (isUserSelf) {
+              try {
+                const savedUser = localStorage.getItem('user');
+                if (savedUser) {
+                  const u = JSON.parse(savedUser);
+                  if (u.profileAvatar || u.avatar) memberAvatar = u.profileAvatar || u.avatar;
+                  if (u.selectedFrame) memberFrame = u.selectedFrame;
+                }
+              } catch(e) {}
+              if (!memberAvatar) memberAvatar = localStorage.getItem('guestAvatar') || martinAvatar;
+            }
+            if (!memberAvatar) memberAvatar = martinAvatar;
+
+            // Resolve level accurately
+            let memberLevel = member.level;
+            if (isUserSelf) {
+              try {
+                const xpVal = Number(localStorage.getItem('xp')) || 0;
+                memberLevel = getLevelFromXP(xpVal);
+              } catch(e) {
+                memberLevel = member.level || 1;
+              }
+            } else if (typeof member.xp === 'number' && member.xp > 0) {
+              memberLevel = getLevelFromXP(member.xp);
+            } else if (member.level) {
+              memberLevel = member.level;
+            } else {
+              memberLevel = Math.max(1, Math.floor((member.rating || member.elo || 600) / 200) + 1);
+            }
 
             return (
               <div 
@@ -143,13 +183,11 @@ export const SukuMembers: React.FC<SukuMembersProps> = ({
                 <div className="flex justify-between items-start">
                   <div className="flex items-center gap-3">
                     {/* Role Avatar Badge */}
-                    <div className="w-10 h-10 rounded-xl bg-stone-900 border border-stone-800 flex items-center justify-center relative shrink-0">
-                      <span className="text-sm font-black text-white uppercase">
-                        {member.name.substring(0, 2).toUpperCase()}
-                      </span>
+                    <div className="relative shrink-0">
+                      <AvatarWithFrame src={memberAvatar} frameId={memberFrame} size="sm" />
                       {/* Character Level Badge inside a small overlay */}
-                      <span className="absolute -top-1.5 -right-1.5 bg-yellow-500 text-slate-900 text-[8px] px-1.5 py-0.5 rounded-full font-black scale-90">
-                        Lv.{member.level || 50}
+                      <span className="absolute -top-1.5 -right-1.5 bg-yellow-500 text-slate-900 text-[8px] px-1.5 py-0.5 rounded-full font-black scale-90 z-10 shadow border border-yellow-300/50">
+                        Lv.{memberLevel}
                       </span>
                     </div>
 

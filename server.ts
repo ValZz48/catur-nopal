@@ -5,7 +5,7 @@ import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
 import fs from "fs";
 import { initializeApp } from "firebase/app";
-import { getFirestore, doc, getDoc, setDoc, collection, getDocs, terminate } from "firebase/firestore";
+import { getFirestore, doc, getDoc, setDoc, deleteDoc, collection, getDocs, terminate, runTransaction } from "firebase/firestore";
 
 dotenv.config();
 
@@ -52,6 +52,7 @@ async function startServer() {
   // --- ADMIN SYSTEMS: DATA PERSISTENCE & CONTROL ---
   const reportsFile = path.join(dataDir, "reports.json");
   const eventsFile = path.join(dataDir, "events.json");
+  const ticketsFile = path.join(dataDir, "tickets.json");
 
   let adminReports: any[] = [];
   if (fs.existsSync(reportsFile)) {
@@ -70,6 +71,23 @@ async function startServer() {
       adminEvents = [];
     }
   }
+
+  let supportTickets: any[] = [];
+  if (fs.existsSync(ticketsFile)) {
+    try {
+      supportTickets = JSON.parse(fs.readFileSync(ticketsFile, "utf8"));
+    } catch (e) {
+      supportTickets = [];
+    }
+  }
+
+  const saveTickets = () => {
+    try {
+      fs.writeFileSync(ticketsFile, JSON.stringify(supportTickets, null, 2), "utf8");
+    } catch (e) {
+      console.error("Error writing tickets file:", e);
+    }
+  };
 
   const saveReports = () => {
     try {
@@ -246,11 +264,59 @@ async function startServer() {
     }
   };
 
+  const syncGuildsFromFirestore = async () => {
+    if (!db) return;
+    if (isFirestoreSuspended && Date.now() < firestoreSuspendedUntil) return;
+    try {
+      console.log("Syncing guilds from Firebase Firestore...");
+      const colRef = collection(db, "guilds");
+      const querySnapshot = await getDocs(colRef);
+      querySnapshot.forEach((docSnap) => {
+        const gData = docSnap.data();
+        if (gData && gData.name) {
+          const guildKey = gData.name.trim().toLowerCase();
+          guildsDb[guildKey] = gData;
+        }
+      });
+      try {
+        fs.writeFileSync(guildsFile, JSON.stringify(guildsDb, null, 2), "utf8");
+      } catch (err) {}
+      console.log(`Successfully synced ${querySnapshot.size} guilds from Firestore.`);
+    } catch (err) {
+      console.error("Failed to sync guilds from Firestore:", err);
+    }
+  };
+
+  const syncGuildToFirestore = async (guildObj: any) => {
+    if (!db || !guildObj || !guildObj.name) return;
+    if (isFirestoreSuspended && Date.now() < firestoreSuspendedUntil) return;
+    try {
+      const guildKey = guildObj.name.trim().toLowerCase();
+      const docRef = doc(db, "guilds", guildKey);
+      await setDoc(docRef, guildObj, { merge: true });
+    } catch (err) {
+      console.error("Failed to save guild to Firestore:", err);
+    }
+  };
+
+  const removeGuildFromFirestore = async (guildName: string) => {
+    if (!db || !guildName) return;
+    if (isFirestoreSuspended && Date.now() < firestoreSuspendedUntil) return;
+    try {
+      const guildKey = guildName.trim().toLowerCase();
+      const docRef = doc(db, "guilds", guildKey);
+      await deleteDoc(docRef);
+    } catch (err) {
+      console.error("Failed to delete guild from Firestore:", err);
+    }
+  };
+
   // Run in background so we don't block server start or cause Vercel 502/504 gateway timeout
   syncFromFirestore()
     .then(() => {
       syncEventsFromFirestore().catch(err => console.error("Error in events firestore sync:", err));
       syncReportsFromFirestore().catch(err => console.error("Error in reports firestore sync:", err));
+      syncGuildsFromFirestore().catch(err => console.error("Error in guilds firestore sync:", err));
     })
     .catch(err => console.error("Error in background firestore sync:", err));
 
@@ -357,7 +423,30 @@ async function startServer() {
   // Auth endpoints
   app.post("/api/auth/register", async (req, res) => {
     try {
-      const { username, password } = req.body;
+      const {
+        username,
+        password,
+        elo,
+        xp,
+        coins,
+        diamonds,
+        boardTheme,
+        unlockedThemes,
+        selectedSkin,
+        unlockedSkins,
+        selectedFrame,
+        unlockedFrames,
+        onlineHistory,
+        seasonal_event_score,
+        seasonal_completed_quests,
+        seasonal_answered_quizzes,
+        seasonal_completed_milestones,
+        blockedUsers,
+        matchesPlayed,
+        matchesWon,
+        pinned_medals_ids
+      } = req.body;
+
       if (!username || !password) {
         return res.status(400).json({ error: "Username dan Password wajib diisi!" });
       }
@@ -395,13 +484,15 @@ async function startServer() {
       const newUser = {
         username: existing ? existing.username : cleanUser,
         password: password,
-        elo: existing ? (existing.elo || 400) : 400,
-        xp: existing ? (existing.xp || 0) : 0,
-        coins: existing ? (existing.coins || 500) : 500,
-        diamonds: existing ? (existing.diamonds || 20) : 20,
-        unlockedThemes: existing ? (existing.unlockedThemes || ["classic"]) : ["classic"],
-        matchesPlayed: existing ? (existing.matchesPlayed || 0) : 0,
-        matchesWon: existing ? (existing.matchesWon || 0) : 0,
+        elo: existing ? (existing.elo || 400) : (elo !== undefined ? Number(elo) : 400),
+        xp: existing ? (existing.xp || 0) : (xp !== undefined ? Number(xp) : 0),
+        coins: existing ? (existing.coins || 500) : (coins !== undefined ? Number(coins) : 500),
+        diamonds: existing ? (existing.diamonds || 20) : (diamonds !== undefined ? Number(diamonds) : 20),
+        boardTheme: existing ? (existing.boardTheme || 'classic') : (boardTheme || 'classic'),
+        unlockedThemes: existing ? (existing.unlockedThemes || ["classic"]) : (Array.isArray(unlockedThemes) && unlockedThemes.length > 0 ? unlockedThemes : ["classic"]),
+        matchesPlayed: existing ? (existing.matchesPlayed || 0) : (matchesPlayed !== undefined ? Number(matchesPlayed) : 0),
+        matchesWon: existing ? (existing.matchesWon || 0) : (matchesWon !== undefined ? Number(matchesWon) : 0),
+        pinned_medals_ids: existing ? (existing.pinned_medals_ids || []) : (Array.isArray(pinned_medals_ids) ? pinned_medals_ids : []),
         profileAvatar: existing ? (existing.profileAvatar || "/src/assets/images/avatar_martin_1779709510230.png") : "/src/assets/images/avatar_martin_1779709510230.png",
         profileBio: existing ? (existing.profileBio || "Pecatur sejati pantang menyerah!") : "Pecatur sejati pantang menyerah!",
         claimedAchievements: existing ? (existing.claimedAchievements || []) : [],
@@ -411,14 +502,34 @@ async function startServer() {
         inbox: existing ? (existing.inbox || []) : [],
         membershipStatus: existing ? (existing.membershipStatus || 'free') : 'free',
         unlockedItems: existing ? (existing.unlockedItems || []) : [],
-        selectedFrame: 'none',
-        unlockedFrames: ['none'],
+        selectedSkin: existing ? (existing.selectedSkin || 'standard') : (selectedSkin || 'standard'),
+        unlockedSkins: existing ? (existing.unlockedSkins || ['standard']) : (Array.isArray(unlockedSkins) && unlockedSkins.length > 0 ? unlockedSkins : ['standard']),
+        equippedTitle: 'Pecatur Perintis',
+        unlockedTitles: ['Pecatur Perintis'],
+        equippedCheckmateEffect: 'none',
+        unlockedCheckmateEffects: ['none'],
+        customStatus: 'Pantang menyerah sebelum raja digulingkan!',
+        selectedFrame: existing ? (existing.selectedFrame || 'none') : (selectedFrame || 'none'),
+        unlockedFrames: existing ? (existing.unlockedFrames || ['none']) : (Array.isArray(unlockedFrames) && unlockedFrames.length > 0 ? unlockedFrames : ['none']),
         followers: [],
         following: [],
+        likesCount: 0,
+        likedBy: [],
         followRequests: [],
         isPrivate: false,
         visitorLog: [],
         conversations: {},
+        onlineHistory: existing ? (existing.onlineHistory || []) : (Array.isArray(onlineHistory) ? onlineHistory : []),
+        chess_transaction_history: existing ? (existing.chess_transaction_history || []) : [],
+        seasonal_event_score: existing ? (existing.seasonal_event_score || 0) : (seasonal_event_score !== undefined ? Number(seasonal_event_score) : 0),
+        seasonal_completed_quests: existing ? (existing.seasonal_completed_quests || []) : (Array.isArray(seasonal_completed_quests) ? seasonal_completed_quests : []),
+        seasonal_answered_quizzes: existing ? (existing.seasonal_answered_quizzes || []) : (Array.isArray(seasonal_answered_quizzes) ? seasonal_answered_quizzes : []),
+        seasonal_completed_milestones: existing ? (existing.seasonal_completed_milestones || []) : (Array.isArray(seasonal_completed_milestones) ? seasonal_completed_milestones : []),
+        blockedUsers: existing ? (existing.blockedUsers || []) : (Array.isArray(blockedUsers) ? blockedUsers : []),
+        streak: existing ? (existing.streak || 0) : 0,
+        peakXp: existing ? (existing.peakXp || 0) : 0,
+        winStreak: existing ? (existing.winStreak || 0) : 0,
+        longestDefense: existing ? (existing.longestDefense || 0) : 0,
         isAdmin: defaultAdmin || (existing ? !!existing.isAdmin : false),
         isStaff: existing ? !!existing.isStaff : false
       };
@@ -445,11 +556,22 @@ async function startServer() {
           unlockedItems: newUser.unlockedItems,
           selectedFrame: newUser.selectedFrame,
           unlockedFrames: newUser.unlockedFrames,
+          selectedSkin: newUser.selectedSkin,
+          unlockedSkins: newUser.unlockedSkins,
+          equippedTitle: newUser.equippedTitle,
+          unlockedTitles: newUser.unlockedTitles,
+          equippedCheckmateEffect: newUser.equippedCheckmateEffect,
+          unlockedCheckmateEffects: newUser.unlockedCheckmateEffects,
+          customStatus: newUser.customStatus,
           isPrivate: newUser.isPrivate,
           isAdmin: newUser.isAdmin,
           isStaff: newUser.isStaff,
-          followers: newUser.followers,
-          following: newUser.following,
+          onlineHistory: newUser.onlineHistory || [],
+          chess_transaction_history: newUser.chess_transaction_history || [],
+          followers: newUser.followers || [],
+          following: newUser.following || [],
+          likesCount: newUser.likesCount || 0,
+          likedBy: newUser.likedBy || [],
           guild_has_owner: false,
           guild_profile_data: null,
           guild_members: [],
@@ -464,9 +586,13 @@ async function startServer() {
           conquered_boards_list: [],
           clan_checked_in: false,
           clan_weekly_milestones: [],
-          seasonal_event_score: 0,
-          seasonal_completed_quests: [],
-          seasonal_answered_quizzes: []
+          boardTheme: newUser.boardTheme || 'classic',
+          seasonal_event_score: newUser.seasonal_event_score !== undefined ? newUser.seasonal_event_score : 0,
+          seasonal_completed_quests: newUser.seasonal_completed_quests || [],
+          seasonal_answered_quizzes: newUser.seasonal_answered_quizzes || [],
+          seasonal_completed_milestones: newUser.seasonal_completed_milestones || [],
+          blockedUsers: newUser.blockedUsers || [],
+          pinned_medals_ids: newUser.pinned_medals_ids || []
         } 
       });
     } catch (err: any) {
@@ -527,11 +653,22 @@ async function startServer() {
           unlockedItems: existing.unlockedItems || [],
           selectedFrame: existing.selectedFrame || 'none',
           unlockedFrames: existing.unlockedFrames || ['none'],
+          selectedSkin: existing.selectedSkin || 'standard',
+          unlockedSkins: existing.unlockedSkins || ['standard'],
+          equippedTitle: existing.equippedTitle || 'Pecatur Perintis',
+          unlockedTitles: existing.unlockedTitles || ['Pecatur Perintis'],
+          equippedCheckmateEffect: existing.equippedCheckmateEffect || 'none',
+          unlockedCheckmateEffects: existing.unlockedCheckmateEffects || ['none'],
+          customStatus: existing.customStatus || 'Pantang menyerah sebelum raja digulingkan!',
           isPrivate: !!existing.isPrivate,
           isAdmin: isAdm,
           isStaff: !!existing.isStaff,
+          onlineHistory: existing.onlineHistory || [],
+          chess_transaction_history: existing.chess_transaction_history || [],
           followers: existing.followers || [],
           following: existing.following || [],
+          likesCount: existing.likesCount !== undefined ? existing.likesCount : (existing.likes || 0),
+          likedBy: existing.likedBy || [],
           guild_has_owner: existing.guild_has_owner || false,
           guild_profile_data: existing.guild_profile_data || null,
           guild_members: existing.guild_members || [],
@@ -546,9 +683,17 @@ async function startServer() {
           conquered_boards_list: existing.conquered_boards_list || [],
           clan_checked_in: existing.clan_checked_in || false,
           clan_weekly_milestones: existing.clan_weekly_milestones || [],
+          boardTheme: existing.boardTheme || 'classic',
           seasonal_event_score: existing.seasonal_event_score || 0,
           seasonal_completed_quests: existing.seasonal_completed_quests || [],
-          seasonal_answered_quizzes: existing.seasonal_answered_quizzes || []
+          seasonal_answered_quizzes: existing.seasonal_answered_quizzes || [],
+          seasonal_completed_milestones: existing.seasonal_completed_milestones || [],
+          blockedUsers: existing.blockedUsers || [],
+          pinned_medals_ids: existing.pinned_medals_ids || [],
+          streak: existing.streak !== undefined ? existing.streak : 0,
+          peakXp: existing.peakXp !== undefined ? existing.peakXp : 0,
+          winStreak: existing.winStreak !== undefined ? existing.winStreak : 0,
+          longestDefense: existing.longestDefense !== undefined ? existing.longestDefense : 0
         }
       });
     } catch (err: any) {
@@ -558,7 +703,7 @@ async function startServer() {
 
   app.post("/api/auth/sync", async (req, res) => {
     try {
-      const { username, elo, xp, coins, diamonds, unlockedThemes, matchesPlayed, matchesWon, profileAvatar, profileBio, claimedAchievements, membershipStatus, unlockedItems, selectedFrame, unlockedFrames, isPrivate } = req.body;
+      const { username, elo, xp, coins, diamonds, unlockedThemes, matchesPlayed, matchesWon, profileAvatar, profileBio, claimedAchievements, membershipStatus, unlockedItems, selectedFrame, unlockedFrames, selectedSkin, unlockedSkins, equippedTitle, unlockedTitles, equippedCheckmateEffect, unlockedCheckmateEffects, customStatus, isPrivate, likesCount } = req.body;
       if (!username) {
         return res.status(400).json({ error: "Missing username parameter" });
       }
@@ -599,7 +744,59 @@ async function startServer() {
         if (unlockedItems !== undefined) usersDb[cleanUser].unlockedItems = unlockedItems;
         if (selectedFrame !== undefined) usersDb[cleanUser].selectedFrame = selectedFrame;
         if (unlockedFrames !== undefined) usersDb[cleanUser].unlockedFrames = unlockedFrames;
+        if (selectedSkin !== undefined) usersDb[cleanUser].selectedSkin = selectedSkin;
+        if (unlockedSkins !== undefined) usersDb[cleanUser].unlockedSkins = unlockedSkins;
+        if (equippedTitle !== undefined) usersDb[cleanUser].equippedTitle = equippedTitle;
+        if (unlockedTitles !== undefined) usersDb[cleanUser].unlockedTitles = unlockedTitles;
+        if (equippedCheckmateEffect !== undefined) usersDb[cleanUser].equippedCheckmateEffect = equippedCheckmateEffect;
+        if (unlockedCheckmateEffects !== undefined) usersDb[cleanUser].unlockedCheckmateEffects = unlockedCheckmateEffects;
+        if (customStatus !== undefined) usersDb[cleanUser].customStatus = customStatus;
         if (isPrivate !== undefined) usersDb[cleanUser].isPrivate = isPrivate;
+        if (likesCount !== undefined && typeof likesCount === 'number') {
+          usersDb[cleanUser].likesCount = Math.max(usersDb[cleanUser].likesCount || 0, Number(likesCount) || 0);
+        }
+        if (req.body.likedBy !== undefined && Array.isArray(req.body.likedBy)) {
+          const existingLiked = usersDb[cleanUser].likedBy || [];
+          usersDb[cleanUser].likedBy = Array.from(new Set([...existingLiked, ...req.body.likedBy]));
+        }
+        if (req.body.pinned_medals_ids !== undefined) usersDb[cleanUser].pinned_medals_ids = req.body.pinned_medals_ids;
+        if (req.body.blockedUsers !== undefined) usersDb[cleanUser].blockedUsers = req.body.blockedUsers;
+        if (req.body.streak !== undefined) usersDb[cleanUser].streak = Number(req.body.streak);
+        if (req.body.peakXp !== undefined) usersDb[cleanUser].peakXp = Number(req.body.peakXp);
+        if (req.body.winStreak !== undefined) usersDb[cleanUser].winStreak = Number(req.body.winStreak);
+        if (req.body.longestDefense !== undefined) usersDb[cleanUser].longestDefense = Number(req.body.longestDefense);
+
+        if (req.body.onlineHistory !== undefined) {
+          const serverHist = usersDb[cleanUser].onlineHistory || [];
+          const clientHist = req.body.onlineHistory || [];
+          const mergedMap = new Map();
+          clientHist.forEach((h: any) => {
+            if (h && h.id) mergedMap.set(h.id, h);
+          });
+          serverHist.forEach((h: any) => {
+            if (h && h.id) mergedMap.set(h.id, h);
+          });
+          // Match history usually has newest records first
+          usersDb[cleanUser].onlineHistory = Array.from(mergedMap.values()).sort((a: any, b: any) => {
+            // Keep original sequence but sort just in case of order mismatch (if ID/timestamp is parseable)
+            return b.id && a.id ? String(b.id).localeCompare(String(a.id)) : 0;
+          });
+        }
+
+        if (req.body.chess_transaction_history !== undefined) {
+          const serverTx = usersDb[cleanUser].chess_transaction_history || [];
+          const clientTx = req.body.chess_transaction_history || [];
+          const mergedMap = new Map();
+          clientTx.forEach((tx: any) => {
+            if (tx && tx.id) mergedMap.set(tx.id, tx);
+          });
+          serverTx.forEach((tx: any) => {
+            if (tx && tx.id) mergedMap.set(tx.id, tx);
+          });
+          usersDb[cleanUser].chess_transaction_history = Array.from(mergedMap.values()).sort((a: any, b: any) => {
+            return b.timestamp !== undefined && a.timestamp !== undefined ? b.timestamp - a.timestamp : 0;
+          });
+        }
 
         // GUILD FIELDS
         if (req.body.guild_has_owner !== undefined) usersDb[cleanUser].guild_has_owner = req.body.guild_has_owner;
@@ -616,13 +813,116 @@ async function startServer() {
         if (req.body.conquered_boards_list !== undefined) usersDb[cleanUser].conquered_boards_list = req.body.conquered_boards_list;
         if (req.body.clan_checked_in !== undefined) usersDb[cleanUser].clan_checked_in = req.body.clan_checked_in;
         if (req.body.clan_weekly_milestones !== undefined) usersDb[cleanUser].clan_weekly_milestones = req.body.clan_weekly_milestones;
-        if (req.body.seasonal_event_score !== undefined) usersDb[cleanUser].seasonal_event_score = Number(req.body.seasonal_event_score);
-        if (req.body.seasonal_completed_quests !== undefined) usersDb[cleanUser].seasonal_completed_quests = req.body.seasonal_completed_quests;
-        if (req.body.seasonal_answered_quizzes !== undefined) usersDb[cleanUser].seasonal_answered_quizzes = req.body.seasonal_answered_quizzes;
+
+        // If user record holds a disbanded guild, clear it
+        if (usersDb[cleanUser].guild_profile_data?.name) {
+          const gKey = String(usersDb[cleanUser].guild_profile_data.name).trim().toLowerCase();
+          if (disbandedGuilds.has(gKey)) {
+            usersDb[cleanUser].guild_has_owner = false;
+            usersDb[cleanUser].guild_profile_data = null;
+            usersDb[cleanUser].guild_members = [];
+          }
+        }
+
+        // Auto-restore guild membership from guildsDb if user record in DB lost guild fields
+        if (!usersDb[cleanUser].guild_has_owner) {
+          for (const [gKey, gObj] of Object.entries(guildsDb)) {
+            if (disbandedGuilds.has(gKey)) continue;
+            const guild = gObj as any;
+            if (guild && guild.name) {
+              const isOwner = guild.ownerUsername?.trim()?.toLowerCase() === cleanUser || guild.leader?.trim()?.toLowerCase() === cleanUser;
+              const isMember = Array.isArray(guild.members) && guild.members.some((m: any) => String(m.name || m.username || '').trim().toLowerCase() === cleanUser);
+              if (isOwner || isMember) {
+                usersDb[cleanUser].guild_has_owner = true;
+                usersDb[cleanUser].guild_profile_data = {
+                  id: guild.id || guild.name,
+                  name: guild.name,
+                  description: guild.motto || guild.description || 'Klan Catur Sejati',
+                  tag: guild.tag || 'ELIT',
+                  logo: guild.logo || 'perisai',
+                  frame: guild.frame || 'gold',
+                  minRating: guild.minRating || 600,
+                  joinSystem: guild.joinSystem || 'Bebas'
+                };
+                usersDb[cleanUser].guild_members = guild.members || [];
+                usersDb[cleanUser].guild_lvl = guild.level || 1;
+                break;
+              }
+            }
+          }
+        }
+
+        // Auto sync user's guild to guildsDb & Firestore if user owns an ACTIVE (non-disbanded) guild
+        if (usersDb[cleanUser].guild_has_owner && usersDb[cleanUser].guild_profile_data?.name) {
+          const prof = usersDb[cleanUser].guild_profile_data;
+          const mems = usersDb[cleanUser].guild_members || [];
+          const guildName = String(prof.name).trim();
+          if (guildName) {
+            const guildKey = guildName.toLowerCase();
+            if (!disbandedGuilds.has(guildKey)) {
+              const calcElo = Array.isArray(mems) && mems.length > 0
+                ? mems.reduce((s: number, m: any) => s + Number(m.rating || m.elo || 600), 0)
+                : Number(usersDb[cleanUser].elo || usersDb[cleanUser].onlineRating || 1200);
+              
+              const existingGuild = guildsDb[guildKey];
+              const clanTreasury = existingGuild?.treasury !== undefined 
+                ? Number(existingGuild.treasury) 
+                : (prof.treasury !== undefined ? Number(prof.treasury) : 250);
+
+              const updatedGuildObj = {
+                id: prof.id || guildName,
+                name: guildName,
+                tag: prof.tag || 'ELIT',
+                leader: prof.leader || usersDb[cleanUser].username || cleanUser,
+                ownerUsername: usersDb[cleanUser].username || cleanUser,
+                level: Number(usersDb[cleanUser].guild_lvl || prof.level || existingGuild?.level || 1),
+                treasury: clanTreasury,
+                totalElo: calcElo,
+                membersCount: Array.isArray(mems) ? Math.max(mems.length, 1) : 1,
+                maxMembers: 30,
+                motto: prof.motto || prof.description || prof.desc || "Klan Catur Sejati",
+                logo: prof.logo || "perisai",
+                updatedAt: new Date().toISOString()
+              };
+              prof.treasury = clanTreasury;
+              guildsDb[guildKey] = updatedGuildObj;
+              saveGuilds();
+              syncGuildToFirestore(updatedGuildObj).catch(() => {});
+            } else {
+              usersDb[cleanUser].guild_has_owner = false;
+              usersDb[cleanUser].guild_profile_data = null;
+              usersDb[cleanUser].guild_members = [];
+            }
+          }
+        }
+        if (req.body.forceSeasonalReset) {
+          usersDb[cleanUser].seasonal_event_score = 0;
+          usersDb[cleanUser].seasonal_answered_quizzes = [];
+          usersDb[cleanUser].seasonal_completed_milestones = [];
+        } else {
+          if (req.body.seasonal_event_score !== undefined) {
+            usersDb[cleanUser].seasonal_event_score = Math.max(usersDb[cleanUser].seasonal_event_score || 0, Number(req.body.seasonal_event_score));
+          }
+          if (req.body.seasonal_completed_quests !== undefined) {
+            const existingQuests = usersDb[cleanUser].seasonal_completed_quests || [];
+            usersDb[cleanUser].seasonal_completed_quests = Array.from(new Set([...existingQuests, ...req.body.seasonal_completed_quests]));
+          }
+          if (req.body.seasonal_answered_quizzes !== undefined) {
+            const existingQuizzes = usersDb[cleanUser].seasonal_answered_quizzes || [];
+            usersDb[cleanUser].seasonal_answered_quizzes = Array.from(new Set([...existingQuizzes, ...req.body.seasonal_answered_quizzes]));
+          }
+        }
         
         // Ensure default properties
         if (usersDb[cleanUser].selectedFrame === undefined) usersDb[cleanUser].selectedFrame = 'none';
         if (usersDb[cleanUser].unlockedFrames === undefined) usersDb[cleanUser].unlockedFrames = ['none'];
+        if (usersDb[cleanUser].selectedSkin === undefined) usersDb[cleanUser].selectedSkin = 'standard';
+        if (usersDb[cleanUser].unlockedSkins === undefined) usersDb[cleanUser].unlockedSkins = ['standard'];
+        if (usersDb[cleanUser].equippedTitle === undefined) usersDb[cleanUser].equippedTitle = 'Pecatur Perintis';
+        if (usersDb[cleanUser].unlockedTitles === undefined) usersDb[cleanUser].unlockedTitles = ['Pecatur Perintis'];
+        if (usersDb[cleanUser].equippedCheckmateEffect === undefined) usersDb[cleanUser].equippedCheckmateEffect = 'none';
+        if (usersDb[cleanUser].unlockedCheckmateEffects === undefined) usersDb[cleanUser].unlockedCheckmateEffects = ['none'];
+        if (usersDb[cleanUser].customStatus === undefined) usersDb[cleanUser].customStatus = 'Pantang menyerah sebelum raja digulingkan!';
         if (usersDb[cleanUser].isPrivate === undefined) usersDb[cleanUser].isPrivate = false;
         if (usersDb[cleanUser].followers === undefined) usersDb[cleanUser].followers = [];
         if (usersDb[cleanUser].following === undefined) usersDb[cleanUser].following = [];
@@ -640,6 +940,135 @@ async function startServer() {
       return res.status(404).json({ error: "User tidak ditemukan" });
     } catch (err: any) {
       return res.status(500).json({ error: err.message || "Gagal sinkronisasi data" });
+    }
+  });
+
+  app.post("/api/seasonal/complete-quiz", async (req, res) => {
+    try {
+      const { username, quizId, pointsAwarded } = req.body;
+      if (!username || !quizId) {
+        return res.status(400).json({ error: "Parameter username dan quizId diperlukan" });
+      }
+      const cleanUser = username.trim().toLowerCase();
+      const timestamp = new Date().toISOString();
+      console.log(`[Server Quiz Sync - ${timestamp}] Memulai transaksi atomic untuk @${username}, Quiz: ${quizId}`);
+
+      const userData = usersDb[cleanUser];
+      if (!userData) {
+        return res.status(404).json({ error: "User tidak ditemukan" });
+      }
+
+      // Check for duplicate in local cache
+      const currentQuizzes = userData.seasonal_answered_quizzes || [];
+      if (currentQuizzes.includes(quizId)) {
+        console.warn(`[Server Quiz Sync - ${timestamp}] DUPLICATE: @${username} sudah menjawab quiz "${quizId}"`);
+        return res.json({
+          success: true,
+          alreadyCompleted: true,
+          seasonal_event_score: userData.seasonal_event_score || 0,
+          seasonal_answered_quizzes: currentQuizzes,
+          xp: userData.xp || 0
+        });
+      }
+
+      // Perform atomic Firestore write if db is active and not suspended
+      if (db && !isFirestoreSuspended) {
+        console.log(`[Server Quiz Sync - ${timestamp}] Menjalankan transaksi runTransaction di Firestore...`);
+        const docRef = doc(db, "users", cleanUser);
+        await runTransaction(db, async (transaction) => {
+          const sfDoc = await transaction.get(docRef);
+          if (!sfDoc.exists()) {
+            const freshData = {
+              ...userData,
+              seasonal_event_score: (userData.seasonal_event_score || 0) + pointsAwarded,
+              seasonal_answered_quizzes: [...currentQuizzes, quizId],
+              xp: (userData.xp || 0) + 10
+            };
+            transaction.set(docRef, freshData);
+          } else {
+            const freshDbData = sfDoc.data() || {};
+            const dbQuizzes = freshDbData.seasonal_answered_quizzes || [];
+            if (dbQuizzes.includes(quizId)) {
+              throw new Error("ALREADY_COMPLETED_IN_TRANSACTION");
+            }
+            const dbScore = freshDbData.seasonal_event_score || 0;
+            const dbXp = freshDbData.xp || 0;
+
+            transaction.update(docRef, {
+              seasonal_event_score: dbScore + pointsAwarded,
+              seasonal_answered_quizzes: [...dbQuizzes, quizId],
+              xp: dbXp + 10
+            });
+          }
+        });
+        console.log(`[Server Quiz Sync - ${timestamp}] Firestore transaksi berhasil dikomit.`);
+      }
+
+      // Update local memory and JSON file
+      userData.seasonal_event_score = (userData.seasonal_event_score || 0) + pointsAwarded;
+      userData.seasonal_answered_quizzes = [...(userData.seasonal_answered_quizzes || []), quizId];
+      userData.xp = (userData.xp || 0) + 10;
+      saveUsersDb();
+
+      console.log(`[Server Quiz Sync - ${timestamp}] Sinkronisasi lokal sukses. New Score: ${userData.seasonal_event_score}, XP: ${userData.xp}`);
+      return res.json({
+        success: true,
+        seasonal_event_score: userData.seasonal_event_score,
+        seasonal_answered_quizzes: userData.seasonal_answered_quizzes,
+        xp: userData.xp
+      });
+    } catch (err: any) {
+      if (err?.message === "ALREADY_COMPLETED_IN_TRANSACTION") {
+        const cleanUser = req.body.username?.trim().toLowerCase();
+        return res.json({
+          success: true,
+          alreadyCompleted: true,
+          seasonal_event_score: usersDb[cleanUser]?.seasonal_event_score || 0,
+          seasonal_answered_quizzes: usersDb[cleanUser]?.seasonal_answered_quizzes || [],
+          xp: usersDb[cleanUser]?.xp || 0
+        });
+      }
+      console.error("[Server Quiz Sync] Gagal melakukan atomic sync:", err);
+      return res.status(500).json({ error: err.message || "Gagal melakukan atomic sync" });
+    }
+  });
+
+  app.post("/api/seasonal/reset-quizzes", async (req, res) => {
+    try {
+      const { username } = req.body;
+      if (!username) {
+        return res.status(400).json({ error: "Parameter username diperlukan" });
+      }
+      const cleanUser = username.trim().toLowerCase();
+      const userData = usersDb[cleanUser];
+      if (!userData) {
+        return res.status(404).json({ error: "User tidak ditemukan" });
+      }
+
+      userData.seasonal_answered_quizzes = [];
+      userData.seasonal_event_score = 0;
+      userData.seasonal_completed_milestones = [];
+      saveUsersDb();
+
+      if (db && !isFirestoreSuspended) {
+        const { doc, setDoc } = await import("firebase/firestore");
+        const docRef = doc(db, "users", cleanUser);
+        await setDoc(docRef, {
+          seasonal_answered_quizzes: [],
+          seasonal_event_score: 0,
+          seasonal_completed_milestones: []
+        }, { merge: true });
+      }
+
+      console.log(`[Server Quiz Reset] Progress kuis dan skor event berhasil direset untuk @${username}`);
+      return res.json({
+        success: true,
+        seasonal_event_score: 0,
+        seasonal_answered_quizzes: []
+      });
+    } catch (err: any) {
+      console.error("[Server Quiz Reset] Gagal melakukan reset:", err);
+      return res.status(500).json({ error: err.message || "Gagal melakukan reset" });
     }
   });
 
@@ -845,7 +1274,14 @@ async function startServer() {
       return res.json({
         friends: friendsWithDetails,
         friendRequests: selfUser.friendRequests,
-        inbox: selfUser.inbox
+        inbox: selfUser.inbox,
+        followers: selfUser.followers || [],
+        following: selfUser.following || [],
+        likesCount: selfUser.likesCount !== undefined ? selfUser.likesCount : (selfUser.likes || 0),
+        likedBy: selfUser.likedBy || [],
+        followRequests: selfUser.followRequests || [],
+        isPrivate: !!selfUser.isPrivate,
+        visitorLog: selfUser.visitorLog || []
       });
     } catch (e: any) {
       return res.status(500).json({ error: e.message });
@@ -1614,6 +2050,462 @@ async function startServer() {
     }
   });
 
+  app.get("/api/admin/user/lookup", async (req, res) => {
+    try {
+      const { username } = req.query;
+      if (!username) return res.status(400).json({ error: "Username wajib!" });
+      const lower = (username as string).trim().toLowerCase();
+      const targetKey = lower.startsWith("@") ? lower.substring(1) : lower;
+      
+      const targetUser = await getUserOrFetchFromFirestore(targetKey);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User tidak ditemukan!" });
+      }
+      return res.json({
+        success: true,
+        user: {
+          username: targetUser.username,
+          elo: targetUser.elo || 400,
+          profileAvatar: targetUser.profileAvatar,
+          xp: targetUser.xp || 0,
+          matchesPlayed: targetUser.matchesPlayed || 0
+        }
+      });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/admin/user/restore-elo", async (req, res) => {
+    try {
+      const { username, restoreValue, moderator, reason } = req.body;
+      if (!username || restoreValue === undefined || !moderator) {
+        return res.status(400).json({ error: "Parameter tidak lengkap!" });
+      }
+      const lowerMod = moderator.trim().toLowerCase();
+      const modUser = usersDb[lowerMod];
+      const isModAdmin = lowerMod === "almaira" || lowerMod === "nopal" || (modUser && (modUser.isAdmin || modUser.isStaff));
+      if (!isModAdmin) {
+        return res.status(403).json({ error: "Akses ditolak. Anda bukan staff/moderator!" });
+      }
+
+      const lowerTarget = username.trim().toLowerCase();
+      const targetKey = lowerTarget.startsWith("@") ? lowerTarget.substring(1) : lowerTarget;
+      
+      const targetUser = await getUserOrFetchFromFirestore(targetKey);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User sasaran tidak ditemukan!" });
+      }
+
+      const oldElo = targetUser.elo || 400;
+      targetUser.elo = Number(restoreValue);
+
+      // Create a Match History entry for ELO Restore (affects match history and ELO telemetry)
+      if (!targetUser.onlineHistory) {
+        targetUser.onlineHistory = [];
+      }
+      const eloDiffValue = Number(restoreValue) - oldElo;
+      const historyEntry = {
+        id: "elo-restore-game-" + Date.now(),
+        opponent: "Staff @" + moderator,
+        opponentElo: 1200,
+        outcome: eloDiffValue >= 0 ? "win" : "lose",
+        eloDiff: eloDiffValue,
+        date: new Date().toLocaleDateString("id-ID"),
+        movesCount: 0,
+        moves: []
+      };
+      targetUser.onlineHistory.unshift(historyEntry);
+
+      // Create an Audit Log & Transaction History entry
+      if (!targetUser.chess_transaction_history) {
+        targetUser.chess_transaction_history = [];
+      }
+      const signStr = eloDiffValue >= 0 ? "+" : "";
+      const txDesc = `Pemulihan ELO manual oleh moderator @${moderator}: ${oldElo} -> ${restoreValue} (${signStr}${eloDiffValue} ELO). Alasan: ${reason || 'Pemulihan kegagalan sinkronisasi ELO'}`;
+      targetUser.chess_transaction_history.unshift({
+        id: `tx-elo-restore-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        timestamp: Date.now(),
+        type: 'coin',
+        amount: 0,
+        desc: txDesc
+      });
+
+      // Send a notification/log to target user's inbox
+      if (!targetUser.inbox) {
+        targetUser.inbox = [];
+      }
+      targetUser.inbox.push({
+        id: "elo_restore_" + Date.now(),
+        sender: "SYSTEM (Moderator)",
+        text: `ELO Rating Anda telah dipulihkan secara manual oleh moderator @${modUser ? modUser.username : moderator} dari ${oldElo} menjadi ${restoreValue}. Alasan: ${reason || 'Pemulihan kegagalan sinkronisasi ELO'}`,
+        timestamp: Date.now(),
+        read: false
+      });
+
+      saveUsersDb();
+      await saveUserToFirestore(targetUser.username, true); // force immediate sync
+
+      return res.json({ 
+        success: true, 
+        message: `Berhasil memulihkan ELO @${targetUser.username} dari ${oldElo} menjadi ${restoreValue}.`,
+        user: {
+          username: targetUser.username,
+          elo: targetUser.elo
+        }
+      });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  // GET: Fetch complete user data/stats for state syncing
+  app.get("/api/auth/user-data", async (req, res) => {
+    try {
+      const { username } = req.query;
+      if (!username) {
+        return res.status(400).json({ error: "Missing username parameter" });
+      }
+      const userKey = (username as string).trim().toLowerCase();
+      const userRecord = await getUserOrFetchFromFirestore(userKey);
+      if (!userRecord) {
+        return res.status(404).json({ error: "User tidak ditemukan" });
+      }
+      return res.json({
+        success: true,
+        user: {
+          username: userRecord.username,
+          elo: userRecord.elo || 400,
+          xp: userRecord.xp || 0,
+          coins: userRecord.coins || 500,
+          diamonds: userRecord.diamonds || 20,
+          unlockedThemes: userRecord.unlockedThemes || ["classic"],
+          matchesPlayed: userRecord.matchesPlayed || 0,
+          matchesWon: userRecord.matchesWon || 0,
+          profileAvatar: userRecord.profileAvatar || "/src/assets/images/avatar_martin_1779709510230.png",
+          profileBio: userRecord.profileBio || "Pecatur sejati pantang menyerah!",
+          claimedAchievements: userRecord.claimedAchievements || [],
+          membershipStatus: userRecord.membershipStatus || 'free',
+          unlockedItems: userRecord.unlockedItems || [],
+          selectedFrame: userRecord.selectedFrame || 'none',
+          unlockedFrames: userRecord.unlockedFrames || ['none'],
+          selectedSkin: userRecord.selectedSkin || 'standard',
+          unlockedSkins: userRecord.unlockedSkins || ['standard'],
+          equippedTitle: userRecord.equippedTitle || 'Pecatur Perintis',
+          unlockedTitles: userRecord.unlockedTitles || ['Pecatur Perintis'],
+          equippedCheckmateEffect: userRecord.equippedCheckmateEffect || 'none',
+          unlockedCheckmateEffects: userRecord.unlockedCheckmateEffects || ['none'],
+          customStatus: userRecord.customStatus || 'Pantang menyerah sebelum raja digulingkan!',
+          followers: userRecord.followers || [],
+          following: userRecord.following || [],
+          likesCount: userRecord.likesCount !== undefined ? userRecord.likesCount : (userRecord.likes || 0),
+          likedBy: userRecord.likedBy || [],
+          onlineHistory: userRecord.onlineHistory || [],
+          chess_transaction_history: userRecord.chess_transaction_history || [],
+          pinned_medals_ids: userRecord.pinned_medals_ids || [],
+          blockedUsers: userRecord.blockedUsers || [],
+          streak: userRecord.streak !== undefined ? userRecord.streak : 0,
+          peakXp: userRecord.peakXp !== undefined ? userRecord.peakXp : 0,
+          winStreak: userRecord.winStreak !== undefined ? userRecord.winStreak : 0,
+          longestDefense: userRecord.longestDefense !== undefined ? userRecord.longestDefense : 0
+        }
+      });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  // POST: Restore complete user account state (Coins, Diamonds, ELO, XP)
+  app.post("/api/admin/user/restore-account-state", async (req, res) => {
+    try {
+      const { username, elo, coins, diamonds, xp, moderator, reason } = req.body;
+      if (!username || !moderator) {
+        return res.status(400).json({ error: "Parameter tidak lengkap!" });
+      }
+      const lowerMod = moderator.trim().toLowerCase();
+      const modUser = usersDb[lowerMod];
+      const isModAdmin = lowerMod === "almaira" || lowerMod === "nopal" || (modUser && (modUser.isAdmin || modUser.isStaff));
+      if (!isModAdmin) {
+        return res.status(403).json({ error: "Akses ditolak. Anda bukan staff/moderator!" });
+      }
+
+      const lowerTarget = username.trim().toLowerCase();
+      const targetKey = lowerTarget.startsWith("@") ? lowerTarget.substring(1) : lowerTarget;
+      
+      const targetUser = await getUserOrFetchFromFirestore(targetKey);
+      if (!targetUser) {
+        return res.status(404).json({ error: "User sasaran tidak ditemukan!" });
+      }
+
+      const oldElo = targetUser.elo || 400;
+      const oldCoins = targetUser.coins || 500;
+      const oldDiamonds = targetUser.diamonds || 20;
+      const oldXp = targetUser.xp || 0;
+
+      const updates: string[] = [];
+
+      if (elo !== undefined && !isNaN(elo)) {
+        targetUser.elo = Number(elo);
+        updates.push(`ELO (${oldElo} -> ${elo})`);
+        
+        if (Number(elo) !== oldElo) {
+          if (!targetUser.onlineHistory) {
+            targetUser.onlineHistory = [];
+          }
+          const eloDiffValue = Number(elo) - oldElo;
+          const historyEntry = {
+            id: "elo-restore-game-" + Date.now(),
+            opponent: "Staff @" + moderator,
+            opponentElo: 1200,
+            outcome: eloDiffValue >= 0 ? "win" : "lose",
+            eloDiff: eloDiffValue,
+            date: new Date().toLocaleDateString("id-ID"),
+            movesCount: 0,
+            moves: []
+          };
+          targetUser.onlineHistory.unshift(historyEntry);
+        }
+      }
+
+      if (coins !== undefined && !isNaN(coins)) {
+        targetUser.coins = Number(coins);
+        updates.push(`Koin (${oldCoins} -> ${coins})`);
+      }
+
+      if (diamonds !== undefined && !isNaN(diamonds)) {
+        targetUser.diamonds = Number(diamonds);
+        updates.push(`Diamond (${oldDiamonds} -> ${diamonds})`);
+      }
+
+      if (xp !== undefined && !isNaN(xp)) {
+        targetUser.xp = Number(xp);
+        updates.push(`XP (${oldXp} -> ${xp})`);
+      }
+
+      const updateSummary = updates.join(", ");
+      const txDesc = `Pemulihan status akun manual oleh moderator @${moderator}: ${updateSummary}. Alasan: ${reason || 'Sinkronisasi ulang kegagalan sistem'}`;
+
+      // Create an Audit Log & Transaction History entry
+      if (!targetUser.chess_transaction_history) {
+        targetUser.chess_transaction_history = [];
+      }
+      targetUser.chess_transaction_history.unshift({
+        id: `tx-state-restore-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        timestamp: Date.now(),
+        type: 'coin',
+        amount: 0,
+        desc: txDesc
+      });
+
+      // Send a notification/log to target user's inbox
+      if (!targetUser.inbox) {
+        targetUser.inbox = [];
+      }
+      targetUser.inbox.push({
+        id: "state_restore_" + Date.now(),
+        sender: "SYSTEM (Moderator)",
+        text: `Status akun Anda telah dipulihkan secara manual oleh moderator @${modUser ? modUser.username : moderator}. Detail perubahan: ${updateSummary}. Alasan: ${reason || 'Sinkronisasi ulang kegagalan sistem'}`,
+        timestamp: Date.now(),
+        read: false
+      });
+
+      saveUsersDb();
+      await saveUserToFirestore(targetUser.username, true); // force immediate sync
+
+      return res.json({ 
+        success: true, 
+        message: `Berhasil memulihkan status @${targetUser.username}: ${updateSummary}.`,
+        user: {
+          username: targetUser.username,
+          elo: targetUser.elo,
+          coins: targetUser.coins,
+          diamonds: targetUser.diamonds,
+          xp: targetUser.xp
+        }
+      });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  // --- SUPPORT TICKET & AI CUSTOMER SERVICE ROUTES ---
+  app.post("/api/support/tickets/create", (req, res) => {
+    try {
+      const { username, title, description, category } = req.body;
+      if (!username || !title || !description) {
+        return res.status(400).json({ error: "Username, judul, dan deskripsi wajib diisi!" });
+      }
+
+      const newTicket = {
+        id: "TKT-" + Math.floor(100000 + Math.random() * 900000),
+        username: username.trim(),
+        title: title.trim(),
+        description: description.trim(),
+        category: category || "Umum",
+        status: "open",
+        createdAt: new Date().toISOString(),
+        replies: []
+      };
+
+      supportTickets.push(newTicket);
+      saveTickets();
+      return res.json({ success: true, ticket: newTicket });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/support/tickets/list", (req, res) => {
+    try {
+      const { username } = req.body;
+      if (!username) {
+        return res.status(400).json({ error: "Username wajib!" });
+      }
+
+      const lower = username.trim().toLowerCase();
+      const userObj = usersDb[lower];
+      const isAdminOrStaff = lower === "nopal" || lower === "almaira" || userObj?.isStaff || userObj?.isAdmin;
+
+      // If Admin/Staff, return all tickets. Otherwise, return user's own tickets.
+      const list = isAdminOrStaff 
+        ? supportTickets 
+        : supportTickets.filter(t => t.username.toLowerCase() === lower);
+
+      return res.json({ success: true, tickets: list });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/support/tickets/reply", (req, res) => {
+    try {
+      const { username, ticketId, text } = req.body;
+      if (!username || !ticketId || !text) {
+        return res.status(400).json({ error: "Username, ticketId, dan isi balasan wajib diisi!" });
+      }
+
+      const ticket = supportTickets.find(t => t.id === ticketId);
+      if (!ticket) {
+        return res.status(404).json({ error: "Tiket tidak ditemukan!" });
+      }
+
+      const lower = username.trim().toLowerCase();
+      const userObj = usersDb[lower];
+      const isAdminOrStaff = lower === "nopal" || lower === "almaira" || userObj?.isStaff || userObj?.isAdmin;
+
+      const newReply = {
+        sender: username.trim(),
+        text: text.trim(),
+        createdAt: new Date().toISOString(),
+        isAdmin: isAdminOrStaff
+      };
+
+      ticket.replies.push(newReply);
+      
+      // If admin/staff replies, we can mark the ticket as pending, otherwise keep it open or update status
+      if (isAdminOrStaff) {
+        ticket.status = "pending";
+      } else {
+        ticket.status = "open";
+      }
+
+      saveTickets();
+      return res.json({ success: true, ticket });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/support/tickets/resolve", (req, res) => {
+    try {
+      const { username, ticketId } = req.body;
+      if (!ticketId) {
+        return res.status(400).json({ error: "ticketId wajib diisi!" });
+      }
+
+      const ticket = supportTickets.find(t => t.id === ticketId);
+      if (!ticket) {
+        return res.status(404).json({ error: "Tiket tidak ditemukan!" });
+      }
+
+      ticket.status = "resolved";
+      saveTickets();
+      return res.json({ success: true, ticket });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
+  app.post("/api/support/ai-chat", async (req, res) => {
+    try {
+      const { message, history } = req.body;
+      if (!message) {
+        return res.status(400).json({ error: "Pesan wajib diisi!" });
+      }
+
+      // Offline keyword-based smart chatbot fallback
+      const getOfflineReply = (msg: string) => {
+        const text = msg.toLowerCase();
+        if (text.includes("koin") || text.includes("coin") || text.includes("emas") || text.includes("diamond") || text.includes("berlian")) {
+          return "Halo! Anda bisa mendapatkan Koin & Diamond gratis dengan menyelesaikan Quest Harian, memenangkan game catur, memecahkan Puzzles taktik harian, mempelajari materi Lessons, atau mengklaim harian di Beranda. Diamond juga bisa diperoleh dari pencapaian (Achievements) atau penayangan spesial.";
+        }
+        if (text.includes("suku") || text.includes("clan") || text.includes("guild") || text.includes("catur")) {
+          return "Suku Catur (Klan) adalah fitur kolaborasi. Anda bisa bergabung ke Suku Catur pilihan Anda, melakukan check-in tim harian untuk mengklaim chest akumulatif mingguan, dan mengobrol bersama kawan se-Suku di ruang chat!";
+        }
+        if (text.includes("skin") || text.includes("tema") || text.includes("kosmetik") || text.includes("toko") || text.includes("shop")) {
+          return "Kunjungi menu Shop! Di sana Anda bisa menukarkan Koin & Diamond Anda dengan Skin Bidak Catur (misal: Set Anime, Set Kayu premium, dll), Bingkai Avatar profil mewah, atau mencoba peruntungan Gacha berhadiah kosmetik eksklusif!";
+        }
+        if (text.includes("bug") || text.includes("eror") || text.includes("curang") || text.includes("lapor")) {
+          return "Jika Anda menemukan bug teknis atau pemain curang, harap segera buat laporan resmi melalui menu 'Kirim Tiket Dukungan' di bawah FAQ ini. Tim Staff admin kami (Almaira & Nopal) akan langsung memeriksa laporan Anda secara berkala.";
+        }
+        if (text.includes("tutorial") || text.includes("belajar") || text.includes("cara main")) {
+          return "Kami telah menyediakan halaman Panduan & Daftar Tutorial di menu Arena Utama! Anda dapat mengakses daftar panduan interaktif, mempelajari taktik matang dasar, maupun meluncurkan simulasi langkah catur secara langsung.";
+        }
+        return "Halo! Saya adalah Pal Mate AI Support. Ada yang bisa saya bantu terkait fitur catur ELO, klub Suku Catur, koin harian, atau kustomisasi kosmetik skin di platform kami? Silakan ketik pertanyaan Anda atau buat Tiket Dukungan jika Anda membutuhkan bantuan manual dari Staff Almaira/Nopal.";
+      };
+
+      if (ai) {
+        try {
+          // Construct chat style history
+          let systemInstruction = `You are Pal Mate's AI Support Agent (Customer Service), speaking in Indonesian. 
+Pal Mate is an elite premium chess platform with ELO matchmaking, Chess Suku (clubs/clans), Daily Quests, Cosmetic Shops (anime/wood skins, avatar frames, custom checkmate effects), Replay Logs, Social Hub, and Community Forums.
+Answer the user's support query politely, cheerfully, and concisely (maximum 3 sentences). 
+Keep your tone cheerful, respectful, and helpful. 
+If they ask about severe issues (like billing or account ban), advise them to submit a Support Ticket via the Support Center.
+Help them with gameplay rules, how to earn coins (by winning matches, daily puzzles, check-ins), skin customization, or joining Suku.`;
+
+          let formattedPrompt = "";
+          if (history && Array.isArray(history)) {
+            history.forEach((h: any) => {
+              const speaker = h.role === "user" ? "User" : "Agent";
+              formattedPrompt += `${speaker}: ${h.text}\n`;
+            });
+          }
+          formattedPrompt += `User: ${message}\nAgent:`;
+
+          const response = await ai.models.generateContent({
+            model: "gemini-3.5-flash",
+            contents: formattedPrompt,
+            config: {
+              systemInstruction,
+              temperature: 0.7,
+            }
+          });
+
+          const replyText = response.text?.trim() || getOfflineReply(message);
+          return res.json({ success: true, reply: replyText });
+        } catch (apiErr) {
+          console.error("Gemini support error, falling back to offline handler:", apiErr);
+          return res.json({ success: true, reply: getOfflineReply(message) });
+        }
+      } else {
+        return res.json({ success: true, reply: getOfflineReply(message) });
+      }
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
   app.post("/api/analyze-position", async (req, res) => {
     try {
       const { fen, moveSan, moveQuality, moveIndex } = req.body;
@@ -2084,6 +2976,24 @@ PANDUAN CHAT MANUSIA ALAMI (ANTI-ROBOTIK):
       if (!userRecord) {
         return res.status(404).json({ error: "User tidak ditemukan" });
       }
+
+      // Update last active time for real-time online status tracking
+      userRecord.lastActiveAt = Date.now();
+
+      // Dynamic online status calculation for guild members
+      const now = Date.now();
+      const activeMembers = Array.isArray(userRecord.guild_members)
+        ? userRecord.guild_members.map((m: any) => {
+            const uKey = m.name?.toLowerCase();
+            const uRec = usersDb[uKey];
+            const isOnline = uRec && uRec.lastActiveAt && (now - uRec.lastActiveAt < 120000);
+            return {
+              ...m,
+              status: isOnline ? 'Online' : 'Offline'
+            };
+          })
+        : [];
+
       return res.json({
         success: true,
         user: {
@@ -2101,7 +3011,21 @@ PANDUAN CHAT MANUSIA ALAMI (ANTI-ROBOTIK):
           customStatus: userRecord.customStatus || "Pantang menyerah sebelum raja digulingkan!",
           membershipStatus: userRecord.membershipStatus || "free",
           isStaff: !!userRecord.isStaff,
-          isAdmin: !!userRecord.isAdmin || userKey === "nopal" || userKey === "almaira"
+          isAdmin: !!userRecord.isAdmin || userKey === "nopal" || userKey === "almaira",
+          guild_has_owner: userRecord.guild_has_owner || false,
+          guild_profile_data: userRecord.guild_profile_data || null,
+          guild_members: activeMembers,
+          guild_lvl: userRecord.guild_lvl || 1,
+          guild_treasury_gold: userRecord.guild_treasury_gold || 0,
+          guild_blacklist_list: userRecord.guild_blacklist_list || [],
+          guild_action_history: userRecord.guild_action_history || [],
+          guild_join_requests: userRecord.guild_join_requests || [],
+          requested_fragment_skin: userRecord.requested_fragment_skin || null,
+          has_active_fragment_req: userRecord.has_active_fragment_req || false,
+          today_fragment_donation_count: userRecord.today_fragment_donation_count || 0,
+          conquered_boards_list: userRecord.conquered_boards_list || [],
+          clan_checked_in: userRecord.clan_checked_in || false,
+          clan_weekly_milestones: userRecord.clan_weekly_milestones || []
         }
       });
     } catch (e: any) {
@@ -2127,6 +3051,676 @@ PANDUAN CHAT MANUSIA ALAMI (ANTI-ROBOTIK):
       return res.json(combined);
     } catch (e) {
       return res.json(seed);
+    }
+  });
+
+  // REAL-TIME GUILD LEADERBOARD (ONLY REAL USER-CREATED CLUBS)
+  const guildsFile = path.join(dataDir, "guilds.json");
+  const disbandedGuildsFile = path.join(dataDir, "disbanded_guilds.json");
+
+  let guildsDb: Record<string, any> = {};
+  if (fs.existsSync(guildsFile)) {
+    try {
+      guildsDb = JSON.parse(fs.readFileSync(guildsFile, "utf8"));
+    } catch (e) {
+      guildsDb = {};
+    }
+  }
+
+  let disbandedGuildsList: string[] = [];
+  if (fs.existsSync(disbandedGuildsFile)) {
+    try {
+      disbandedGuildsList = JSON.parse(fs.readFileSync(disbandedGuildsFile, "utf8"));
+    } catch (e) {
+      disbandedGuildsList = [];
+    }
+  }
+  const disbandedGuilds = new Set<string>(disbandedGuildsList.map(s => String(s).trim().toLowerCase()));
+
+  const saveDisbandedGuilds = () => {
+    try {
+      fs.writeFileSync(disbandedGuildsFile, JSON.stringify(Array.from(disbandedGuilds), null, 2), "utf8");
+    } catch (e) {
+      console.error("Error saving disbanded guilds db:", e);
+    }
+  };
+
+  const saveGuilds = () => {
+    try {
+      fs.writeFileSync(guildsFile, JSON.stringify(guildsDb, null, 2), "utf8");
+    } catch (e) {
+      console.error("Error saving guilds db:", e);
+    }
+  };
+
+  app.get("/api/guilds/details", (req, res) => {
+    try {
+      const { name, username } = req.query;
+      if (!name) return res.status(400).json({ error: "Nama klan wajib diisi" });
+
+      if (username) {
+        const uKey = String(username).trim().toLowerCase();
+        if (usersDb[uKey]) {
+          usersDb[uKey].lastActiveAt = Date.now();
+        }
+      }
+
+      const guildKey = String(name).trim().toLowerCase();
+      if (disbandedGuilds.has(guildKey)) {
+        return res.status(404).json({ error: "Klan telah dibubarkan", disbanded: true });
+      }
+
+      let guild = guildsDb[guildKey];
+
+      if (!guild) {
+        const ownerKey = Object.keys(usersDb).find(k => {
+          const u = usersDb[k];
+          return u && u.guild_has_owner && u.guild_profile_data?.name?.trim()?.toLowerCase() === guildKey;
+        });
+        if (ownerKey && usersDb[ownerKey] && !disbandedGuilds.has(guildKey)) {
+          guild = usersDb[ownerKey].guild_profile_data;
+          if (guild) {
+            guild.members = usersDb[ownerKey].guild_members || [];
+            guildsDb[guildKey] = guild;
+            saveGuilds();
+          }
+        }
+      }
+
+      if (!guild || disbandedGuilds.has(guildKey)) {
+        return res.status(404).json({ error: "Klan tidak ditemukan atau telah dibubarkan" });
+      }
+
+      const now = Date.now();
+      let members = Array.isArray(guild.members) ? [...guild.members] : [];
+
+      if (username) {
+        const activeUserStr = String(username).trim();
+        const activeUserLower = activeUserStr.toLowerCase();
+        if (members.length === 0 || !members.some((m: any) => m && m.name && m.name.trim().toLowerCase() === activeUserLower)) {
+          const userRec = usersDb[activeUserLower];
+          const userContrib = Number(userRec?.user_clan_contribution) || 1250;
+          const userRating = Number(userRec?.elo) || 600;
+          const userLvl = Math.floor(userRating / 30) + 1;
+          members.unshift({
+            name: activeUserStr,
+            role: guild.leader?.toLowerCase() === activeUserLower || guild.ownerUsername?.toLowerCase() === activeUserLower ? 'Founder' : 'Member',
+            rating: userRating,
+            status: 'Online',
+            contribution: userContrib,
+            level: userLvl
+          });
+          guild.members = members;
+          guildsDb[guildKey] = guild;
+          saveGuilds();
+        }
+      }
+
+      const membersWithStatus = members.map((m: any) => {
+        const uKey = m.name?.toLowerCase();
+        const uRecord = usersDb[uKey];
+        const isOnline = uRecord && uRecord.lastActiveAt && (now - uRecord.lastActiveAt < 120000);
+        return {
+          ...m,
+          contribution: m.contribution !== undefined ? Number(m.contribution) : 0,
+          status: isOnline ? 'Online' : 'Offline'
+        };
+      });
+
+      const totalElo = membersWithStatus.reduce((sum: number, m: any) => sum + Number(m.rating || m.elo || 600), 0);
+
+      return res.json({
+        success: true,
+        guild: {
+          ...guild,
+          treasury: guild.treasury !== undefined ? Number(guild.treasury) : 250,
+          members: membersWithStatus,
+          membersCount: Math.max(1, membersWithStatus.length),
+          totalElo: totalElo
+        }
+      });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/guilds/donate", async (req, res) => {
+    try {
+      const { username, guildName, amount } = req.body;
+      if (!username || !guildName || !amount) {
+        return res.status(400).json({ error: "Parameter tidak lengkap" });
+      }
+      const cleanUser = String(username).trim().toLowerCase();
+      const guildKey = String(guildName).trim().toLowerCase();
+      const numAmount = Number(amount) || 0;
+
+      let guild = guildsDb[guildKey];
+      if (!guild) {
+        const ownerKey = Object.keys(usersDb).find(k => {
+          const u = usersDb[k];
+          return u && u.guild_has_owner && u.guild_profile_data?.name?.trim()?.toLowerCase() === guildKey;
+        });
+        if (ownerKey && usersDb[ownerKey]) {
+          guild = usersDb[ownerKey].guild_profile_data || { name: guildName };
+        }
+      }
+
+      if (!guild) {
+        guild = {
+          id: guildName,
+          name: guildName,
+          tag: 'ELIT',
+          leader: username,
+          members: [{ name: username, role: 'Founder', rating: 600, status: 'Online', contribution: numAmount, level: 1 }],
+          treasury: 250 + numAmount,
+          level: Math.max(1, Math.floor((250 + numAmount) / 1200) + 1)
+        };
+      } else {
+        guild.treasury = (Number(guild.treasury) || 0) + numAmount;
+        guild.level = Math.max(1, Math.floor(guild.treasury / 1200) + 1);
+      }
+
+      let members = Array.isArray(guild.members) ? guild.members : [];
+      let foundMember = false;
+      members = members.map((m: any) => {
+        if (m.name?.trim()?.toLowerCase() === cleanUser) {
+          foundMember = true;
+          return { ...m, contribution: (Number(m.contribution) || 0) + numAmount };
+        }
+        return m;
+      });
+
+      if (!foundMember) {
+        members.push({
+          name: username,
+          role: 'Founder',
+          rating: 600,
+          status: 'Online',
+          contribution: numAmount,
+          level: 1
+        });
+      }
+
+      guild.members = members;
+      guild.membersCount = members.length;
+      guildsDb[guildKey] = guild;
+      saveGuilds();
+
+      // Sync updated treasury and members across all members of this clan in usersDb
+      Object.keys(usersDb).forEach(uKey => {
+        const u = usersDb[uKey];
+        if (u && u.guild_has_owner && u.guild_profile_data?.name?.trim()?.toLowerCase() === guildKey) {
+          if (u.guild_profile_data) {
+            u.guild_profile_data.treasury = guild.treasury;
+            u.guild_profile_data.level = guild.level;
+          }
+          if (uKey === cleanUser) {
+            u.user_clan_contribution = (Number(u.user_clan_contribution) || 0) + numAmount;
+          }
+          u.guild_members = members;
+          saveUserToFirestore(u.username).catch(() => {});
+        }
+      });
+
+      saveUsersDb();
+
+      return res.json({
+        success: true,
+        treasury: guild.treasury,
+        level: guild.level,
+        members: members
+      });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/guilds/withdraw", async (req, res) => {
+    try {
+      const { username, guildName, amount } = req.body;
+      if (!username || !guildName || !amount) {
+        return res.status(400).json({ error: "Parameter tidak lengkap" });
+      }
+      const cleanUser = String(username).trim().toLowerCase();
+      const guildKey = String(guildName).trim().toLowerCase();
+      const numAmount = Math.floor(Number(amount)) || 0;
+      if (numAmount <= 0) return res.status(400).json({ error: "Jumlah tidak valid" });
+
+      let guild = guildsDb[guildKey];
+      if (!guild) {
+        const ownerKey = Object.keys(usersDb).find(k => {
+          const u = usersDb[k];
+          return u && u.guild_has_owner && u.guild_profile_data?.name?.trim()?.toLowerCase() === guildKey;
+        });
+        if (ownerKey && usersDb[ownerKey]) {
+          guild = usersDb[ownerKey].guild_profile_data || { name: guildName };
+        }
+      }
+
+      if (!guild) {
+        return res.status(404).json({ error: "Klan tidak ditemukan" });
+      }
+
+      const currentTreasury = Number(guild.treasury) || 0;
+      if (currentTreasury < numAmount) {
+        return res.status(400).json({ error: "Saldo koin di brankas klan tidak mencukupi" });
+      }
+
+      guild.treasury = Math.max(0, currentTreasury - numAmount);
+      guild.level = Math.max(1, Math.floor(guild.treasury / 1200) + 1);
+
+      guildsDb[guildKey] = guild;
+      saveGuilds();
+
+      // Sync updated treasury and level across members in usersDb
+      Object.keys(usersDb).forEach(uKey => {
+        const u = usersDb[uKey];
+        if (u && u.guild_has_owner && u.guild_profile_data?.name?.trim()?.toLowerCase() === guildKey) {
+          if (u.guild_profile_data) {
+            u.guild_profile_data.treasury = guild.treasury;
+            u.guild_profile_data.level = guild.level;
+          }
+          if (uKey === cleanUser) {
+            u.coins = (Number(u.coins) || 0) + numAmount;
+          }
+          saveUserToFirestore(u.username).catch(() => {});
+        }
+      });
+      saveUsersDb();
+
+      return res.json({
+        success: true,
+        treasury: guild.treasury,
+        level: guild.level
+      });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.get("/api/guilds/leaderboard", (req, res) => {
+    try {
+      const combinedMap: Record<string, any> = {};
+
+      // 1. Include all active guilds saved in guildsDb
+      Object.values(guildsDb).forEach((g: any) => {
+        if (g && g.name) {
+          const key = g.name.trim().toLowerCase();
+          if (disbandedGuilds.has(key)) return; // Skip disbanded
+          const members = Array.isArray(g.members) ? g.members : [];
+          if (members.length > 0 || Number(g.membersCount) > 0) {
+            const calcElo = members.length > 0
+              ? members.reduce((sum: number, m: any) => sum + Number(m.rating || m.elo || 600), 0)
+              : Number(g.totalElo || 1200);
+
+            combinedMap[key] = {
+              id: g.id || g.name,
+              name: g.name,
+              tag: g.tag || 'ELIT',
+              leader: g.leader || g.leaderName || g.ownerUsername || 'Ketua Klan',
+              ownerUsername: g.ownerUsername || g.leader || '',
+              level: Number(g.level || 1),
+              treasury: g.treasury !== undefined ? Number(g.treasury) : 250,
+              totalElo: calcElo,
+              membersCount: members.length || Number(g.membersCount || 1),
+              maxMembers: 30,
+              motto: g.motto || g.description || g.desc || "Klan Catur Sejati",
+              logo: g.logo || "perisai",
+              minRating: Number(g.minRating || 600),
+              joinSystem: g.joinSystem || 'Bebas'
+            };
+          }
+        }
+      });
+
+      // 2. Scan users in usersDb for user-created clubs that are NOT disbanded
+      Object.values(usersDb).forEach((u: any) => {
+        if (u && (u.guild_has_owner || u.guild_profile_data) && u.guild_profile_data?.name) {
+          const prof = u.guild_profile_data;
+          const guildName = String(prof.name).trim();
+          if (guildName) {
+            const key = guildName.toLowerCase();
+            if (disbandedGuilds.has(key)) return; // CRITICAL: SKIP DISBANDED CLANS!
+            if (!u.guild_has_owner) return;
+            const mems = u.guild_members || [];
+            if (mems.length > 0) {
+              const calcElo = mems.reduce((sum: number, m: any) => sum + Number(m.rating || m.elo || 600), 0);
+              const clanTreasury = guildsDb[key]?.treasury !== undefined ? Number(guildsDb[key].treasury) : (prof.treasury !== undefined ? Number(prof.treasury) : 250);
+              combinedMap[key] = {
+                id: prof.id || guildName,
+                name: guildName,
+                tag: prof.tag || 'ELIT',
+                leader: prof.leader || u.username || 'Ketua Klan',
+                ownerUsername: u.username || prof.leader || '',
+                level: Number(u.guild_lvl || prof.level || 1),
+                treasury: clanTreasury,
+                totalElo: calcElo,
+                membersCount: mems.length,
+                maxMembers: 30,
+                motto: prof.motto || prof.description || prof.desc || "Klan Catur Sejati",
+                logo: prof.logo || "perisai",
+                minRating: Number(prof.minRating || 600),
+                joinSystem: prof.joinSystem || 'Bebas'
+              };
+            }
+          }
+        }
+      });
+
+      const guildsList = Object.values(combinedMap);
+      guildsList.sort((a, b) => b.totalElo - a.totalElo || b.level - a.level);
+
+      return res.json({ success: true, guilds: guildsList });
+    } catch (e: any) {
+      return res.json({ success: true, guilds: [] });
+    }
+  });
+
+  app.post("/api/guilds/sync", async (req, res) => {
+    try {
+      const { guild } = req.body;
+      if (!guild || !guild.name) {
+        return res.status(400).json({ error: "Data suku tidak valid" });
+      }
+      const guildKey = guild.name.trim().toLowerCase();
+      if (disbandedGuilds.has(guildKey)) {
+        return res.status(400).json({ error: "Klan telah dibubarkan dan tidak dapat disinkronkan.", disbanded: true });
+      }
+
+      const existingGuild = guildsDb[guildKey];
+      const preservedTreasury = existingGuild?.treasury !== undefined 
+        ? Number(existingGuild.treasury) 
+        : (guild.treasury !== undefined ? Number(guild.treasury) : 250);
+
+      const updatedGuild = {
+        ...guild,
+        treasury: preservedTreasury,
+        updatedAt: new Date().toISOString()
+      };
+      guildsDb[guildKey] = updatedGuild;
+      saveGuilds();
+      await syncGuildToFirestore(updatedGuild).catch(() => {});
+
+      const ownerUsername = guild.ownerUsername || guild.leader;
+      if (ownerUsername) {
+        const uKey = String(ownerUsername).trim().toLowerCase();
+        if (usersDb[uKey]) {
+          usersDb[uKey].guild_has_owner = true;
+          usersDb[uKey].guild_profile_data = updatedGuild;
+          if (Array.isArray(guild.members)) {
+            usersDb[uKey].guild_members = guild.members;
+          }
+          saveUserToFirestore(usersDb[uKey].username);
+          saveUsersDb();
+        }
+      }
+
+      return res.json({ success: true, guild: guildsDb[guildKey] });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/guilds/disband", async (req, res) => {
+    try {
+      const { username, guildName } = req.body;
+      if (!username || !guildName) {
+        return res.status(400).json({ error: "Parameter tidak lengkap" });
+      }
+      const cleanUser = String(username).trim().toLowerCase();
+      const guildKey = String(guildName).trim().toLowerCase();
+
+      // Track as disbanded permanently
+      disbandedGuilds.add(guildKey);
+      saveDisbandedGuilds();
+
+      // Delete from guildsDb and Firestore
+      if (guildsDb[guildKey]) {
+        delete guildsDb[guildKey];
+        saveGuilds();
+      }
+      await removeGuildFromFirestore(guildKey).catch(() => {});
+
+      // Clear guild state for all users in this clan
+      Object.keys(usersDb).forEach(uKey => {
+        const u = usersDb[uKey];
+        if (u) {
+          const userGuild = u.guild_profile_data?.name?.trim()?.toLowerCase();
+          const inMembers = Array.isArray(u.guild_members) && u.guild_members.some((m: any) => {
+            const mName = String(m.name || m.username || '').trim().toLowerCase();
+            return mName === uKey || userGuild === guildKey;
+          });
+          if (userGuild === guildKey || inMembers || uKey === cleanUser) {
+            u.guild_has_owner = false;
+            u.guild_profile_data = null;
+            u.guild_members = [];
+            u.guild_lvl = 1;
+            saveUserToFirestore(u.username).catch(() => {});
+          }
+        }
+      });
+      saveUsersDb();
+
+      return res.json({ success: true, message: "Klan berhasil dibubarkan" });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/guilds/join", async (req, res) => {
+    try {
+      const { username, guildName, userRating, userLevel } = req.body;
+      if (!username || !guildName) {
+        return res.status(400).json({ error: "Parameter tidak lengkap" });
+      }
+      const cleanUser = String(username).trim().toLowerCase();
+      const guildKey = String(guildName).trim().toLowerCase();
+
+      // If user was previously in another clan, perform leave logic first
+      if (usersDb[cleanUser] && usersDb[cleanUser].guild_profile_data?.name) {
+        const oldGuildName = usersDb[cleanUser].guild_profile_data.name;
+        const oldGuildKey = oldGuildName.trim().toLowerCase();
+        if (oldGuildKey !== guildKey) {
+          if (guildsDb[oldGuildKey] && Array.isArray(guildsDb[oldGuildKey].members)) {
+            guildsDb[oldGuildKey].members = guildsDb[oldGuildKey].members.filter((m: any) => m.name?.toLowerCase() !== cleanUser);
+            guildsDb[oldGuildKey].membersCount = guildsDb[oldGuildKey].members.length;
+            guildsDb[oldGuildKey].totalElo = guildsDb[oldGuildKey].members.reduce((sum: number, m: any) => sum + (m.rating || 600), 0);
+            saveGuilds();
+            await syncGuildToFirestore(guildsDb[oldGuildKey]).catch(() => {});
+          }
+        }
+      }
+
+      let guild = guildsDb[guildKey];
+      let ownerKey = Object.keys(usersDb).find(k => {
+        const u = usersDb[k];
+        return u && u.guild_has_owner && u.guild_profile_data?.name?.trim()?.toLowerCase() === guildKey;
+      });
+
+      const newMember = {
+        name: username,
+        role: 'Member',
+        rating: Number(userRating) || 600,
+        status: 'Online',
+        contribution: 100,
+        level: Number(userLevel) || 1
+      };
+
+      let updatedMembers: any[] = [];
+      let finalGuildObj: any = guild;
+
+      if (guild) {
+        let members = Array.isArray(guild.members) ? guild.members : [];
+        if (!members.some((m: any) => m.name?.toLowerCase() === cleanUser)) {
+          members.push(newMember);
+        }
+        guild.members = members;
+        guild.membersCount = members.length;
+        guild.totalElo = members.reduce((sum: number, m: any) => sum + Number(m.rating || 600), 0);
+        guildsDb[guildKey] = guild;
+        saveGuilds();
+        await syncGuildToFirestore(guild).catch(() => {});
+        updatedMembers = members;
+        finalGuildObj = guild;
+      } else if (ownerKey && usersDb[ownerKey]) {
+        const ownerObj = usersDb[ownerKey];
+        let ownerMembers = Array.isArray(ownerObj.guild_members) ? ownerObj.guild_members : [];
+        if (!ownerMembers.some((m: any) => m.name?.toLowerCase() === cleanUser)) {
+          ownerMembers.push(newMember);
+        }
+        ownerObj.guild_members = ownerMembers;
+        updatedMembers = ownerMembers;
+        finalGuildObj = ownerObj.guild_profile_data || { name: guildName, tag: 'ELIT' };
+        finalGuildObj.treasury = finalGuildObj.treasury !== undefined ? Number(finalGuildObj.treasury) : 250;
+        finalGuildObj.members = updatedMembers;
+        finalGuildObj.membersCount = updatedMembers.length;
+        finalGuildObj.totalElo = updatedMembers.reduce((sum: number, m: any) => sum + Number(m.rating || 600), 0);
+        guildsDb[guildKey] = finalGuildObj;
+        saveGuilds();
+        await syncGuildToFirestore(finalGuildObj).catch(() => {});
+      } else {
+        finalGuildObj = {
+          id: guildName,
+          name: guildName,
+          tag: 'ELIT',
+          leader: username,
+          ownerUsername: username,
+          level: 1,
+          totalElo: Number(userRating) || 600,
+          membersCount: 1,
+          maxMembers: 30,
+          motto: "Klan Catur Sejati",
+          logo: "perisai",
+          minRating: 600,
+          joinSystem: 'Bebas',
+          members: [newMember]
+        };
+        guildsDb[guildKey] = finalGuildObj;
+        saveGuilds();
+        await syncGuildToFirestore(finalGuildObj).catch(() => {});
+        updatedMembers = [newMember];
+      }
+
+      // Sync user profile in usersDb
+      if (usersDb[cleanUser]) {
+        usersDb[cleanUser].guild_has_owner = true;
+        usersDb[cleanUser].guild_profile_data = finalGuildObj;
+        usersDb[cleanUser].guild_members = updatedMembers;
+        await saveUserToFirestore(usersDb[cleanUser].username);
+      }
+
+      // Sync all existing members in usersDb for this guild
+      Object.keys(usersDb).forEach(uKey => {
+        const u = usersDb[uKey];
+        if (u && u.guild_has_owner && u.guild_profile_data?.name?.trim()?.toLowerCase() === guildKey) {
+          u.guild_members = updatedMembers;
+          if (u.guild_profile_data) {
+            u.guild_profile_data.totalElo = finalGuildObj.totalElo;
+            u.guild_profile_data.membersCount = finalGuildObj.membersCount;
+          }
+          saveUserToFirestore(u.username);
+        }
+      });
+      saveUsersDb();
+
+      return res.json({ success: true, guild: finalGuildObj, members: updatedMembers });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/guilds/leave", async (req, res) => {
+    try {
+      const { username, guildName } = req.body;
+      if (!username || !guildName) return res.status(400).json({ error: "Parameter tidak lengkap" });
+      const cleanUser = String(username).trim().toLowerCase();
+      const guildKey = String(guildName).trim().toLowerCase();
+
+      let remainingMembers: any[] = [];
+
+      // 1. Update guildsDb
+      if (guildsDb[guildKey]) {
+        if (Array.isArray(guildsDb[guildKey].members)) {
+          guildsDb[guildKey].members = guildsDb[guildKey].members.filter((m: any) => m.name?.toLowerCase() !== cleanUser);
+          remainingMembers = guildsDb[guildKey].members;
+          guildsDb[guildKey].membersCount = remainingMembers.length;
+          guildsDb[guildKey].totalElo = remainingMembers.reduce((sum: number, m: any) => sum + Number(m.rating || 600), 0);
+        }
+
+        if (guildsDb[guildKey].membersCount <= 0) {
+          delete guildsDb[guildKey];
+          await removeGuildFromFirestore(guildKey).catch(() => {});
+        } else {
+          await syncGuildToFirestore(guildsDb[guildKey]).catch(() => {});
+        }
+        saveGuilds();
+      }
+
+      // 2. Clear user state
+      if (usersDb[cleanUser]) {
+        usersDb[cleanUser].guild_has_owner = false;
+        usersDb[cleanUser].guild_profile_data = null;
+        usersDb[cleanUser].guild_members = [];
+        await saveUserToFirestore(usersDb[cleanUser].username);
+      }
+
+      // 3. Update remaining clan members in usersDb
+      Object.keys(usersDb).forEach(uKey => {
+        const u = usersDb[uKey];
+        if (u && u.guild_has_owner && u.guild_profile_data?.name?.trim()?.toLowerCase() === guildKey && uKey !== cleanUser) {
+          u.guild_members = remainingMembers;
+          if (guildsDb[guildKey] && u.guild_profile_data) {
+            u.guild_profile_data.totalElo = guildsDb[guildKey].totalElo;
+            u.guild_profile_data.membersCount = guildsDb[guildKey].membersCount;
+          }
+          saveUserToFirestore(u.username);
+        }
+      });
+      saveUsersDb();
+
+      return res.json({ success: true });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/social/like", async (req, res) => {
+    try {
+      const { targetUsername, fromUsername } = req.body;
+      if (!targetUsername || !fromUsername) {
+        return res.status(400).json({ error: "Parameter tidak lengkap!" });
+      }
+      const targetKey = targetUsername.trim().toLowerCase();
+      const targetUser = await getUserOrFetchFromFirestore(targetKey);
+      if (!targetUser) {
+        return res.status(404).json({ error: "Pengguna tidak ditemukan!" });
+      }
+
+      targetUser.likedBy = targetUser.likedBy || [];
+      const lowerFrom = fromUsername.trim().toLowerCase();
+      const hasLiked = targetUser.likedBy.includes(lowerFrom);
+
+      if (hasLiked) {
+        targetUser.likedBy = targetUser.likedBy.filter((u: string) => u !== lowerFrom);
+        targetUser.likesCount = Math.max(0, (targetUser.likesCount || 1) - 1);
+      } else {
+        targetUser.likedBy.push(lowerFrom);
+        targetUser.likesCount = (targetUser.likesCount || 0) + 1;
+      }
+
+      if (db && !isFirestoreSuspended) {
+        const docRef = doc(db, "users", targetKey);
+        setDoc(docRef, { likesCount: targetUser.likesCount, likedBy: targetUser.likedBy }, { merge: true }).catch(() => {});
+      }
+
+      saveUsersDb();
+      return res.json({
+        success: true,
+        likesCount: targetUser.likesCount,
+        hasLiked: !hasLiked
+      });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
     }
   });
 

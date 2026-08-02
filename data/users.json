@@ -5,23 +5,47 @@
       "Pecatur Perintis",
       "Raja Musim Panas",
       "anime",
+      "avatar_border_data",
+      "avatar_border_test",
+      "avatar_decoration",
+      "avatar_pendant",
+      "beach_sun_skin",
+      "beach_wave",
+      "blizzard_winter",
+      "board_classic",
+      "board_cosmic",
+      "board_forest",
+      "board_magma_lava",
       "bronze",
       "classic",
       "cosmic",
       "cyber",
       "cyberpunk",
       "dragon_flare",
+      "embed_emerald",
       "forest",
+      "frame_bronze",
+      "frame_silver",
+      "frame_wooden",
       "gold",
+      "golden_ketupat",
       "iceland",
       "magma",
       "magma_lava",
       "neon",
       "none",
+      "red_lantern",
       "royal",
       "silver",
+      "skin_anime",
+      "skin_classic",
+      "skin_cyberpunk",
+      "skin_gold",
+      "skin_neon",
+      "skin_wood",
       "standard",
-      "wood"
+      "wood",
+      "wooden"
     ],
     "inbox": [],
     "claimedAchievements": [
@@ -42,15 +66,21 @@
       "18",
       "15",
       "14",
-      "13"
+      "13",
+      "16",
+      "17"
     ],
     "unlockedThemes": [
       "classic",
-      "forest",
+      "board_classic",
+      "board_cosmic",
+      "board_forest",
+      "board_magma_lava",
       "cosmic",
-      "magma_lava",
+      "forest",
       "iceland",
       "magma",
+      "magma_lava",
       "neon",
       "wood"
     ],
@@ -66,23 +96,4083 @@
     "username": "nopal",
     "friendRequests": [],
     "matchesPlayed": 296,
-    "elo": 1366,
-    "xp": 58853.00079999998,
-    "selectedFrame": "none",
+    "elo": 2702,
+    "xp": 90325,
+    "selectedFrame": "avatar_border_test",
     "unlockedFrames": [
-      "none"
+      "none",
+      "bronze",
+      "cosmic",
+      "cyber",
+      "frame_bronze",
+      "frame_silver",
+      "frame_wooden",
+      "gold",
+      "magma",
+      "silver",
+      "wooden",
+      "embed_emerald",
+      "golden_ketupat",
+      "red_lantern",
+      "beach_wave",
+      "blizzard_winter",
+      "avatar_decoration",
+      "avatar_pendant",
+      "avatar_border_test",
+      "avatar_border_data"
     ],
     "isPrivate": false,
-    "followers": [],
-    "following": [],
+    "followers": [
+      "titit"
+    ],
+    "following": [
+      "pal"
+    ],
     "followRequests": [],
-    "visitorLog": [],
-    "conversations": {},
+    "visitorLog": [
+      {
+        "visitorUsername": "titit",
+        "visitedAt": 1785145446093
+      },
+      {
+        "visitorUsername": "titit",
+        "visitedAt": 1785145455325
+      },
+      {
+        "visitorUsername": "titit",
+        "visitedAt": 1785145458220
+      }
+    ],
+    "conversations": {
+      "pal": {
+        "messages": [
+          {
+            "id": "msg_ua1yfit",
+            "sender": "nopal",
+            "text": "oy nyet",
+            "sentAt": 1785145343826
+          }
+        ],
+        "isApproved": true
+      },
+      "titit": {
+        "messages": [
+          {
+            "id": "msg_jch4bo1",
+            "sender": "nopal",
+            "text": "oy",
+            "sentAt": 1785145548342
+          }
+        ],
+        "isApproved": true
+      }
+    },
     "isAdmin": true,
-    "isStaff": false
+    "isStaff": false,
+    "coins": 50615,
+    "diamonds": 2083,
+    "selectedSkin": "crystal",
+    "unlockedSkins": [
+      "standard",
+      "classic",
+      "anime",
+      "cyberpunk",
+      "gold",
+      "neon",
+      "skin_anime",
+      "skin_classic",
+      "skin_cyberpunk",
+      "skin_gold",
+      "skin_neon",
+      "skin_wood",
+      "wood",
+      "beach_sun_skin"
+    ],
+    "equippedTitle": "Pecatur Perintis",
+    "unlockedTitles": [
+      "Pecatur Perintis",
+      "Frost Blizzard Master",
+      "Raja Musim Panas",
+      "iceland",
+      "royal",
+      "board_classic",
+      "board_cosmic",
+      "board_forest",
+      "board_magma_lava",
+      "frame_bronze",
+      "frame_silver",
+      "frame_wooden",
+      "skin_anime",
+      "skin_classic",
+      "skin_cyberpunk",
+      "skin_gold",
+      "skin_neon",
+      "skin_wood",
+      "wooden",
+      "avatar_border_data",
+      "avatar_decoration",
+      "avatar_pendant"
+    ],
+    "equippedCheckmateEffect": "none",
+    "unlockedCheckmateEffects": [
+      "none",
+      "dragon_flare"
+    ],
+    "customStatus": "Pantang menyerah sebelum raja digulingkan!",
+    "onlineHistory": [
+      {
+        "id": "elo-restore-game-1785141694628",
+        "opponent": "Staff @nopal",
+        "opponentElo": 1200,
+        "outcome": "win",
+        "eloDiff": 1,
+        "date": "27/7/2026",
+        "movesCount": 0,
+        "moves": []
+      },
+      {
+        "id": "elo-restore-game-1785051895926",
+        "opponent": "Staff @nopal",
+        "opponentElo": 1200,
+        "outcome": "win",
+        "eloDiff": 1,
+        "date": "26/7/2026",
+        "movesCount": 0,
+        "moves": []
+      },
+      {
+        "id": "elo-restore-game-1784733453837",
+        "opponent": "Staff @nopal",
+        "opponentElo": 1200,
+        "outcome": "win",
+        "eloDiff": 1334,
+        "date": "22/7/2026",
+        "movesCount": 0,
+        "moves": []
+      },
+      {
+        "id": "elo-restore-game-1784513153101",
+        "opponent": "Staff @nopal",
+        "opponentElo": 1200,
+        "outcome": "win",
+        "eloDiff": 1334,
+        "date": "20/7/2026",
+        "movesCount": 0,
+        "moves": []
+      },
+      {
+        "id": "elo-restore-game-1784418442162",
+        "opponent": "Staff @nopal",
+        "opponentElo": 1200,
+        "outcome": "win",
+        "eloDiff": 1334,
+        "date": "18/7/2026",
+        "movesCount": 0,
+        "moves": []
+      },
+      {
+        "id": "elo-restore-game-1783811631973",
+        "opponent": "Staff @nopal",
+        "opponentElo": 1200,
+        "outcome": "win",
+        "eloDiff": 0,
+        "date": "11/7/2026",
+        "movesCount": 0,
+        "moves": []
+      },
+      {
+        "id": "elo-restore-game-1783811306149",
+        "opponent": "Staff @nopal",
+        "opponentElo": 1200,
+        "outcome": "win",
+        "eloDiff": 1334,
+        "date": "11/7/2026",
+        "movesCount": 0,
+        "moves": []
+      }
+    ],
+    "chess_transaction_history": [
+      {
+        "id": "tx-diamond-1785575617641-341",
+        "timestamp": 1785575617641,
+        "type": "diamond",
+        "amount": 2063,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1785575617639-863",
+        "timestamp": 1785575617639,
+        "type": "diamond",
+        "amount": 2063,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1785575617639-469",
+        "timestamp": 1785575617639,
+        "type": "coin",
+        "amount": 50115,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785575617637-563",
+        "timestamp": 1785575617637,
+        "type": "coin",
+        "amount": 50115,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785575597515-484",
+        "timestamp": 1785575597515,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785575597514-816",
+        "timestamp": 1785575597514,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785575597514-416",
+        "timestamp": 1785575597514,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785575597514-78",
+        "timestamp": 1785575597514,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1785575597513-571",
+        "timestamp": 1785575597513,
+        "type": "coin",
+        "amount": 225,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785575597513-825",
+        "timestamp": 1785575597513,
+        "type": "coin",
+        "amount": 225,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785575593005-837",
+        "timestamp": 1785575593005,
+        "type": "coin",
+        "amount": 210,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785575593002-348",
+        "timestamp": 1785575593002,
+        "type": "coin",
+        "amount": 210,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785575557487-101",
+        "timestamp": 1785575557487,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785575557485-972",
+        "timestamp": 1785575557485,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785575550902-710",
+        "timestamp": 1785575550902,
+        "type": "coin",
+        "amount": -225,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785575550901-223",
+        "timestamp": 1785575550901,
+        "type": "coin",
+        "amount": -225,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785575546963-870",
+        "timestamp": 1785575546963,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785575546962-694",
+        "timestamp": 1785575546962,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785575528139-593",
+        "timestamp": 1785575528139,
+        "type": "diamond",
+        "amount": 2063,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1785575528138-154",
+        "timestamp": 1785575528138,
+        "type": "diamond",
+        "amount": 2063,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1785575528137-683",
+        "timestamp": 1785575528137,
+        "type": "coin",
+        "amount": 49290,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785575528135-221",
+        "timestamp": 1785575528135,
+        "type": "coin",
+        "amount": 49290,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785575151343-6",
+        "timestamp": 1785575151343,
+        "type": "coin",
+        "amount": -50,
+        "desc": "Biaya Laga / Cari Lawan Online"
+      },
+      {
+        "id": "tx-coin-1785575151339-366",
+        "timestamp": 1785575151339,
+        "type": "coin",
+        "amount": -50,
+        "desc": "Biaya Laga / Cari Lawan Online"
+      },
+      {
+        "id": "tx-diamond-1785575047912-769",
+        "timestamp": 1785575047912,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785575047911-947",
+        "timestamp": 1785575047911,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785575047908-199",
+        "timestamp": 1785575047909,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785575047907-831",
+        "timestamp": 1785575047907,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1785575047906-177",
+        "timestamp": 1785575047906,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785575047905-315",
+        "timestamp": 1785575047905,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785575041878-685",
+        "timestamp": 1785575041878,
+        "type": "coin",
+        "amount": 210,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785575041873-233",
+        "timestamp": 1785575041873,
+        "type": "coin",
+        "amount": 210,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785574901862-263",
+        "timestamp": 1785574901862,
+        "type": "coin",
+        "amount": 180,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785574901861-310",
+        "timestamp": 1785574901861,
+        "type": "coin",
+        "amount": 180,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785574822751-154",
+        "timestamp": 1785574822751,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785574822750-373",
+        "timestamp": 1785574822750,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785574822749-965",
+        "timestamp": 1785574822749,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785574822748-856",
+        "timestamp": 1785574822748,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1785574822747-90",
+        "timestamp": 1785574822747,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785574822745-505",
+        "timestamp": 1785574822745,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785574817094-458",
+        "timestamp": 1785574817094,
+        "type": "coin",
+        "amount": 210,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785574817092-380",
+        "timestamp": 1785574817092,
+        "type": "coin",
+        "amount": 210,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785574762039-100",
+        "timestamp": 1785574762039,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785574762038-771",
+        "timestamp": 1785574762038,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785574759198-609",
+        "timestamp": 1785574759198,
+        "type": "diamond",
+        "amount": 2063,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1785574759198-796",
+        "timestamp": 1785574759198,
+        "type": "diamond",
+        "amount": 2063,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1785574759198-384",
+        "timestamp": 1785574759198,
+        "type": "coin",
+        "amount": 48080,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785574759197-603",
+        "timestamp": 1785574759197,
+        "type": "coin",
+        "amount": 48080,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785574487358-456",
+        "timestamp": 1785574487358,
+        "type": "diamond",
+        "amount": 2063,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1785574487356-255",
+        "timestamp": 1785574487356,
+        "type": "diamond",
+        "amount": 2063,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1785574487355-881",
+        "timestamp": 1785574487355,
+        "type": "coin",
+        "amount": 48080,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785574487346-13",
+        "timestamp": 1785574487346,
+        "type": "coin",
+        "amount": 48080,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785574286873-614",
+        "timestamp": 1785574286873,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785574286872-999",
+        "timestamp": 1785574286872,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785573843306-542",
+        "timestamp": 1785573843306,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785573843304-133",
+        "timestamp": 1785573843304,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785573592903-653",
+        "timestamp": 1785573592903,
+        "type": "coin",
+        "amount": -60,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785573592902-220",
+        "timestamp": 1785573592902,
+        "type": "coin",
+        "amount": -60,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785573340130-294",
+        "timestamp": 1785573340130,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785573340129-497",
+        "timestamp": 1785573340129,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785573329239-11",
+        "timestamp": 1785573329239,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785573329237-675",
+        "timestamp": 1785573329237,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785573059993-926",
+        "timestamp": 1785573059993,
+        "type": "coin",
+        "amount": 200,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785573059974-291",
+        "timestamp": 1785573059974,
+        "type": "coin",
+        "amount": 200,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785573035732-353",
+        "timestamp": 1785573035732,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785573035729-977",
+        "timestamp": 1785573035729,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785500866216-857",
+        "timestamp": 1785500866216,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785500866215-698",
+        "timestamp": 1785500866215,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785500567321-754",
+        "timestamp": 1785500567321,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785500567321-1",
+        "timestamp": 1785500567321,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785500564878-779",
+        "timestamp": 1785500564878,
+        "type": "coin",
+        "amount": 500,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785500564877-934",
+        "timestamp": 1785500564877,
+        "type": "coin",
+        "amount": 500,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785500560541-420",
+        "timestamp": 1785500560541,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785500560539-483",
+        "timestamp": 1785500560539,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785500560231-871",
+        "timestamp": 1785500560231,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785500560230-152",
+        "timestamp": 1785500560230,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785500557390-766",
+        "timestamp": 1785500557390,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785500557386-241",
+        "timestamp": 1785500557386,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785500414759-399",
+        "timestamp": 1785500414759,
+        "type": "coin",
+        "amount": -50,
+        "desc": "Biaya Laga / Cari Lawan Online"
+      },
+      {
+        "id": "tx-coin-1785500414759-109",
+        "timestamp": 1785500414759,
+        "type": "coin",
+        "amount": -50,
+        "desc": "Biaya Laga / Cari Lawan Online"
+      },
+      {
+        "id": "tx-coin-1785500348180-312",
+        "timestamp": 1785500348180,
+        "type": "coin",
+        "amount": 50,
+        "desc": "Hadiah Level Up Catur"
+      },
+      {
+        "id": "tx-coin-1785500348179-97",
+        "timestamp": 1785500348179,
+        "type": "coin",
+        "amount": 50,
+        "desc": "Hadiah Level Up Catur"
+      },
+      {
+        "id": "tx-diamond-1785500322730-549",
+        "timestamp": 1785500322730,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785500322730-59",
+        "timestamp": 1785500322730,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785500322730-468",
+        "timestamp": 1785500322730,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785500322729-292",
+        "timestamp": 1785500322729,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1785500322729-957",
+        "timestamp": 1785500322729,
+        "type": "coin",
+        "amount": 150,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785500322727-81",
+        "timestamp": 1785500322727,
+        "type": "coin",
+        "amount": 150,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785500312238-705",
+        "timestamp": 1785500312238,
+        "type": "coin",
+        "amount": 180,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785500312236-165",
+        "timestamp": 1785500312236,
+        "type": "coin",
+        "amount": 180,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785500187105-330",
+        "timestamp": 1785500187105,
+        "type": "diamond",
+        "amount": 6,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785500187105-694",
+        "timestamp": 1785500187105,
+        "type": "diamond",
+        "amount": 6,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785500187104-199",
+        "timestamp": 1785500187104,
+        "type": "diamond",
+        "amount": 6,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785500187104-515",
+        "timestamp": 1785500187104,
+        "type": "diamond",
+        "amount": 6,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1785500187104-558",
+        "timestamp": 1785500187104,
+        "type": "coin",
+        "amount": 961,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785500187080-628",
+        "timestamp": 1785500187080,
+        "type": "coin",
+        "amount": 961,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785500181266-347",
+        "timestamp": 1785500181266,
+        "type": "diamond",
+        "amount": 3,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785500181266-32",
+        "timestamp": 1785500181266,
+        "type": "diamond",
+        "amount": 3,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785500181265-823",
+        "timestamp": 1785500181265,
+        "type": "diamond",
+        "amount": 3,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785500181265-948",
+        "timestamp": 1785500181265,
+        "type": "diamond",
+        "amount": 3,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1785500181263-574",
+        "timestamp": 1785500181263,
+        "type": "coin",
+        "amount": 348,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785500181231-944",
+        "timestamp": 1785500181231,
+        "type": "coin",
+        "amount": 348,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785500176601-505",
+        "timestamp": 1785500176601,
+        "type": "coin",
+        "amount": 185,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785500176592-618",
+        "timestamp": 1785500176592,
+        "type": "coin",
+        "amount": 185,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785500153565-39",
+        "timestamp": 1785500153565,
+        "type": "coin",
+        "amount": 500,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785500153565-977",
+        "timestamp": 1785500153565,
+        "type": "coin",
+        "amount": 500,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785500143768-755",
+        "timestamp": 1785500143768,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785500143767-10",
+        "timestamp": 1785500143767,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785500090564-656",
+        "timestamp": 1785500090564,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785500090560-640",
+        "timestamp": 1785500090560,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785500086545-349",
+        "timestamp": 1785500086545,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785500086544-325",
+        "timestamp": 1785500086544,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785500084055-521",
+        "timestamp": 1785500084055,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785500084053-416",
+        "timestamp": 1785500084053,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785500078207-797",
+        "timestamp": 1785500078207,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785500078205-380",
+        "timestamp": 1785500078205,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785411408845-4",
+        "timestamp": 1785411408845,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785411408841-301",
+        "timestamp": 1785411408841,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785411154117-294",
+        "timestamp": 1785411154117,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785411154116-835",
+        "timestamp": 1785411154116,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785410799722-876",
+        "timestamp": 1785410799722,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785410799721-560",
+        "timestamp": 1785410799721,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785410782240-216",
+        "timestamp": 1785410782240,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785410782237-136",
+        "timestamp": 1785410782237,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785410662483-567",
+        "timestamp": 1785410662483,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785410662482-474",
+        "timestamp": 1785410662482,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785410635620-266",
+        "timestamp": 1785410635620,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785410635619-357",
+        "timestamp": 1785410635619,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785410629254-830",
+        "timestamp": 1785410629254,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785410629254-974",
+        "timestamp": 1785410629254,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785410313508-185",
+        "timestamp": 1785410313508,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785410313508-487",
+        "timestamp": 1785410313508,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785410091636-393",
+        "timestamp": 1785410091636,
+        "type": "coin",
+        "amount": 150,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785410091624-145",
+        "timestamp": 1785410091624,
+        "type": "coin",
+        "amount": 150,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785410064050-702",
+        "timestamp": 1785410064050,
+        "type": "diamond",
+        "amount": 1,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785410064049-808",
+        "timestamp": 1785410064049,
+        "type": "diamond",
+        "amount": 1,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785410064047-818",
+        "timestamp": 1785410064047,
+        "type": "diamond",
+        "amount": 1,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785410064044-893",
+        "timestamp": 1785410064044,
+        "type": "diamond",
+        "amount": 1,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1785410064043-510",
+        "timestamp": 1785410064043,
+        "type": "coin",
+        "amount": 212,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785410063961-348",
+        "timestamp": 1785410063961,
+        "type": "coin",
+        "amount": 212,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785410044016-273",
+        "timestamp": 1785410044016,
+        "type": "coin",
+        "amount": 120,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785410044001-654",
+        "timestamp": 1785410044001,
+        "type": "coin",
+        "amount": 120,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785410027128-691",
+        "timestamp": 1785410027133,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785410027125-696",
+        "timestamp": 1785410027125,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785410027122-633",
+        "timestamp": 1785410027122,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785410027121-764",
+        "timestamp": 1785410027121,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1785410027118-78",
+        "timestamp": 1785410027118,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785410027116-636",
+        "timestamp": 1785410027116,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785410020927-236",
+        "timestamp": 1785410020927,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785410020926-540",
+        "timestamp": 1785410020926,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785408509829-83",
+        "timestamp": 1785408509829,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785408509827-292",
+        "timestamp": 1785408509827,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785408509825-705",
+        "timestamp": 1785408509825,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785408509824-690",
+        "timestamp": 1785408509824,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1785408509823-524",
+        "timestamp": 1785408509823,
+        "type": "coin",
+        "amount": 225,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785408509818-42",
+        "timestamp": 1785408509818,
+        "type": "coin",
+        "amount": 225,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785408498125-315",
+        "timestamp": 1785408498125,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785408498124-623",
+        "timestamp": 1785408498124,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785408498123-977",
+        "timestamp": 1785408498123,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785408498122-401",
+        "timestamp": 1785408498122,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1785408498121-277",
+        "timestamp": 1785408498121,
+        "type": "coin",
+        "amount": 225,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785408498119-668",
+        "timestamp": 1785408498119,
+        "type": "coin",
+        "amount": 225,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785408389903-543",
+        "timestamp": 1785408389903,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785408389901-541",
+        "timestamp": 1785408389901,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785408389901-115",
+        "timestamp": 1785408389901,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785408389900-243",
+        "timestamp": 1785408389900,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1785408389897-888",
+        "timestamp": 1785408389898,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785408389894-539",
+        "timestamp": 1785408389894,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785408378854-314",
+        "timestamp": 1785408378854,
+        "type": "coin",
+        "amount": 210,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785408378843-652",
+        "timestamp": 1785408378843,
+        "type": "coin",
+        "amount": 210,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785408091207-9",
+        "timestamp": 1785408091207,
+        "type": "diamond",
+        "amount": 2063,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1785408091206-633",
+        "timestamp": 1785408091206,
+        "type": "diamond",
+        "amount": 2063,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1785408091200-130",
+        "timestamp": 1785408091200,
+        "type": "coin",
+        "amount": 46793,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785408091193-550",
+        "timestamp": 1785408091193,
+        "type": "coin",
+        "amount": 46793,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785407941272-79",
+        "timestamp": 1785407941272,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785407941271-152",
+        "timestamp": 1785407941271,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785407438558-55",
+        "timestamp": 1785407438558,
+        "type": "coin",
+        "amount": -2000,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785407438540-218",
+        "timestamp": 1785407438540,
+        "type": "coin",
+        "amount": -2000,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-diamond-1785406276079-370",
+        "timestamp": 1785406276079,
+        "type": "diamond",
+        "amount": 2,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785406276079-627",
+        "timestamp": 1785406276079,
+        "type": "diamond",
+        "amount": 2,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785406276078-154",
+        "timestamp": 1785406276078,
+        "type": "diamond",
+        "amount": 2,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785406276077-27",
+        "timestamp": 1785406276077,
+        "type": "diamond",
+        "amount": 2,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1785406276077-49",
+        "timestamp": 1785406276077,
+        "type": "coin",
+        "amount": 318,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785406275948-48",
+        "timestamp": 1785406275948,
+        "type": "coin",
+        "amount": 318,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785406257884-673",
+        "timestamp": 1785406257884,
+        "type": "diamond",
+        "amount": 2063,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1785406257884-36",
+        "timestamp": 1785406257884,
+        "type": "diamond",
+        "amount": 2063,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1785406257878-153",
+        "timestamp": 1785406257878,
+        "type": "coin",
+        "amount": 48975,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785406257867-269",
+        "timestamp": 1785406257867,
+        "type": "coin",
+        "amount": 48975,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785145497191-762",
+        "timestamp": 1785145497191,
+        "type": "diamond",
+        "amount": 2063,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1785145497191-40",
+        "timestamp": 1785145497191,
+        "type": "diamond",
+        "amount": 2063,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1785145497190-822",
+        "timestamp": 1785145497190,
+        "type": "coin",
+        "amount": 51875,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785145497188-102",
+        "timestamp": 1785145497188,
+        "type": "coin",
+        "amount": 51875,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785143968416-146",
+        "timestamp": 1785143968416,
+        "type": "diamond",
+        "amount": 2063,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1785143968413-787",
+        "timestamp": 1785143968413,
+        "type": "diamond",
+        "amount": 2063,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1785143968412-70",
+        "timestamp": 1785143968412,
+        "type": "coin",
+        "amount": 51875,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785143968410-553",
+        "timestamp": 1785143968410,
+        "type": "coin",
+        "amount": 51875,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785143638463-148",
+        "timestamp": 1785143638463,
+        "type": "diamond",
+        "amount": -10,
+        "desc": "Membelanjakan Berlian"
+      },
+      {
+        "id": "tx-diamond-1785143638462-7",
+        "timestamp": 1785143638462,
+        "type": "diamond",
+        "amount": -10,
+        "desc": "Membelanjakan Berlian"
+      },
+      {
+        "id": "tx-coin-1785143635761-767",
+        "timestamp": 1785143635761,
+        "type": "coin",
+        "amount": -120,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785143635761-502",
+        "timestamp": 1785143635761,
+        "type": "coin",
+        "amount": -120,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-diamond-1785143633231-935",
+        "timestamp": 1785143633231,
+        "type": "diamond",
+        "amount": -10,
+        "desc": "Membelanjakan Berlian"
+      },
+      {
+        "id": "tx-diamond-1785143633217-625",
+        "timestamp": 1785143633217,
+        "type": "diamond",
+        "amount": -10,
+        "desc": "Membelanjakan Berlian"
+      },
+      {
+        "id": "tx-diamond-1785142902547-793",
+        "timestamp": 1785142902547,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1785142902547-218",
+        "timestamp": 1785142902547,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1785142899608-783",
+        "timestamp": 1785142899608,
+        "type": "coin",
+        "amount": 50,
+        "desc": "Hadiah Level Up Catur"
+      },
+      {
+        "id": "tx-coin-1785142899608-628",
+        "timestamp": 1785142899608,
+        "type": "coin",
+        "amount": 50,
+        "desc": "Hadiah Level Up Catur"
+      },
+      {
+        "id": "tx-diamond-1785142842747-664",
+        "timestamp": 1785142842747,
+        "type": "diamond",
+        "amount": 2078,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1785142842746-849",
+        "timestamp": 1785142842746,
+        "type": "diamond",
+        "amount": 2078,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1785142842745-731",
+        "timestamp": 1785142842745,
+        "type": "coin",
+        "amount": 51945,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785142842745-582",
+        "timestamp": 1785142842745,
+        "type": "coin",
+        "amount": 51945,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785142788179-132",
+        "timestamp": 1785142788179,
+        "type": "diamond",
+        "amount": 2078,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1785142788179-446",
+        "timestamp": 1785142788179,
+        "type": "diamond",
+        "amount": 2078,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1785142788179-414",
+        "timestamp": 1785142788179,
+        "type": "coin",
+        "amount": 51945,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785142788176-699",
+        "timestamp": 1785142788177,
+        "type": "coin",
+        "amount": 51945,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785142735544-257",
+        "timestamp": 1785142735544,
+        "type": "diamond",
+        "amount": 2078,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1785142735543-613",
+        "timestamp": 1785142735543,
+        "type": "diamond",
+        "amount": 2078,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1785142735534-148",
+        "timestamp": 1785142735534,
+        "type": "coin",
+        "amount": 51945,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785142735531-808",
+        "timestamp": 1785142735531,
+        "type": "coin",
+        "amount": 51945,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785142699999-280",
+        "timestamp": 1785142699999,
+        "type": "coin",
+        "amount": 125,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785142699995-763",
+        "timestamp": 1785142699995,
+        "type": "coin",
+        "amount": 125,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785141918721-933",
+        "timestamp": 1785141918721,
+        "type": "coin",
+        "amount": 50,
+        "desc": "Hadiah Level Up Catur"
+      },
+      {
+        "id": "tx-coin-1785141918719-640",
+        "timestamp": 1785141918719,
+        "type": "coin",
+        "amount": 50,
+        "desc": "Hadiah Level Up Catur"
+      },
+      {
+        "id": "tx-diamond-1785141837534-290",
+        "timestamp": 1785141837534,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785141837533-174",
+        "timestamp": 1785141837533,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785141837533-244",
+        "timestamp": 1785141837533,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785141837532-102",
+        "timestamp": 1785141837532,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-state-restore-1785141694629-800",
+        "timestamp": 1785141694629,
+        "type": "coin",
+        "amount": 0,
+        "desc": "Pemulihan status akun manual oleh moderator @nopal: ELO (2701 -> 2702), Koin (52245 -> 50000), Diamond (2098 -> 2000), XP (83710 -> 83710). Alasan: Pemulihan kegagalan sinkronisasi data akun (koin, diamond, ELO, XP)"
+      },
+      {
+        "id": "tx-coin-1785054459089-612",
+        "timestamp": 1785054459089,
+        "type": "coin",
+        "amount": 50,
+        "desc": "Hadiah Level Up Catur"
+      },
+      {
+        "id": "tx-coin-1785054459089-177",
+        "timestamp": 1785054459089,
+        "type": "coin",
+        "amount": 50,
+        "desc": "Hadiah Level Up Catur"
+      },
+      {
+        "id": "tx-diamond-1785054456122-213",
+        "timestamp": 1785054456122,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785054456122-375",
+        "timestamp": 1785054456122,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785054456121-143",
+        "timestamp": 1785054456121,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785054456121-664",
+        "timestamp": 1785054456121,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-state-restore-1785051895927-252",
+        "timestamp": 1785051895927,
+        "type": "coin",
+        "amount": 0,
+        "desc": "Pemulihan status akun manual oleh moderator @nopal: ELO (2700 -> 2701), Koin (52195 -> 50000), Diamond (2098 -> 2000), XP (83170 -> 83170). Alasan: Pemulihan kegagalan sinkronisasi data akun (koin, diamond, ELO, XP)"
+      },
+      {
+        "id": "tx-diamond-1785051799919-250",
+        "timestamp": 1785051799919,
+        "type": "diamond",
+        "amount": 14,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051799919-287",
+        "timestamp": 1785051799919,
+        "type": "diamond",
+        "amount": 14,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051799918-731",
+        "timestamp": 1785051799918,
+        "type": "diamond",
+        "amount": 14,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051799918-990",
+        "timestamp": 1785051799918,
+        "type": "diamond",
+        "amount": 14,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051797355-833",
+        "timestamp": 1785051797355,
+        "type": "diamond",
+        "amount": 30,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1785051797346-328",
+        "timestamp": 1785051797346,
+        "type": "diamond",
+        "amount": 30,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1785051793774-437",
+        "timestamp": 1785051793774,
+        "type": "diamond",
+        "amount": 14,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051793773-72",
+        "timestamp": 1785051793773,
+        "type": "diamond",
+        "amount": 14,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051793773-882",
+        "timestamp": 1785051793773,
+        "type": "diamond",
+        "amount": 14,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051793772-165",
+        "timestamp": 1785051793772,
+        "type": "diamond",
+        "amount": 14,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051790348-817",
+        "timestamp": 1785051790348,
+        "type": "diamond",
+        "amount": 14,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051790348-116",
+        "timestamp": 1785051790348,
+        "type": "diamond",
+        "amount": 14,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051790348-352",
+        "timestamp": 1785051790348,
+        "type": "diamond",
+        "amount": 14,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051790342-739",
+        "timestamp": 1785051790342,
+        "type": "diamond",
+        "amount": 14,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051605100-856",
+        "timestamp": 1785051605100,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051605100-907",
+        "timestamp": 1785051605100,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051605099-915",
+        "timestamp": 1785051605099,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051605099-64",
+        "timestamp": 1785051605099,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1785051576704-12",
+        "timestamp": 1785051576704,
+        "type": "coin",
+        "amount": 50,
+        "desc": "Hadiah Level Up Catur"
+      },
+      {
+        "id": "tx-coin-1785051576704-274",
+        "timestamp": 1785051576704,
+        "type": "coin",
+        "amount": 50,
+        "desc": "Hadiah Level Up Catur"
+      },
+      {
+        "id": "tx-diamond-1785051544032-18",
+        "timestamp": 1785051544032,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051544031-470",
+        "timestamp": 1785051544031,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051544031-64",
+        "timestamp": 1785051544031,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051544030-122",
+        "timestamp": 1785051544030,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1785051544029-80",
+        "timestamp": 1785051544029,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785051544027-674",
+        "timestamp": 1785051544027,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785051538359-375",
+        "timestamp": 1785051538359,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051538359-741",
+        "timestamp": 1785051538359,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051538358-326",
+        "timestamp": 1785051538358,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051538358-200",
+        "timestamp": 1785051538358,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1785051538357-38",
+        "timestamp": 1785051538357,
+        "type": "coin",
+        "amount": 225,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785051538356-813",
+        "timestamp": 1785051538356,
+        "type": "coin",
+        "amount": 225,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785051532116-164",
+        "timestamp": 1785051532116,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051532116-627",
+        "timestamp": 1785051532116,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051532115-271",
+        "timestamp": 1785051532115,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785051532114-637",
+        "timestamp": 1785051532114,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1785051532110-715",
+        "timestamp": 1785051532110,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785051532109-976",
+        "timestamp": 1785051532109,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785051526013-117",
+        "timestamp": 1785051526013,
+        "type": "coin",
+        "amount": 210,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785051526011-983",
+        "timestamp": 1785051526011,
+        "type": "coin",
+        "amount": 210,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784995618861-472",
+        "timestamp": 1784995618861,
+        "type": "coin",
+        "amount": -75,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784995618859-885",
+        "timestamp": 1784995618859,
+        "type": "coin",
+        "amount": -75,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-diamond-1784973541585-225",
+        "timestamp": 1784973541585,
+        "type": "diamond",
+        "amount": 30,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1784973541583-709",
+        "timestamp": 1784973541583,
+        "type": "diamond",
+        "amount": 30,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1784973531183-998",
+        "timestamp": 1784973531183,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784973531182-153",
+        "timestamp": 1784973531182,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784973531181-658",
+        "timestamp": 1784973531181,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784973531178-492",
+        "timestamp": 1784973531178,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1784973526579-402",
+        "timestamp": 1784973526579,
+        "type": "coin",
+        "amount": 50,
+        "desc": "Hadiah Level Up Catur"
+      },
+      {
+        "id": "tx-coin-1784973526578-663",
+        "timestamp": 1784973526578,
+        "type": "coin",
+        "amount": 50,
+        "desc": "Hadiah Level Up Catur"
+      },
+      {
+        "id": "tx-coin-1784973140422-937",
+        "timestamp": 1784973140422,
+        "type": "coin",
+        "amount": 50,
+        "desc": "Hadiah Level Up Catur"
+      },
+      {
+        "id": "tx-coin-1784973140420-234",
+        "timestamp": 1784973140420,
+        "type": "coin",
+        "amount": 50,
+        "desc": "Hadiah Level Up Catur"
+      },
+      {
+        "id": "tx-coin-1784973130418-951",
+        "timestamp": 1784973130418,
+        "type": "coin",
+        "amount": -75,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784973130418-565",
+        "timestamp": 1784973130418,
+        "type": "coin",
+        "amount": -75,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784973064497-472",
+        "timestamp": 1784973064497,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784973064460-851",
+        "timestamp": 1784973064460,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784973062351-927",
+        "timestamp": 1784973062351,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784973062351-877",
+        "timestamp": 1784973062351,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784973038108-368",
+        "timestamp": 1784973038108,
+        "type": "coin",
+        "amount": -2000,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784973038077-253",
+        "timestamp": 1784973038077,
+        "type": "coin",
+        "amount": -2000,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784972503752-932",
+        "timestamp": 1784972503752,
+        "type": "coin",
+        "amount": -50,
+        "desc": "Biaya Laga / Cari Lawan Online"
+      },
+      {
+        "id": "tx-coin-1784972503749-224",
+        "timestamp": 1784972503749,
+        "type": "coin",
+        "amount": -50,
+        "desc": "Biaya Laga / Cari Lawan Online"
+      },
+      {
+        "id": "tx-diamond-1784972270864-941",
+        "timestamp": 1784972270864,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784972270864-205",
+        "timestamp": 1784972270864,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784972270864-85",
+        "timestamp": 1784972270864,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784972270863-967",
+        "timestamp": 1784972270863,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1784972270862-409",
+        "timestamp": 1784972270862,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784972270861-38",
+        "timestamp": 1784972270861,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1784972264102-37",
+        "timestamp": 1784972264102,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784972264102-622",
+        "timestamp": 1784972264102,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784972264101-512",
+        "timestamp": 1784972264101,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784972264098-825",
+        "timestamp": 1784972264098,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1784972264098-867",
+        "timestamp": 1784972264098,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784972264093-17",
+        "timestamp": 1784972264093,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1784972256785-966",
+        "timestamp": 1784972256785,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784972256784-602",
+        "timestamp": 1784972256784,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784972256783-252",
+        "timestamp": 1784972256783,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784972256782-95",
+        "timestamp": 1784972256782,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1784972256779-878",
+        "timestamp": 1784972256779,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784972256778-383",
+        "timestamp": 1784972256778,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784972248469-887",
+        "timestamp": 1784972248469,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784972248465-257",
+        "timestamp": 1784972248465,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784972024040-327",
+        "timestamp": 1784972024040,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784972024038-674",
+        "timestamp": 1784972024038,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784971369891-596",
+        "timestamp": 1784971369891,
+        "type": "coin",
+        "amount": 195,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784971369889-36",
+        "timestamp": 1784971369889,
+        "type": "coin",
+        "amount": 195,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784971072140-852",
+        "timestamp": 1784971072140,
+        "type": "coin",
+        "amount": 210,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784971072137-414",
+        "timestamp": 1784971072137,
+        "type": "coin",
+        "amount": 210,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784971005005-185",
+        "timestamp": 1784971005005,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784971005002-931",
+        "timestamp": 1784971005002,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1784970827129-345",
+        "timestamp": 1784970827129,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784970827128-179",
+        "timestamp": 1784970827128,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784970827126-218",
+        "timestamp": 1784970827126,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784970827125-681",
+        "timestamp": 1784970827125,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1784970827122-867",
+        "timestamp": 1784970827122,
+        "type": "coin",
+        "amount": 225,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784970827119-701",
+        "timestamp": 1784970827119,
+        "type": "coin",
+        "amount": 225,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1784970819343-941",
+        "timestamp": 1784970819343,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784970819342-110",
+        "timestamp": 1784970819342,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784970819341-947",
+        "timestamp": 1784970819341,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784970819341-842",
+        "timestamp": 1784970819341,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1784970819340-363",
+        "timestamp": 1784970819340,
+        "type": "coin",
+        "amount": 225,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784970819338-698",
+        "timestamp": 1784970819338,
+        "type": "coin",
+        "amount": 225,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1784970811443-26",
+        "timestamp": 1784970811443,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784970811442-182",
+        "timestamp": 1784970811442,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784970811441-433",
+        "timestamp": 1784970811441,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784970811440-972",
+        "timestamp": 1784970811440,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1784970811439-521",
+        "timestamp": 1784970811439,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784970811438-483",
+        "timestamp": 1784970811438,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784969695113-820",
+        "timestamp": 1784969695113,
+        "type": "coin",
+        "amount": 210,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784969695113-377",
+        "timestamp": 1784969695113,
+        "type": "coin",
+        "amount": 210,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1784969491977-496",
+        "timestamp": 1784969491977,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784969491977-309",
+        "timestamp": 1784969491977,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784969491976-699",
+        "timestamp": 1784969491976,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784969491975-905",
+        "timestamp": 1784969491975,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1784969491974-341",
+        "timestamp": 1784969491974,
+        "type": "coin",
+        "amount": 180,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784969491971-484",
+        "timestamp": 1784969491971,
+        "type": "coin",
+        "amount": 180,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1784969479997-750",
+        "timestamp": 1784969479997,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784969479997-729",
+        "timestamp": 1784969479997,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784969479996-484",
+        "timestamp": 1784969479996,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784969479996-414",
+        "timestamp": 1784969479996,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1784969479995-712",
+        "timestamp": 1784969479995,
+        "type": "coin",
+        "amount": 300,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784969479993-855",
+        "timestamp": 1784969479993,
+        "type": "coin",
+        "amount": 300,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784969461207-169",
+        "timestamp": 1784969461207,
+        "type": "coin",
+        "amount": 195,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784969461204-869",
+        "timestamp": 1784969461204,
+        "type": "coin",
+        "amount": 195,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784969293815-977",
+        "timestamp": 1784969293815,
+        "type": "coin",
+        "amount": -50,
+        "desc": "Biaya Laga / Cari Lawan Online"
+      },
+      {
+        "id": "tx-coin-1784969293814-954",
+        "timestamp": 1784969293814,
+        "type": "coin",
+        "amount": -50,
+        "desc": "Biaya Laga / Cari Lawan Online"
+      },
+      {
+        "id": "tx-coin-1784910187555-674",
+        "timestamp": 1784910187555,
+        "type": "coin",
+        "amount": 120,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784910187552-260",
+        "timestamp": 1784910187552,
+        "type": "coin",
+        "amount": 120,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784910178785-209",
+        "timestamp": 1784910178785,
+        "type": "coin",
+        "amount": 120,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784910178784-965",
+        "timestamp": 1784910178784,
+        "type": "coin",
+        "amount": 120,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1784910169723-171",
+        "timestamp": 1784910169723,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784910169720-661",
+        "timestamp": 1784910169720,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784910169720-998",
+        "timestamp": 1784910169720,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784910169706-832",
+        "timestamp": 1784910169706,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1784910169700-200",
+        "timestamp": 1784910169700,
+        "type": "coin",
+        "amount": 300,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784910169697-178",
+        "timestamp": 1784910169697,
+        "type": "coin",
+        "amount": 300,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784910144966-778",
+        "timestamp": 1784910144966,
+        "type": "coin",
+        "amount": 120,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784910144965-112",
+        "timestamp": 1784910144965,
+        "type": "coin",
+        "amount": 120,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784909621388-257",
+        "timestamp": 1784909621388,
+        "type": "coin",
+        "amount": 120,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784909621382-375",
+        "timestamp": 1784909621382,
+        "type": "coin",
+        "amount": 120,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784909339820-477",
+        "timestamp": 1784909339820,
+        "type": "coin",
+        "amount": -120,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784909339819-233",
+        "timestamp": 1784909339819,
+        "type": "coin",
+        "amount": -120,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784909336028-465",
+        "timestamp": 1784909336028,
+        "type": "coin",
+        "amount": 120,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784909336025-883",
+        "timestamp": 1784909336025,
+        "type": "coin",
+        "amount": 120,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784909295570-376",
+        "timestamp": 1784909295570,
+        "type": "coin",
+        "amount": 120,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784909295568-87",
+        "timestamp": 1784909295568,
+        "type": "coin",
+        "amount": 120,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784909218547-457",
+        "timestamp": 1784909218547,
+        "type": "coin",
+        "amount": 120,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784909218546-158",
+        "timestamp": 1784909218546,
+        "type": "coin",
+        "amount": 120,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1784909202274-947",
+        "timestamp": 1784909202274,
+        "type": "diamond",
+        "amount": 10,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784909202273-258",
+        "timestamp": 1784909202273,
+        "type": "diamond",
+        "amount": 10,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784909202272-776",
+        "timestamp": 1784909202272,
+        "type": "diamond",
+        "amount": 10,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784909202271-36",
+        "timestamp": 1784909202271,
+        "type": "diamond",
+        "amount": 10,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1784909202270-533",
+        "timestamp": 1784909202270,
+        "type": "coin",
+        "amount": 240,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784909202267-27",
+        "timestamp": 1784909202267,
+        "type": "coin",
+        "amount": 240,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1784908829419-997",
+        "timestamp": 1784908829419,
+        "type": "diamond",
+        "amount": 10,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784908829417-804",
+        "timestamp": 1784908829417,
+        "type": "diamond",
+        "amount": 10,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784908829415-733",
+        "timestamp": 1784908829415,
+        "type": "diamond",
+        "amount": 10,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784908829415-256",
+        "timestamp": 1784908829415,
+        "type": "diamond",
+        "amount": 10,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1784908829414-343",
+        "timestamp": 1784908829414,
+        "type": "coin",
+        "amount": 240,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784908829412-159",
+        "timestamp": 1784908829412,
+        "type": "coin",
+        "amount": 240,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1784908813701-604",
+        "timestamp": 1784908813701,
+        "type": "diamond",
+        "amount": 10,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784908813699-478",
+        "timestamp": 1784908813699,
+        "type": "diamond",
+        "amount": 10,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784908813699-303",
+        "timestamp": 1784908813699,
+        "type": "diamond",
+        "amount": 10,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784908813699-771",
+        "timestamp": 1784908813699,
+        "type": "diamond",
+        "amount": 10,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1784908813698-653",
+        "timestamp": 1784908813698,
+        "type": "coin",
+        "amount": 240,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784908813696-728",
+        "timestamp": 1784908813696,
+        "type": "coin",
+        "amount": 240,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1784908417993-250",
+        "timestamp": 1784908417993,
+        "type": "diamond",
+        "amount": 10,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784908417991-809",
+        "timestamp": 1784908417991,
+        "type": "diamond",
+        "amount": 10,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784908417990-921",
+        "timestamp": 1784908417990,
+        "type": "diamond",
+        "amount": 10,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784908417989-285",
+        "timestamp": 1784908417989,
+        "type": "diamond",
+        "amount": 10,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1784908417988-980",
+        "timestamp": 1784908417988,
+        "type": "coin",
+        "amount": 240,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784908417988-450",
+        "timestamp": 1784908417988,
+        "type": "coin",
+        "amount": 240,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1784908407527-362",
+        "timestamp": 1784908407527,
+        "type": "diamond",
+        "amount": 10,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784908407526-371",
+        "timestamp": 1784908407526,
+        "type": "diamond",
+        "amount": 10,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784908407524-576",
+        "timestamp": 1784908407524,
+        "type": "diamond",
+        "amount": 10,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784908407523-68",
+        "timestamp": 1784908407523,
+        "type": "diamond",
+        "amount": 10,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1784908407521-934",
+        "timestamp": 1784908407522,
+        "type": "coin",
+        "amount": 240,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784908407520-603",
+        "timestamp": 1784908407520,
+        "type": "coin",
+        "amount": 240,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784908397225-161",
+        "timestamp": 1784908397225,
+        "type": "coin",
+        "amount": 120,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784908397224-99",
+        "timestamp": 1784908397224,
+        "type": "coin",
+        "amount": 120,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784907876392-812",
+        "timestamp": 1784907876392,
+        "type": "coin",
+        "amount": -50,
+        "desc": "Biaya Laga / Cari Lawan Online"
+      },
+      {
+        "id": "tx-coin-1784907876391-591",
+        "timestamp": 1784907876391,
+        "type": "coin",
+        "amount": -50,
+        "desc": "Biaya Laga / Cari Lawan Online"
+      },
+      {
+        "id": "tx-coin-1784907770628-280",
+        "timestamp": 1784907770628,
+        "type": "coin",
+        "amount": 50,
+        "desc": "Hadiah Level Up Catur"
+      },
+      {
+        "id": "tx-coin-1784907770627-442",
+        "timestamp": 1784907770627,
+        "type": "coin",
+        "amount": 50,
+        "desc": "Hadiah Level Up Catur"
+      },
+      {
+        "id": "tx-diamond-1784907749210-468",
+        "timestamp": 1784907749210,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784907749209-349",
+        "timestamp": 1784907749209,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784907749209-941",
+        "timestamp": 1784907749209,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784907749208-837",
+        "timestamp": 1784907749208,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1784907381252-148",
+        "timestamp": 1784907381252,
+        "type": "coin",
+        "amount": -50,
+        "desc": "Biaya Laga / Cari Lawan Online"
+      },
+      {
+        "id": "tx-coin-1784907381251-333",
+        "timestamp": 1784907381251,
+        "type": "coin",
+        "amount": -50,
+        "desc": "Biaya Laga / Cari Lawan Online"
+      },
+      {
+        "id": "tx-coin-1784898985164-644",
+        "timestamp": 1784898985164,
+        "type": "coin",
+        "amount": -50,
+        "desc": "Biaya Laga / Cari Lawan Online"
+      },
+      {
+        "id": "tx-coin-1784898985139-876",
+        "timestamp": 1784898985139,
+        "type": "coin",
+        "amount": -50,
+        "desc": "Biaya Laga / Cari Lawan Online"
+      },
+      {
+        "id": "tx-coin-1784812214809-494",
+        "timestamp": 1784812214809,
+        "type": "coin",
+        "amount": 430,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784812214808-678",
+        "timestamp": 1784812214808,
+        "type": "coin",
+        "amount": 430,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1784812209588-638",
+        "timestamp": 1784812209588,
+        "type": "diamond",
+        "amount": 38,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1784812209586-233",
+        "timestamp": 1784812209586,
+        "type": "diamond",
+        "amount": 38,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1784812185124-190",
+        "timestamp": 1784812185124,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784812185123-806",
+        "timestamp": 1784812185123,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784812185122-858",
+        "timestamp": 1784812185122,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1784812185122-695",
+        "timestamp": 1784812185122,
+        "type": "diamond",
+        "amount": 5,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1784811690176-558",
+        "timestamp": 1784811690176,
+        "type": "coin",
+        "amount": 50,
+        "desc": "Hadiah Level Up Catur"
+      },
+      {
+        "id": "tx-coin-1784811690171-217",
+        "timestamp": 1784811690171,
+        "type": "coin",
+        "amount": 50,
+        "desc": "Hadiah Level Up Catur"
+      },
+      {
+        "id": "tx-coin-1784803403660-440",
+        "timestamp": 1784803403661,
+        "type": "coin",
+        "amount": -25,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784803403660-473",
+        "timestamp": 1784803403660,
+        "type": "coin",
+        "amount": -25,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784759453812-205",
+        "timestamp": 1784759453812,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784759453811-675",
+        "timestamp": 1784759453811,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784759451923-257",
+        "timestamp": 1784759451923,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784759451909-700",
+        "timestamp": 1784759451909,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784759448775-640",
+        "timestamp": 1784759448775,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784759448774-554",
+        "timestamp": 1784759448774,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784759446172-633",
+        "timestamp": 1784759446172,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784759446144-537",
+        "timestamp": 1784759446144,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784759444174-845",
+        "timestamp": 1784759444174,
+        "type": "coin",
+        "amount": -400,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784759444174-676",
+        "timestamp": 1784759444174,
+        "type": "coin",
+        "amount": -400,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-state-restore-1784733453837-954",
+        "timestamp": 1784733453837,
+        "type": "coin",
+        "amount": 0,
+        "desc": "Pemulihan status akun manual oleh moderator @nopal: ELO (1366 -> 2700), Koin (500 -> 50000), Diamond (20 -> 2000), XP (71383 -> 71383). Alasan: Pemulihan kegagalan sinkronisasi data akun (koin, diamond, ELO, XP)"
+      },
+      {
+        "id": "tx-diamond-1784733452646-652",
+        "timestamp": 1784733452646,
+        "type": "diamond",
+        "amount": 1980,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1784733452645-353",
+        "timestamp": 1784733452645,
+        "type": "diamond",
+        "amount": 1980,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1784733452645-421",
+        "timestamp": 1784733452645,
+        "type": "coin",
+        "amount": 49500,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784733452645-844",
+        "timestamp": 1784733452645,
+        "type": "coin",
+        "amount": 49500,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1784672762669-419",
+        "timestamp": 1784672762669,
+        "type": "diamond",
+        "amount": -1980,
+        "desc": "Membelanjakan Berlian"
+      },
+      {
+        "id": "tx-diamond-1784672762668-653",
+        "timestamp": 1784672762668,
+        "type": "diamond",
+        "amount": -1980,
+        "desc": "Membelanjakan Berlian"
+      },
+      {
+        "id": "tx-coin-1784672762667-965",
+        "timestamp": 1784672762667,
+        "type": "coin",
+        "amount": -4500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784672762667-337",
+        "timestamp": 1784672762667,
+        "type": "coin",
+        "amount": -4500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-state-restore-1784513153102-878",
+        "timestamp": 1784513153102,
+        "type": "coin",
+        "amount": 0,
+        "desc": "Pemulihan status akun manual oleh moderator @nopal: ELO (1366 -> 2700), Koin (500 -> 5000), Diamond (20 -> 2000), XP (71383 -> 71383). Alasan: Pemulihan kegagalan sinkronisasi data akun (koin, diamond, ELO, XP)"
+      },
+      {
+        "id": "tx-diamond-1784513152844-951",
+        "timestamp": 1784513152844,
+        "type": "diamond",
+        "amount": 1980,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1784513152843-534",
+        "timestamp": 1784513152843,
+        "type": "diamond",
+        "amount": 1980,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1784513152842-73",
+        "timestamp": 1784513152842,
+        "type": "coin",
+        "amount": 4500,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784513152841-392",
+        "timestamp": 1784513152841,
+        "type": "coin",
+        "amount": 4500,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1784419821179-440",
+        "timestamp": 1784419821179,
+        "type": "diamond",
+        "amount": 19980,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1784419821178-787",
+        "timestamp": 1784419821178,
+        "type": "diamond",
+        "amount": 19980,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1784419821178-431",
+        "timestamp": 1784419821178,
+        "type": "coin",
+        "amount": 47100,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784419821178-222",
+        "timestamp": 1784419821178,
+        "type": "coin",
+        "amount": 47100,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1784419352336-819",
+        "timestamp": 1784419352336,
+        "type": "diamond",
+        "amount": 19980,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1784419352336-714",
+        "timestamp": 1784419352336,
+        "type": "diamond",
+        "amount": 19980,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1784419352336-6",
+        "timestamp": 1784419352336,
+        "type": "coin",
+        "amount": 47100,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784419352335-725",
+        "timestamp": 1784419352335,
+        "type": "coin",
+        "amount": 47100,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1784418747883-865",
+        "timestamp": 1784418747883,
+        "type": "diamond",
+        "amount": 19980,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1784418747882-721",
+        "timestamp": 1784418747882,
+        "type": "diamond",
+        "amount": 19980,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1784418747881-428",
+        "timestamp": 1784418747881,
+        "type": "coin",
+        "amount": 47100,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784418747881-124",
+        "timestamp": 1784418747881,
+        "type": "coin",
+        "amount": 47100,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1784418655875-998",
+        "timestamp": 1784418655875,
+        "type": "diamond",
+        "amount": 19980,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1784418655875-718",
+        "timestamp": 1784418655875,
+        "type": "diamond",
+        "amount": 19980,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1784418655874-210",
+        "timestamp": 1784418655874,
+        "type": "coin",
+        "amount": 47100,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784418655874-701",
+        "timestamp": 1784418655874,
+        "type": "coin",
+        "amount": 47100,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1784418630073-607",
+        "timestamp": 1784418630073,
+        "type": "diamond",
+        "amount": 19980,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1784418630073-672",
+        "timestamp": 1784418630073,
+        "type": "diamond",
+        "amount": 19980,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1784418630073-84",
+        "timestamp": 1784418630073,
+        "type": "coin",
+        "amount": 47100,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784418630073-655",
+        "timestamp": 1784418630073,
+        "type": "coin",
+        "amount": 47100,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1784418589967-548",
+        "timestamp": 1784418589967,
+        "type": "diamond",
+        "amount": 19980,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1784418589966-40",
+        "timestamp": 1784418589966,
+        "type": "diamond",
+        "amount": 19980,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1784418589965-15",
+        "timestamp": 1784418589965,
+        "type": "coin",
+        "amount": 47100,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784418589965-582",
+        "timestamp": 1784418589965,
+        "type": "coin",
+        "amount": 47100,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1784418540486-328",
+        "timestamp": 1784418540486,
+        "type": "diamond",
+        "amount": 19980,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1784418540486-247",
+        "timestamp": 1784418540486,
+        "type": "diamond",
+        "amount": 19980,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1784418540486-399",
+        "timestamp": 1784418540486,
+        "type": "coin",
+        "amount": 47100,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784418540486-253",
+        "timestamp": 1784418540486,
+        "type": "coin",
+        "amount": 47100,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784418497570-456",
+        "timestamp": 1784418497570,
+        "type": "coin",
+        "amount": -400,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784418497570-370",
+        "timestamp": 1784418497570,
+        "type": "coin",
+        "amount": -400,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784418495363-8",
+        "timestamp": 1784418495363,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784418495362-740",
+        "timestamp": 1784418495362,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784418493040-933",
+        "timestamp": 1784418493040,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784418493039-416",
+        "timestamp": 1784418493039,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784418490749-258",
+        "timestamp": 1784418490749,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784418490747-14",
+        "timestamp": 1784418490747,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784418487804-175",
+        "timestamp": 1784418487804,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784418487804-711",
+        "timestamp": 1784418487804,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-state-restore-1784418472601-79",
+        "timestamp": 1784418472601,
+        "type": "coin",
+        "amount": 0,
+        "desc": "Pemulihan status akun manual oleh moderator @nopal: ELO (2700 -> 2700), Koin (500000 -> 50000), Diamond (20000 -> 20000), XP (71373 -> 71373). Alasan: Pemulihan kegagalan sinkronisasi data akun (koin, diamond, ELO, XP)"
+      },
+      {
+        "id": "tx-coin-1784418472068-238",
+        "timestamp": 1784418472068,
+        "type": "coin",
+        "amount": -450000,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1784418472067-673",
+        "timestamp": 1784418472067,
+        "type": "coin",
+        "amount": -450000,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-state-restore-1784418442163-528",
+        "timestamp": 1784418442163,
+        "type": "coin",
+        "amount": 0,
+        "desc": "Pemulihan status akun manual oleh moderator @nopal: ELO (1366 -> 2700), Koin (500 -> 500000), Diamond (20 -> 20000), XP (71373.00079999998 -> 71373). Alasan: Pemulihan kegagalan sinkronisasi data akun (koin, diamond, ELO, XP)"
+      },
+      {
+        "id": "tx-diamond-1784418441556-275",
+        "timestamp": 1784418441556,
+        "type": "diamond",
+        "amount": 19980,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1784418441555-179",
+        "timestamp": 1784418441555,
+        "type": "diamond",
+        "amount": 19980,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1784418441554-909",
+        "timestamp": 1784418441554,
+        "type": "coin",
+        "amount": 499500,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1784418441553-901",
+        "timestamp": 1784418441553,
+        "type": "coin",
+        "amount": 499500,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1783812051095-565",
+        "timestamp": 1783812051095,
+        "type": "coin",
+        "amount": -25,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1783812051095-950",
+        "timestamp": 1783812051095,
+        "type": "coin",
+        "amount": -25,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1783811790753-292",
+        "timestamp": 1783811790753,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1783811790753-512",
+        "timestamp": 1783811790753,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1783811787906-12",
+        "timestamp": 1783811787906,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1783811787906-617",
+        "timestamp": 1783811787906,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1783811784723-238",
+        "timestamp": 1783811784723,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1783811784723-252",
+        "timestamp": 1783811784723,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1783811781566-161",
+        "timestamp": 1783811781566,
+        "type": "coin",
+        "amount": -400,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1783811781566-749",
+        "timestamp": 1783811781566,
+        "type": "coin",
+        "amount": -400,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-diamond-1783811686545-108",
+        "timestamp": 1783811686545,
+        "type": "diamond",
+        "amount": 550,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1783811686545-185",
+        "timestamp": 1783811686545,
+        "type": "diamond",
+        "amount": 550,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1783811686545-384",
+        "timestamp": 1783811686545,
+        "type": "coin",
+        "amount": 10850,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1783811686545-16",
+        "timestamp": 1783811686545,
+        "type": "coin",
+        "amount": 10850,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1783811661561-828",
+        "timestamp": 1783811661561,
+        "type": "diamond",
+        "amount": 200,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1783811661560-167",
+        "timestamp": 1783811661560,
+        "type": "diamond",
+        "amount": 200,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1783811661558-71",
+        "timestamp": 1783811661558,
+        "type": "coin",
+        "amount": 4000,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1783811661556-834",
+        "timestamp": 1783811661556,
+        "type": "coin",
+        "amount": 4000,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1783811659012-830",
+        "timestamp": 1783811659012,
+        "type": "diamond",
+        "amount": 350,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1783811659012-87",
+        "timestamp": 1783811659012,
+        "type": "diamond",
+        "amount": 350,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1783811659011-457",
+        "timestamp": 1783811659011,
+        "type": "coin",
+        "amount": 6000,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1783811659011-37",
+        "timestamp": 1783811659011,
+        "type": "coin",
+        "amount": 6000,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1783811652477-690",
+        "timestamp": 1783811652477,
+        "type": "coin",
+        "amount": -25,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1783811652476-93",
+        "timestamp": 1783811652477,
+        "type": "coin",
+        "amount": -25,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-elo-restore-1783811631973-920",
+        "timestamp": 1783811631973,
+        "type": "coin",
+        "amount": 0,
+        "desc": "Pemulihan ELO manual oleh moderator @nopal: 2700 -> 2700 (+0 ELO). Alasan: Login/logout cycle incorrect ELO wipe recovery"
+      },
+      {
+        "id": "tx-elo-restore-1783811306149-519",
+        "timestamp": 1783811306149,
+        "type": "coin",
+        "amount": 0,
+        "desc": "Pemulihan ELO manual oleh moderator @nopal: 1366 -> 2700 (+1334 ELO). Alasan: Login/logout cycle incorrect ELO wipe recovery"
+      },
+      {
+        "id": "tx-coin-1783811253383-971",
+        "timestamp": 1783811253383,
+        "type": "coin",
+        "amount": 415,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1783811253382-127",
+        "timestamp": 1783811253382,
+        "type": "coin",
+        "amount": 415,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1783811250262-719",
+        "timestamp": 1783811250262,
+        "type": "coin",
+        "amount": 935,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1783811250262-697",
+        "timestamp": 1783811250262,
+        "type": "coin",
+        "amount": 935,
+        "desc": "Menerima Koin"
+      }
+    ],
+    "guild_has_owner": true,
+    "guild_profile_data": {
+      "id": "nopal ganteng bgt",
+      "name": "nopal ganteng bgt",
+      "tag": "Kompetitif",
+      "leader": "nopal",
+      "ownerUsername": "nopal",
+      "level": 6,
+      "totalElo": 2702,
+      "membersCount": 1,
+      "maxMembers": 30,
+      "motto": "Markas para ksatria papan hitam putih taktis Indonesia!",
+      "logo": "perisai",
+      "treasury": 7250,
+      "updatedAt": "2026-08-01T09:48:15.691Z"
+    },
+    "guild_members": [
+      {
+        "name": "nopal",
+        "role": "Founder",
+        "rating": 2702,
+        "status": "Online",
+        "contribution": 6500,
+        "level": 91
+      }
+    ],
+    "guild_lvl": 6,
+    "guild_treasury_gold": 1250,
+    "guild_blacklist_list": [],
+    "guild_action_history": [
+      "nopal melakukan absensi harian klan catur dan memperoleh +100 Poin Kontribusi suku.",
+      "Anggota nopal berkontribusi +100 Coin ke brankas klan.",
+      "Anggota nopal mencairkan 1000 Coin dari brankas klan.",
+      "nopal membuka Milestone Epic Gold Chest dan memperoleh: +665 Koin, +7 Diamond!",
+      "nopal membuka Milestone Silver Chest dan memperoleh: +486 Koin, +1 Diamond!",
+      "Anggota nopal berkontribusi +100 Coin ke brankas klan.",
+      "Anggota nopal berkontribusi +100 Coin ke brankas klan.",
+      "Anggota nopal berkontribusi +100 Coin ke brankas klan.",
+      "Anggota nopal berkontribusi +500 Coin ke brankas klan.",
+      "Anggota nopal berkontribusi +500 Coin ke brankas klan.",
+      "Anggota nopal berkontribusi +500 Coin ke brankas klan.",
+      "Anggota nopal berkontribusi +500 Coin ke brankas klan.",
+      "Anggota nopal berkontribusi +500 Coin ke brankas klan.",
+      "Anggota nopal berkontribusi +500 Coin ke brankas klan.",
+      "Anggota nopal berkontribusi +500 Coin ke brankas klan.",
+      "nopal membuka Milestone Epic Gold Chest dan memperoleh: +961 Koin, +6 Diamond!",
+      "nopal membuka Milestone Silver Chest dan memperoleh: +348 Koin, +3 Diamond!",
+      "nopal melakukan absensi harian klan catur dan memperoleh +90 Poin Kontribusi suku.",
+      "Anggota nopal berkontribusi +500 Coin ke brankas klan.",
+      "Anggota nopal berkontribusi +500 Coin ke brankas klan.",
+      "Anggota nopal berkontribusi +500 Coin ke brankas klan.",
+      "Anggota nopal berkontribusi +500 Coin ke brankas klan.",
+      "Anggota nopal berkontribusi +500 Coin ke brankas klan.",
+      "Anggota nopal berkontribusi +500 Coin ke brankas klan.",
+      "Profil klan dimodifikasi oleh Admin pada 19.14.29.",
+      "nopal melakukan absensi harian klan catur dan memperoleh +70 Poin Kontribusi suku.",
+      "nopal membuka Milestone Bronze Chest dan memperoleh: +212 Koin, +1 Diamond!",
+      "nopal melakukan absensi harian klan catur dan memperoleh +50 Poin Kontribusi suku.",
+      "Anggota nopal berkontribusi +500 Coin ke brankas klan.",
+      "Klub \"nopal ganteng bgt\" didirikan tanggal 30/7/2026",
+      "Anda resmi bergabung dengan klan Klub Pal Mate Mandiri!",
+      "Sistem donasi treasury dan sumbangan fragment diaktifkan."
+    ],
+    "guild_join_requests": [],
+    "requested_fragment_skin": "null",
+    "has_active_fragment_req": false,
+    "today_fragment_donation_count": 0,
+    "conquered_boards_list": [
+      "1"
+    ],
+    "clan_checked_in": true,
+    "clan_weekly_milestones": [
+      1,
+      2,
+      3
+    ],
+    "seasonal_event_score": 135,
+    "seasonal_completed_quests": [
+      "smq1",
+      "smq2"
+    ],
+    "seasonal_answered_quizzes": [
+      "smqz1",
+      "smqz2"
+    ],
+    "likedBy": [],
+    "likesCount": 3,
+    "pinned_medals_ids": [
+      "m3",
+      "m4",
+      "m5"
+    ],
+    "blockedUsers": [
+      "PecaturToxic69",
+      "BotsSpammer2024"
+    ],
+    "streak": 10,
+    "peakXp": 0,
+    "winStreak": 0,
+    "longestDefense": 0,
+    "lastActiveAt": 1785577694989,
+    "user_clan_contribution": 6500
   },
   "pal": {
-    "inbox": [],
+    "inbox": [
+      {
+        "id": "sys_i9tr17k",
+        "type": "system",
+        "sender": "Sistem",
+        "text": "nopal mulai mengikuti Anda!",
+        "sentAt": 1785145331102,
+        "status": "read"
+      }
+    ],
     "unlockedThemes": [
       "classic"
     ],
@@ -98,7 +4188,39 @@
     "friendRequests": [],
     "matchesPlayed": 0,
     "elo": 400,
-    "xp": 0
+    "xp": 0,
+    "unlockedItems": [],
+    "followers": [
+      "nopal"
+    ],
+    "following": [],
+    "followRequests": [],
+    "isPrivate": false,
+    "visitorLog": [
+      {
+        "visitorUsername": "nopal",
+        "visitedAt": 1785144439353
+      },
+      {
+        "visitorUsername": "nopal",
+        "visitedAt": 1785145329544
+      }
+    ],
+    "conversations": {
+      "nopal": {
+        "messages": [
+          {
+            "id": "msg_ua1yfit",
+            "sender": "nopal",
+            "text": "oy nyet",
+            "sentAt": 1785145343826
+          }
+        ],
+        "isApproved": true
+      }
+    },
+    "isAdmin": false,
+    "isStaff": false
   },
   "val": {
     "profileBio": "Pecatur sejati pantang menyerah!",
@@ -134,6 +4256,680 @@
       "classic"
     ],
     "profileBio": "Pecatur sejati pantang menyerah!",
-    "inbox": []
+    "inbox": [],
+    "unlockedItems": [],
+    "followers": [],
+    "following": [],
+    "followRequests": [],
+    "isPrivate": false,
+    "visitorLog": [],
+    "conversations": {},
+    "isAdmin": false,
+    "isStaff": false
+  },
+  "oyehh": {
+    "username": "oyehh",
+    "password": "kontol kejepit",
+    "elo": 400,
+    "xp": 83710,
+    "coins": 52245,
+    "diamonds": 2098,
+    "unlockedThemes": [
+      "classic",
+      "board_classic",
+      "board_cosmic",
+      "board_forest",
+      "board_magma_lava",
+      "cosmic",
+      "forest",
+      "iceland",
+      "magma",
+      "magma_lava",
+      "neon",
+      "wood"
+    ],
+    "matchesPlayed": 0,
+    "matchesWon": 0,
+    "profileAvatar": "/src/assets/images/avatar_martin_1779709510230.png",
+    "profileBio": "Pecatur sejati pantang menyerah!",
+    "claimedAchievements": [],
+    "registeredAt": 1785141622244,
+    "friends": [],
+    "friendRequests": [],
+    "inbox": [],
+    "membershipStatus": "free",
+    "unlockedItems": [
+      "Frost Blizzard Master",
+      "Pecatur Perintis",
+      "Raja Musim Panas",
+      "anime",
+      "beach_sun_skin",
+      "board_classic",
+      "board_cosmic",
+      "board_forest",
+      "board_magma_lava",
+      "classic",
+      "cosmic",
+      "cyberpunk",
+      "dragon_flare",
+      "forest",
+      "frame_bronze",
+      "frame_silver",
+      "frame_wooden",
+      "gold",
+      "iceland",
+      "magma",
+      "magma_lava",
+      "neon",
+      "none",
+      "royal",
+      "skin_anime",
+      "skin_classic",
+      "skin_cyberpunk",
+      "skin_gold",
+      "skin_neon",
+      "skin_wood",
+      "standard",
+      "wood",
+      "wooden"
+    ],
+    "selectedSkin": "standard",
+    "unlockedSkins": [
+      "standard",
+      "classic",
+      "anime",
+      "cyberpunk",
+      "gold",
+      "neon",
+      "skin_anime",
+      "skin_classic",
+      "skin_cyberpunk",
+      "skin_gold",
+      "skin_neon",
+      "skin_wood",
+      "wood",
+      "beach_sun_skin"
+    ],
+    "equippedTitle": "Pecatur Perintis",
+    "unlockedTitles": [
+      "Pecatur Perintis",
+      "Frost Blizzard Master",
+      "Raja Musim Panas",
+      "iceland",
+      "royal",
+      "board_classic",
+      "board_cosmic",
+      "board_forest",
+      "board_magma_lava",
+      "frame_bronze",
+      "frame_silver",
+      "frame_wooden",
+      "skin_anime",
+      "skin_classic",
+      "skin_cyberpunk",
+      "skin_gold",
+      "skin_neon",
+      "skin_wood",
+      "wooden"
+    ],
+    "equippedCheckmateEffect": "none",
+    "unlockedCheckmateEffects": [
+      "none",
+      "dragon_flare"
+    ],
+    "customStatus": "Pantang menyerah sebelum raja digulingkan!",
+    "selectedFrame": "none",
+    "unlockedFrames": [
+      "frame_wooden",
+      "none",
+      "wooden"
+    ],
+    "followers": [],
+    "following": [],
+    "followRequests": [],
+    "isPrivate": false,
+    "visitorLog": [],
+    "conversations": {},
+    "onlineHistory": [],
+    "chess_transaction_history": [],
+    "isAdmin": false,
+    "isStaff": false,
+    "guild_has_owner": false,
+    "guild_profile_data": null,
+    "guild_members": [],
+    "guild_lvl": 1,
+    "guild_treasury_gold": 0,
+    "guild_blacklist_list": [],
+    "guild_action_history": [],
+    "guild_join_requests": [],
+    "requested_fragment_skin": "null",
+    "has_active_fragment_req": false,
+    "today_fragment_donation_count": 0,
+    "conquered_boards_list": [],
+    "clan_checked_in": false,
+    "clan_weekly_milestones": [],
+    "seasonal_event_score": 0,
+    "seasonal_completed_quests": [],
+    "seasonal_answered_quizzes": []
+  },
+  "titit": {
+    "username": "titit",
+    "password": "memek",
+    "elo": 400,
+    "xp": 82755,
+    "coins": 46910,
+    "diamonds": 2038,
+    "unlockedThemes": [
+      "classic",
+      "board_classic",
+      "board_cosmic",
+      "board_forest",
+      "board_magma_lava",
+      "cosmic",
+      "forest",
+      "iceland",
+      "magma",
+      "magma_lava",
+      "neon",
+      "wood"
+    ],
+    "matchesPlayed": 0,
+    "matchesWon": 0,
+    "profileAvatar": "/src/assets/images/avatar_martin_1779709510230.png",
+    "profileBio": "Pecatur sejati pantang menyerah!",
+    "claimedAchievements": [
+      "10",
+      "9"
+    ],
+    "registeredAt": 1785145402547,
+    "friends": [],
+    "friendRequests": [],
+    "inbox": [
+      {
+        "id": "sys_5amguke",
+        "type": "system",
+        "sender": "Sistem",
+        "text": "@nopal menerima permintaan follow Anda!",
+        "sentAt": 1785145516796,
+        "status": "read"
+      }
+    ],
+    "membershipStatus": "free",
+    "unlockedItems": [
+      "Frost Blizzard Master",
+      "Pecatur Perintis",
+      "Raja Musim Panas",
+      "anime",
+      "beach_sun_skin",
+      "beach_wave",
+      "blizzard_winter",
+      "board_classic",
+      "board_cosmic",
+      "board_forest",
+      "board_magma_lava",
+      "bronze",
+      "classic",
+      "cosmic",
+      "cyber",
+      "cyberpunk",
+      "dragon_flare",
+      "embed_emerald",
+      "forest",
+      "frame_bronze",
+      "frame_silver",
+      "frame_wooden",
+      "gold",
+      "golden_ketupat",
+      "iceland",
+      "magma",
+      "magma_lava",
+      "neon",
+      "none",
+      "red_lantern",
+      "royal",
+      "silver",
+      "skin_anime",
+      "skin_classic",
+      "skin_cyberpunk",
+      "skin_gold",
+      "skin_neon",
+      "skin_wood",
+      "standard",
+      "wood",
+      "wooden"
+    ],
+    "selectedSkin": "standard",
+    "unlockedSkins": [
+      "standard",
+      "classic",
+      "anime",
+      "beach_sun_skin",
+      "cyberpunk",
+      "gold",
+      "neon",
+      "skin_anime",
+      "skin_classic",
+      "skin_cyberpunk",
+      "skin_gold",
+      "skin_neon",
+      "skin_wood",
+      "wood"
+    ],
+    "equippedTitle": "Pecatur Perintis",
+    "unlockedTitles": [
+      "Pecatur Perintis",
+      "Frost Blizzard Master",
+      "Raja Musim Panas",
+      "iceland",
+      "royal",
+      "board_classic",
+      "board_cosmic",
+      "board_forest",
+      "board_magma_lava",
+      "frame_bronze",
+      "frame_silver",
+      "frame_wooden",
+      "skin_anime",
+      "skin_classic",
+      "skin_cyberpunk",
+      "skin_gold",
+      "skin_neon",
+      "skin_wood",
+      "wooden"
+    ],
+    "equippedCheckmateEffect": "none",
+    "unlockedCheckmateEffects": [
+      "none",
+      "dragon_flare"
+    ],
+    "customStatus": "Pantang menyerah sebelum raja digulingkan!",
+    "selectedFrame": "none",
+    "unlockedFrames": [
+      "beach_wave",
+      "blizzard_winter",
+      "bronze",
+      "cosmic",
+      "cyber",
+      "embed_emerald",
+      "frame_bronze",
+      "frame_silver",
+      "frame_wooden",
+      "gold",
+      "golden_ketupat",
+      "magma",
+      "none",
+      "red_lantern",
+      "silver",
+      "wooden"
+    ],
+    "followers": [],
+    "following": [
+      "nopal"
+    ],
+    "likesCount": 0,
+    "likedBy": [],
+    "followRequests": [],
+    "isPrivate": false,
+    "visitorLog": [
+      {
+        "visitorUsername": "nopal",
+        "visitedAt": 1785145541193
+      }
+    ],
+    "conversations": {
+      "nopal": {
+        "messages": [
+          {
+            "id": "msg_jch4bo1",
+            "sender": "nopal",
+            "text": "oy",
+            "sentAt": 1785145548342
+          }
+        ],
+        "isApproved": true
+      }
+    },
+    "onlineHistory": [],
+    "chess_transaction_history": [
+      {
+        "id": "tx-coin-1785408040819-859",
+        "timestamp": 1785408040819,
+        "type": "coin",
+        "amount": -2000,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785408040817-686",
+        "timestamp": 1785408040818,
+        "type": "coin",
+        "amount": -2000,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785407979774-124",
+        "timestamp": 1785407979774,
+        "type": "coin",
+        "amount": -2000,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785407979768-288",
+        "timestamp": 1785407979768,
+        "type": "coin",
+        "amount": -2000,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-diamond-1785407971783-575",
+        "timestamp": 1785407971783,
+        "type": "diamond",
+        "amount": 2018,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1785407971783-580",
+        "timestamp": 1785407971783,
+        "type": "diamond",
+        "amount": 2018,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1785407971783-173",
+        "timestamp": 1785407971783,
+        "type": "coin",
+        "amount": 50410,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785407971782-430",
+        "timestamp": 1785407971782,
+        "type": "coin",
+        "amount": 50410,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785145578624-291",
+        "timestamp": 1785145578624,
+        "type": "diamond",
+        "amount": 2018,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1785145578623-530",
+        "timestamp": 1785145578623,
+        "type": "diamond",
+        "amount": 2018,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1785145578623-213",
+        "timestamp": 1785145578623,
+        "type": "coin",
+        "amount": 50410,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785145578621-382",
+        "timestamp": 1785145578621,
+        "type": "coin",
+        "amount": 50410,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785145480315-32",
+        "timestamp": 1785145480315,
+        "type": "diamond",
+        "amount": 2018,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1785145480315-578",
+        "timestamp": 1785145480315,
+        "type": "diamond",
+        "amount": 2018,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1785145480315-748",
+        "timestamp": 1785145480315,
+        "type": "coin",
+        "amount": 50410,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785145480315-477",
+        "timestamp": 1785145480315,
+        "type": "coin",
+        "amount": 50410,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785145400997-914",
+        "timestamp": 1785145400997,
+        "type": "diamond",
+        "amount": 2018,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-diamond-1785145400997-538",
+        "timestamp": 1785145400997,
+        "type": "diamond",
+        "amount": 2018,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1785145400997-490",
+        "timestamp": 1785145400997,
+        "type": "coin",
+        "amount": 50410,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785145400996-726",
+        "timestamp": 1785145400996,
+        "type": "coin",
+        "amount": 50410,
+        "desc": "Menerima Koin"
+      }
+    ],
+    "isAdmin": false,
+    "isStaff": false,
+    "guild_has_owner": true,
+    "guild_profile_data": {
+      "id": "memek",
+      "name": "memek",
+      "tag": "Kompetitif",
+      "leader": "titit",
+      "ownerUsername": "titit",
+      "level": 1,
+      "totalElo": 400,
+      "membersCount": 1,
+      "maxMembers": 30,
+      "motto": "Markas para ksatria papan hitam putih taktis Indonesia!",
+      "logo": "perisai",
+      "treasury": 250,
+      "updatedAt": "2026-07-30T10:41:03.088Z"
+    },
+    "guild_members": [
+      {
+        "name": "titit",
+        "role": "Founder",
+        "rating": 400,
+        "status": "Online",
+        "contribution": 1250,
+        "level": 14
+      }
+    ],
+    "guild_lvl": 1,
+    "guild_treasury_gold": 0,
+    "guild_blacklist_list": [],
+    "guild_action_history": [
+      "Klub \"memek\" didirikan tanggal 30/7/2026"
+    ],
+    "guild_join_requests": [],
+    "requested_fragment_skin": "null",
+    "has_active_fragment_req": false,
+    "today_fragment_donation_count": 0,
+    "conquered_boards_list": [],
+    "clan_checked_in": false,
+    "clan_weekly_milestones": [],
+    "seasonal_event_score": 0,
+    "seasonal_completed_quests": [],
+    "seasonal_answered_quizzes": [],
+    "pinned_medals_ids": [],
+    "blockedUsers": [
+      "PecaturToxic69",
+      "BotsSpammer2024"
+    ],
+    "streak": 2,
+    "peakXp": 0,
+    "winStreak": 0,
+    "longestDefense": 0,
+    "lastActiveAt": 1785408048222
+  },
+  "memek": {
+    "username": "memek",
+    "password": "titit",
+    "elo": 400,
+    "xp": 250,
+    "coins": 995,
+    "diamonds": 20,
+    "boardTheme": "classic",
+    "unlockedThemes": [
+      "classic",
+      "board_classic"
+    ],
+    "matchesPlayed": 0,
+    "matchesWon": 0,
+    "pinned_medals_ids": [],
+    "profileAvatar": "/src/assets/images/avatar_martin_1779709510230.png",
+    "profileBio": "Pecatur sejati pantang menyerah!",
+    "claimedAchievements": [],
+    "registeredAt": 1785574704415,
+    "friends": [],
+    "friendRequests": [],
+    "inbox": [],
+    "membershipStatus": "free",
+    "unlockedItems": [
+      "Pecatur Perintis",
+      "board_classic",
+      "classic",
+      "frame_wooden",
+      "none",
+      "skin_classic",
+      "standard",
+      "wooden"
+    ],
+    "selectedSkin": "standard",
+    "unlockedSkins": [
+      "standard",
+      "classic",
+      "skin_classic"
+    ],
+    "equippedTitle": "Pecatur Perintis",
+    "unlockedTitles": [
+      "Pecatur Perintis",
+      "board_classic",
+      "frame_wooden",
+      "skin_classic",
+      "wooden"
+    ],
+    "equippedCheckmateEffect": "none",
+    "unlockedCheckmateEffects": [
+      "none"
+    ],
+    "customStatus": "Pantang menyerah sebelum raja digulingkan!",
+    "selectedFrame": "none",
+    "unlockedFrames": [
+      "none",
+      "frame_wooden",
+      "wooden"
+    ],
+    "followers": [],
+    "following": [],
+    "likesCount": 0,
+    "likedBy": [],
+    "followRequests": [],
+    "isPrivate": false,
+    "visitorLog": [],
+    "conversations": {},
+    "onlineHistory": [],
+    "chess_transaction_history": [
+      {
+        "id": "tx-diamond-1785574713387-106",
+        "timestamp": 1785574713387,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785574713387-237",
+        "timestamp": 1785574713387,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785574713387-708",
+        "timestamp": 1785574713387,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-diamond-1785574713387-635",
+        "timestamp": 1785574713387,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1785574713386-143",
+        "timestamp": 1785574713386,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785574713384-559",
+        "timestamp": 1785574713385,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785574707717-937",
+        "timestamp": 1785574707717,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785574707717-465",
+        "timestamp": 1785574707717,
+        "type": "coin",
+        "amount": 60,
+        "desc": "Menerima Koin"
+      }
+    ],
+    "seasonal_event_score": 0,
+    "seasonal_completed_quests": [],
+    "seasonal_answered_quizzes": [],
+    "seasonal_completed_milestones": [],
+    "blockedUsers": [],
+    "streak": 1,
+    "peakXp": 0,
+    "winStreak": 0,
+    "longestDefense": 0,
+    "isAdmin": false,
+    "isStaff": false,
+    "guild_has_owner": false,
+    "guild_blacklist_list": [],
+    "requested_fragment_skin": "null",
+    "has_active_fragment_req": false,
+    "today_fragment_donation_count": 0,
+    "conquered_boards_list": [],
+    "clan_checked_in": false,
+    "clan_weekly_milestones": []
   }
 }

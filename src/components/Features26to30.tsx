@@ -48,6 +48,7 @@ export const GACHA_ITEMS_POOL: GachaItem[] = [
   { id: 'magma', name: 'Bingkai Lava Vulkanik', category: 'frame', rarity: 'Epic', desc: 'Bara api lava menggelora di ujung bingkai.', color: 'border-orange-500 text-orange-400' },
   { id: 'gold', name: 'Bingkai Gladiator Emas', category: 'frame', rarity: 'Legendary', desc: 'Kemewahan emas murni dengan simbol mahkota. (Eksklusif Premium)', color: 'border-yellow-400 text-yellow-400 font-extrabold' },
   { id: 'cosmic', name: 'Bingkai Cahaya Kosmik', category: 'frame', rarity: 'Mythic', desc: 'Aura galaksi bertabur nebula gemerlap. (Eksklusif Premium)', color: 'border-fuchsia-500 text-fuchsia-400' },
+  { id: 'avatar_border_test', name: 'Bingkai Neon Pulsar', category: 'frame', rarity: 'Mythic', desc: 'Video animasi pulsa gelombang neon bergerak cepat.', color: 'border-cyan-400 text-cyan-300 font-bold' },
 
   // Custom SFX
   { id: 'sfx_robotic', name: 'SFX Robot Logam', category: 'sfx', rarity: 'Uncommon', desc: 'Suara gesekan robot setiap kali bidak melangkah.', color: 'border-slate-400 text-slate-300' },
@@ -87,6 +88,17 @@ export const Features26to30: React.FC<Features26to30Props> = ({
   selectedSkin, setSelectedSkin, selectedFrame, setSelectedFrame, boardTheme, setBoardTheme,
   diamondSavings, setDiamondSavings, dailyQuests, setDailyQuests, triggerAudio, triggerReward
 }) => {
+  const getActUser = () => {
+    const actUserObj = localStorage.getItem('user');
+    if (actUserObj) {
+      try {
+        const u = JSON.parse(actUserObj);
+        if (u && u.username) return u.username.trim().toLowerCase();
+      } catch (e) {}
+    }
+    return (localStorage.getItem('username') || 'default').trim().toLowerCase();
+  };
+
   // Navigation tabs in this panel
   const [activeTab, setActiveTab] = useState<'gacha' | 'inventory' | 'savings' | 'quests' | 'chests'>('gacha');
 
@@ -261,7 +273,7 @@ export const Features26to30: React.FC<Features26to30Props> = ({
 
   // Safe unlocking tool for drawn items
   const unlockGachaProduct = (item: GachaItem) => {
-    const actUser = localStorage.getItem('activeUser') || 'default';
+    const actUser = getActUser();
     if (item.category === 'skin') {
       if (!unlockedSkins.includes(item.id)) {
         const next = [...unlockedSkins, item.id];
@@ -347,7 +359,7 @@ export const Features26to30: React.FC<Features26to30Props> = ({
           const next = prev + finalDiamonds;
           localStorage.setItem('diamonds', String(next));
           return next;
-        });
+        }, true);
 
         // Contribute a portion to the Tabungan Diamond as well
         setDiamondSavings(prev => {
@@ -643,57 +655,76 @@ export const Features26to30: React.FC<Features26to30Props> = ({
                           </div>
 
                           <h5 className="font-extrabold text-[11px] text-white mt-1.5 leading-tight">{item.name}</h5>
-                          <p className="text-[9px] text-slate-405 leading-normal mt-1 font-sans">{item.desc}</p>
+                          <p className="text-[9px] text-slate-400 leading-normal mt-1 font-sans">{item.desc}</p>
                         </div>
 
                         <div className="mt-3.5">
                           {isUnlocked ? (
                             <button
                               onClick={() => {
-                                triggerAudio('move');
                                 if (item.category === 'skin') {
                                   setSelectedSkin(item.id);
-                                  const u = localStorage.getItem('activeUser') || 'default';
+                                  const u = getActUser();
                                   localStorage.setItem(`selectedSkin:${u}`, item.id);
+                                  localStorage.setItem('selectedSkin', item.id);
+                                  setTimeout(() => { triggerAudio('move'); }, 50);
                                   triggerReward(0, `Skin bidak "${item.name}" berhasil dipasang!`, 'success_no_xp');
                                 } else if (item.category === 'board') {
                                   setBoardTheme(item.id);
                                   localStorage.setItem('boardTheme', item.id);
+                                  triggerAudio('move');
                                   triggerReward(0, `Tema papan "${item.name}" berhasil dipasang!`, 'success_no_xp');
                                 } else if (item.category === 'frame') {
                                   setSelectedFrame(item.id);
-                                  const u = localStorage.getItem('activeUser') || 'default';
+                                  const u = getActUser();
                                   localStorage.setItem(`selectedFrame:${u}`, item.id);
+                                  localStorage.setItem('selectedFrame', item.id);
+                                  const userRaw = localStorage.getItem('user');
+                                  if (userRaw) {
+                                    try {
+                                      const userObj = JSON.parse(userRaw);
+                                      userObj.selectedFrame = item.id;
+                                      localStorage.setItem('user', JSON.stringify(userObj));
+                                    } catch (e) {}
+                                  }
+                                  triggerAudio('move');
                                   triggerReward(0, `Bingkai avatar "${item.name}" berhasil dipasang!`, 'success_no_xp');
                                 } else if (item.category === 'pfp') {
                                   localStorage.setItem('guestAvatar', item.id);
                                   window.dispatchEvent(new Event('storage'));
+                                  triggerAudio('move');
                                   triggerReward(0, `Avatar "${item.name}" berhasil dipasang!`, 'success_no_xp');
                                 } else if (item.category === 'sfx') {
                                   if (isEquipped) {
                                     localStorage.setItem('gacha_sfx_equipped', 'none');
                                     setEquippedSfx('none');
+                                    setTimeout(() => { triggerAudio('move'); }, 50);
                                   } else {
                                     localStorage.setItem('gacha_sfx_equipped', item.id);
                                     setEquippedSfx(item.id);
+                                    setTimeout(() => { triggerAudio('move'); }, 50);
                                     triggerReward(0, `SFX ketukan "${item.name}" aktif!`, 'success_no_xp');
                                   }
                                 } else if (item.category === 'effect') {
                                   if (isEquipped) {
                                     localStorage.setItem('gacha_effect_equipped', 'none');
                                     setEquippedEffect('none');
+                                    triggerAudio('move');
                                   } else {
                                     localStorage.setItem('gacha_effect_equipped', item.id);
                                     setEquippedEffect(item.id);
+                                    triggerAudio('move');
                                     triggerReward(0, `Jejak visual "${item.name}" aktif!`, 'success_no_xp');
                                   }
                                 } else if (item.category === 'checkmate') {
                                   if (isEquipped) {
                                     localStorage.setItem('gacha_checkmate_equipped', 'none');
                                     setEquippedCheckmate('none');
+                                    triggerAudio('move');
                                   } else {
                                     localStorage.setItem('gacha_checkmate_equipped', item.id);
                                     setEquippedCheckmate(item.id);
+                                    triggerAudio('move');
                                     triggerReward(0, `Animasi skakmat "${item.name}" aktif!`, 'success_no_xp');
                                   }
                                 }

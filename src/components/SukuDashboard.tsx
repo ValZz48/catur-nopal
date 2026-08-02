@@ -9,11 +9,16 @@ interface SukuDashboardProps {
   guildLogs: string[];
   username: string;
   coins: number;
+  diamonds?: number;
+  setCoins?: React.Dispatch<React.SetStateAction<number>>;
+  setDiamonds?: React.Dispatch<React.SetStateAction<number>>;
+  setGuildTreasury?: React.Dispatch<React.SetStateAction<number>>;
   isEditingGuild: boolean;
   setIsEditingGuild: (v: boolean) => void;
   setGuildProfile: (v: any) => void;
   setGuildLogs: React.Dispatch<React.SetStateAction<string[]>>;
   handleGuildDonate: (amount: number) => void;
+  handleGuildWithdraw?: (amount: number) => void;
   triggerAudio: (type: string) => void;
   triggerReward: (xpAmount: number, msg: string, type?: any) => void;
 }
@@ -26,21 +31,84 @@ export const SukuDashboard: React.FC<SukuDashboardProps> = ({
   guildLogs,
   username,
   coins,
+  diamonds = 0,
+  setCoins,
+  setDiamonds,
+  setGuildTreasury,
   isEditingGuild,
   setIsEditingGuild,
   setGuildProfile,
   setGuildLogs,
   handleGuildDonate,
+  handleGuildWithdraw,
   triggerAudio,
   triggerReward
 }) => {
-  const [editName, setEditName] = useState(guildProfile.name);
-  const [editDesc, setEditDesc] = useState(guildProfile.description);
-  const [editTag, setEditTag] = useState(guildProfile.tag);
-  const [editLogo, setEditLogo] = useState(guildProfile.logo || 'perisai');
-  const [editMinRating, setEditMinRating] = useState(guildProfile.minRating);
-  const [editJoinSystem, setEditJoinSystem] = useState(guildProfile.joinSystem);
+  const [editName, setEditName] = useState(guildProfile?.name || 'Klub Pal Mate Mandiri');
+  const [editDesc, setEditDesc] = useState(guildProfile?.description || '');
+  const [editTag, setEditTag] = useState(guildProfile?.tag || 'Kompetitif');
+  const [editLogo, setEditLogo] = useState(guildProfile?.logo || 'perisai');
+  const [editMinRating, setEditMinRating] = useState(guildProfile?.minRating || 600);
+  const [editJoinSystem, setEditJoinSystem] = useState(guildProfile?.joinSystem || 'Bebas');
   const [showLogs, setShowLogs] = useState(false);
+  const [treasuryTab, setTreasuryTab] = useState<'donate' | 'withdraw'>('donate');
+  const [customAmount, setCustomAmount] = useState('');
+
+  const [privilegeClaimedToday, setPrivilegeClaimedToday] = useState<boolean>(() => {
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    const lastClaim = localStorage.getItem(`clan_privilege_last_claim:${username}`);
+    return lastClaim === todayStr;
+  });
+
+  const handleClaimDailyPrivilege = () => {
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    if (privilegeClaimedToday) {
+      triggerAudio('error');
+      triggerReward(0, 'Anda sudah mengklaim tunjangan harian klan hari ini! Silakan kembali esok hari.', 'info');
+      return;
+    }
+
+    const lvl = Math.max(1, guildLevel || 1);
+    const rewardCoins = lvl === 1 ? 100 : (lvl === 2 ? 250 : (lvl === 3 ? 500 : (lvl === 4 ? 1000 : 2500)));
+    const rewardGems = lvl >= 5 ? 25 : 0;
+
+    if (setCoins) {
+      setCoins(c => {
+        const next = c + rewardCoins;
+        localStorage.setItem('coins', String(next));
+        return next;
+      });
+    }
+    if (rewardGems > 0 && setDiamonds) {
+      setDiamonds(d => {
+        const next = d + rewardGems;
+        localStorage.setItem('diamonds', String(next));
+        return next;
+      });
+    }
+
+    if (lvl >= 4 && setGuildTreasury) {
+      setGuildTreasury(t => {
+        const next = t + 50;
+        localStorage.setItem('guild_treasury_gold', String(next));
+        return next;
+      });
+    }
+
+    localStorage.setItem(`clan_privilege_last_claim:${username}`, todayStr);
+    setPrivilegeClaimedToday(true);
+
+    const logMsg = `Anggota ${username} mengklaim tunjangan harian klan Level ${lvl} (+${rewardCoins} Koin${rewardGems > 0 ? `, +${rewardGems} Gem` : ''}).`;
+    setGuildLogs(prev => [logMsg, ...(prev || [])]);
+    localStorage.setItem('guild_action_history', JSON.stringify([logMsg, ...(guildLogs || [])]));
+
+    triggerAudio('win');
+    triggerReward(
+      25,
+      `TUNJANGAN HARIAN TERKLAIM! Selamat, Anda menerima +${rewardCoins} Koin${rewardGems > 0 ? ` & +${rewardGems} Gem` : ''} dari Hak Istimewa Suku Level ${lvl}!`,
+      'level_up'
+    );
+  };
 
   const renderGuildLogo = (logo: string) => {
     if (!logo) return <Shield className="w-11 h-11 text-emerald-500 shrink-0" />;
@@ -55,7 +123,7 @@ export const SukuDashboard: React.FC<SukuDashboardProps> = ({
     return <Shield className="w-11 h-11 text-[#81b64c] shrink-0" />;
   };
 
-  const sukuIdHash = Math.abs(guildProfile.name.split('').reduce((acc: number, c: string) => acc + c.charCodeAt(0), 100260));
+  const sukuIdHash = Math.abs((guildProfile?.name || 'Klub Pal Mate Mandiri').split('').reduce((acc: number, c: string) => acc + c.charCodeAt(0), 100260));
 
   return (
     <div className="space-y-6 font-sans">
@@ -178,15 +246,43 @@ export const SukuDashboard: React.FC<SukuDashboardProps> = ({
             </button>
             <button 
               onClick={() => {
-                setGuildProfile({
+                const newProf = {
                   name: editName,
                   description: editDesc,
                   tag: editTag,
                   logo: editLogo,
-                  frame: guildProfile.frame,
+                  frame: guildProfile.frame || 'gold',
                   minRating: editMinRating,
                   joinSystem: editJoinSystem
-                });
+                };
+                setGuildProfile(newProf);
+                localStorage.setItem('guild_profile_data', JSON.stringify(newProf));
+                window.dispatchEvent(new Event('guild_state_updated'));
+
+                // Sync to backend
+                fetch('/api/guilds/sync', {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json' },
+                  body: JSON.stringify({
+                    guild: {
+                      id: editName,
+                      name: editName,
+                      motto: editDesc,
+                      description: editDesc,
+                      tag: editTag,
+                      logo: editLogo,
+                      frame: guildProfile.frame || 'gold',
+                      minRating: editMinRating,
+                      joinSystem: editJoinSystem,
+                      leader: username,
+                      ownerUsername: username,
+                      level: guildLevel || 1,
+                      treasury: guildTreasury || 250,
+                      members: guildMembers || []
+                    }
+                  })
+                }).catch(() => {});
+
                 setIsEditingGuild(false);
                 setGuildLogs(prev => [`Profil klan dimodifikasi oleh Admin pada ${new Date().toLocaleTimeString()}.`, ...prev]);
                 triggerAudio('win');
@@ -228,7 +324,7 @@ export const SukuDashboard: React.FC<SukuDashboardProps> = ({
               </div>
               <div>
                 <span className="text-[9.5px] text-slate-500 uppercase block font-black">Aktivitas Anggota</span>
-                <span className="text-white">{guildMembers.length} / 30 Anggota</span>
+                <span className="text-white">{Math.max(1, (guildMembers || []).length)} / {Math.min(50, 30 + (Math.max(1, guildLevel) - 1) * 5)} Anggota</span>
               </div>
               <div>
                 <span className="text-[9.5px] text-slate-500 uppercase block font-black">Syarat Join</span>
@@ -247,44 +343,71 @@ export const SukuDashboard: React.FC<SukuDashboardProps> = ({
 
           {/* Bonus Benefits Suku */}
           <div className="bg-[#262421] p-5 rounded-2xl border border-stone-800 space-y-4">
-            <div>
-              <span className="text-[9px] font-black text-[#81b64c] uppercase block tracking-wider">Keuntungan & Hak Istimewa Suku (Clan Privilege)</span>
-              <p className="text-[10px] text-slate-400 mt-0.5 leading-normal font-medium">Tingkatkan level suku klan Anda melalui donasi koin untuk membuka hak istimewa eksklusif berikut:</p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-stone-850 pb-3">
+              <div>
+                <span className="text-[9px] font-black text-[#81b64c] uppercase block tracking-wider">Keuntungan & Hak Istimewa Suku (Clan Privilege)</span>
+                <p className="text-[10px] text-slate-400 mt-0.5 leading-normal font-medium">Tingkatkan level suku klan Anda melalui donasi koin untuk membuka hak istimewa eksklusif:</p>
+              </div>
+
+              {/* Klaim Tunjangan Harian Klan Action Button */}
+              <button
+                onClick={handleClaimDailyPrivilege}
+                disabled={privilegeClaimedToday}
+                className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all flex items-center justify-center gap-2 shrink-0 cursor-pointer ${
+                  privilegeClaimedToday
+                    ? 'bg-stone-800/80 text-stone-500 border border-stone-800 cursor-not-allowed'
+                    : 'bg-gradient-to-r from-[#81b64c] to-emerald-600 text-white hover:brightness-110 shadow-lg shadow-emerald-950/30 border border-emerald-400/30 animate-pulse'
+                }`}
+              >
+                <Award className="w-4 h-4" />
+                <span>
+                  {privilegeClaimedToday
+                    ? ' Tunjangan Hari Ini Diklaim'
+                    : `Klaim Tunjangan Lvl ${guildLevel} (${guildLevel === 1 ? '+100' : guildLevel === 2 ? '+250' : guildLevel === 3 ? '+500' : guildLevel === 4 ? '+1000' : '+2500'} Koin)`}
+                </span>
+              </button>
             </div>
             
             <div className="grid grid-cols-1 gap-2.5">
               {[
-                { lvl: 1, name: 'Suku Cadet', xp: '+5% XP', coins: '+100 Koin', perk: 'Akses Forum Chat Suku' },
-                { lvl: 2, name: 'Suku Fighter', xp: '+10% XP', coins: '+200 Koin', perk: 'Gelar Profil "Kombatan Suku"' },
-                { lvl: 3, name: 'Suku Tactician', xp: '+15% XP', coins: '+300 Koin', perk: 'Diskon Biaya Gacha -5%' },
-                { lvl: 4, name: 'Suku Vanguard', xp: '+20% XP', coins: '+400 Koin', perk: 'Multiplier Donasi Fragment +1' },
-                { lvl: 5, name: 'Suku Legendary', xp: '+25% XP', coins: '+500 Koin', perk: 'Skin Khusus "Ksatria Suku"' }
+                { lvl: 1, name: 'Suku Cadet', xp: '+5% XP Tanding', coins: '+100 Koin Harian', perk: 'Akses Obrolan Klan, Misi Bantuan Fragment & Donasi Treasury' },
+                { lvl: 2, name: 'Suku Fighter', xp: '+10% XP Tanding', coins: '+250 Koin Harian', perk: 'Kapasitas Klan +5 Anggota & Bonus Poin Perang Suku +10%' },
+                { lvl: 3, name: 'Suku Tactician', xp: '+15% XP Tanding', coins: '+500 Koin Harian', perk: 'Kotak Fragment Klan Diskon -20% & Extra Bintang Suku' },
+                { lvl: 4, name: 'Suku Vanguard', xp: '+20% XP Tanding', coins: '+1,000 Koin Harian', perk: 'Tabungan Diamond Klan Auto-Restock & Bonus Koin Gacha +15%' },
+                { lvl: 5, name: 'Suku Legendary', xp: '+25% XP Tanding', coins: '+2,500 Koin Harian & 25 Gem', perk: 'Mencairkan Koin Brankas Tanpa Biaya Admin & Max Kapasitas Klan' }
               ].map((p) => {
                 const isUnlocked = guildLevel >= p.lvl;
                 return (
                   <div 
                     key={p.lvl} 
-                    className={`p-3 rounded-xl border flex items-center justify-between gap-4 transition-all ${
+                    className={`p-3.5 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 transition-all ${
                       isUnlocked 
-                        ? 'bg-emerald-950/10 border-emerald-900/40 text-slate-200' 
+                        ? 'bg-emerald-950/20 border-emerald-800/60 text-slate-200 ring-1 ring-emerald-500/20' 
                         : 'bg-stone-900/40 border-stone-850 text-slate-500 opacity-60'
                     }`}
                   >
-                    <div className="flex items-center gap-2.5">
+                    <div className="flex items-start sm:items-center gap-2.5 min-w-0 flex-1">
                       <div className={`w-7 h-7 rounded-lg font-mono font-black text-xs flex items-center justify-center shrink-0 ${
-                        isUnlocked ? 'bg-[#81b64c] text-white' : 'bg-stone-800 text-stone-500'
+                        isUnlocked ? 'bg-[#81b64c] text-white shadow-sm' : 'bg-stone-800 text-stone-500'
                       }`}>
                         L{p.lvl}
                       </div>
-                      <div className="text-left">
-                        <h5 className={`text-xs font-black ${isUnlocked ? 'text-white' : 'text-slate-400'}`}>{p.name}</h5>
-                        <p className="text-[9.5px] leading-normal font-semibold text-slate-400">{p.perk}</p>
+                      <div className="text-left min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <h5 className={`text-xs font-black ${isUnlocked ? 'text-white' : 'text-slate-400'}`}>{p.name}</h5>
+                          {isUnlocked && (
+                            <span className="text-[8.5px] font-black uppercase px-1.5 py-0.2 bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 rounded">
+                               Hak Istimewa Aktif
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-[9.5px] leading-relaxed font-semibold text-slate-400 break-words">{p.perk}</p>
                       </div>
                     </div>
                     
-                    <div className="text-right shrink-0">
-                      <span className={`text-[10px] font-mono font-black block ${isUnlocked ? 'text-[#81b64c]' : 'text-slate-500'}`}>{p.xp} Bertanding</span>
-                      <span className="text-[9px] font-mono font-bold block text-yellow-500">{p.coins} Mingguan</span>
+                    <div className="flex sm:flex-col items-center sm:items-end justify-between sm:justify-center shrink-0 pt-2 sm:pt-0 border-t sm:border-t-0 border-stone-850/60 pl-9 sm:pl-0">
+                      <span className={`text-[10px] font-mono font-black block ${isUnlocked ? 'text-[#81b64c]' : 'text-slate-500'}`}>{p.xp}</span>
+                      <span className="text-[9px] font-mono font-bold block text-yellow-500">{p.coins}</span>
                     </div>
                   </div>
                 );
@@ -292,39 +415,196 @@ export const SukuDashboard: React.FC<SukuDashboardProps> = ({
             </div>
           </div>
 
-          {/* Treasury / Brankas */}
-          <div className="bg-[#262421] p-5 rounded-2xl border border-stone-800 space-y-3">
+          {/* Treasury / Brankas Klan */}
+          <div className="bg-[#262421] p-5 rounded-2xl border border-stone-800 space-y-4">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div>
+                <span className="text-[9.5px] font-black text-yellow-500 uppercase block tracking-wider">Brankas Klan (Treasury Suku)</span>
+                <h4 className="text-white font-mono font-black text-2xl mt-1 flex flex-row items-center gap-2">
+                  <Coins className="w-6 h-6 text-yellow-500 shrink-0" />
+                  <span>{guildTreasury.toLocaleString()}</span>
+                  <span className="text-xs text-stone-500 font-sans font-bold">/ {(guildLevel * 1200).toLocaleString()} Koin</span>
+                </h4>
+              </div>
+              <div className="bg-[#1c1a19] px-3.5 py-2 rounded-xl border border-stone-800 self-start sm:self-auto">
+                <span className="text-[9px] uppercase font-bold text-stone-400 block mb-0.5">Koin Anda</span>
+                <span className="text-xs font-mono font-black text-yellow-400 flex flex-row items-center gap-1.5">
+                  <Coins className="w-4 h-4 text-yellow-400 shrink-0" />
+                  <span>{coins.toLocaleString()}</span>
+                </span>
+              </div>
+            </div>
+
+            <p className="text-[10.5px] text-slate-400 leading-normal">
+              Kelola dana klan secara transparan: Donasikan koin untuk menaikkan Level Suku klan, atau cairkan koin dari brankas ke dompet pribadi Anda kapan saja.
+            </p>
+
+            {/* Progress Bar */}
             <div>
-              <span className="text-[9.5px] font-black text-yellow-500 uppercase block tracking-wider">Suku Treasury / Brankas Klan</span>
-              <h4 className="text-white font-mono font-black text-2xl mt-1">
-                {guildTreasury} <span className="text-xs text-stone-500">/ {guildLevel * 1200} Coins</span>
-              </h4>
-              <p className="text-[10px] text-slate-450 mt-1 leading-normal">
-                Donasi koin bersama anggota satu klub suku untuk menaikkan level suku klan secara otomatis. Level yang lebih tinggi membuka bonus XP dan keuntungan harian.
-              </p>
-              
-              <div className="w-full bg-[#1c1a19] h-2 rounded-full overflow-hidden mt-3 border border-stone-800">
+              <div className="flex justify-between text-[9px] font-bold text-stone-400 mb-1 uppercase">
+                <span>Progress Level {guildLevel}</span>
+                <span>{Math.min(100, Math.round((guildTreasury / (guildLevel * 1200)) * 100))}% (Batas: {(guildLevel * 1200).toLocaleString()})</span>
+              </div>
+              <div className="w-full bg-[#1c1a19] h-2.5 rounded-full overflow-hidden border border-stone-800 p-0.5">
                 <div 
                   style={{ width: `${Math.min(100, (guildTreasury / (guildLevel * 1200)) * 100)}%` }} 
-                  className="bg-gradient-to-r from-yellow-500 to-amber-500 h-full transition-all" 
+                  className="bg-gradient-to-r from-yellow-500 via-amber-400 to-[#81b64c] h-full rounded-full transition-all duration-300" 
                 />
               </div>
             </div>
 
-            <div className="flex gap-2 pt-2">
-              <button 
-                onClick={() => handleGuildDonate(100)}
-                className="flex-1 py-1.5 bg-stone-900 hover:bg-[#81b64c] hover:text-white text-slate-300 rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer border border-stone-800"
+            {/* Tabs: Donasi vs Cairkan */}
+            <div className="flex bg-[#1c1a19] p-1 rounded-xl border border-stone-800 text-[10px] font-black uppercase">
+              <button
+                onClick={() => setTreasuryTab('donate')}
+                className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer ${treasuryTab === 'donate' ? 'bg-[#81b64c] text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
               >
-                Sumbang +100
+                + Tabung / Donasi Koin
               </button>
-              <button 
-                onClick={() => handleGuildDonate(500)}
-                className="flex-1 py-1.5 bg-stone-900 hover:bg-[#81b64c] hover:text-white text-slate-300 rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer border border-stone-800"
+              <button
+                onClick={() => setTreasuryTab('withdraw')}
+                className={`flex-1 py-1.5 rounded-lg transition-all cursor-pointer ${treasuryTab === 'withdraw' ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-400 hover:text-white'}`}
               >
-                Sumbang +500
+                - Cairkan / Tarik Koin
               </button>
             </div>
+
+            {treasuryTab === 'donate' ? (
+              <div className="space-y-3 bg-[#1c1a19]/70 p-3 rounded-xl border border-stone-800">
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => handleGuildDonate(100)}
+                    className="flex-1 py-1.5 bg-stone-900 hover:bg-[#81b64c] hover:text-white text-slate-300 rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer border border-stone-800"
+                  >
+                    +100 Koin
+                  </button>
+                  <button 
+                    onClick={() => handleGuildDonate(500)}
+                    className="flex-1 py-1.5 bg-stone-900 hover:bg-[#81b64c] hover:text-white text-slate-300 rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer border border-stone-800"
+                  >
+                    +500 Koin
+                  </button>
+                  <button 
+                    onClick={() => handleGuildDonate(1000)}
+                    className="flex-1 py-1.5 bg-stone-900 hover:bg-[#81b64c] hover:text-white text-slate-300 rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer border border-stone-800"
+                  >
+                    +1000 Koin
+                  </button>
+                </div>
+
+                {/* Custom input */}
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="Jumlah custom koin..."
+                    value={customAmount}
+                    onChange={(e) => setCustomAmount(e.target.value)}
+                    className="flex-1 w-full bg-[#262421] border border-stone-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-[#81b64c]"
+                  />
+                  <div className="flex gap-2 shrink-0">
+                    <button
+                      onClick={() => {
+                        const val = Number(customAmount);
+                        if (val > 0) {
+                          handleGuildDonate(val);
+                          setCustomAmount('');
+                        } else {
+                          triggerAudio('error');
+                          triggerReward(0, 'Masukkan nominal koin donasi yang valid!', 'info');
+                        }
+                      }}
+                      className="flex-1 sm:flex-initial px-4 py-1.5 bg-[#81b64c] hover:bg-[#6f9e40] text-white rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer shadow-sm whitespace-nowrap"
+                    >
+                      Sumbang
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (coins > 0) {
+                          handleGuildDonate(coins);
+                          setCustomAmount('');
+                        } else {
+                          triggerAudio('error');
+                          triggerReward(0, 'Koin Anda kosong!', 'info');
+                        }
+                      }}
+                      className="flex-1 sm:flex-initial px-3 py-1.5 bg-stone-800 hover:bg-stone-700 text-yellow-400 rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer whitespace-nowrap"
+                    >
+                      All-In
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-3 bg-[#1c1a19]/70 p-3 rounded-xl border border-stone-800">
+                <div className={`p-2.5 rounded-xl border text-[10px] font-bold flex items-center justify-between ${
+                  guildLevel >= 5
+                    ? 'bg-emerald-950/20 border-emerald-800/40 text-emerald-400'
+                    : 'bg-amber-950/20 border-amber-900/30 text-amber-300'
+                }`}>
+                  <span>
+                    {guildLevel >= 5
+                      ? ' Hak Istimewa Aktif: Bebas Biaya Admin Penarikan (0%)!'
+                      : 'ℹ️ Biaya Admin Penarikan: 10% (Bebas Biaya Admin 0% di Level 5 Suku Legendary)'}
+                  </span>
+                  <span className="font-mono text-xs font-black shrink-0">
+                    {guildLevel >= 5 ? 'FEE 0%' : 'FEE 10%'}
+                  </span>
+                </div>
+
+                <div className="flex gap-2">
+                  <button 
+                    onClick={() => handleGuildWithdraw ? handleGuildWithdraw(100) : handleGuildDonate(-100)}
+                    className="flex-1 py-1.5 bg-stone-900 hover:bg-amber-600 hover:text-white text-slate-300 rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer border border-stone-800"
+                  >
+                    -100 Koin
+                  </button>
+                  <button 
+                    onClick={() => handleGuildWithdraw ? handleGuildWithdraw(500) : handleGuildDonate(-500)}
+                    className="flex-1 py-1.5 bg-stone-900 hover:bg-amber-600 hover:text-white text-slate-300 rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer border border-stone-800"
+                  >
+                    -500 Koin
+                  </button>
+                  <button 
+                    onClick={() => handleGuildWithdraw ? handleGuildWithdraw(1000) : handleGuildDonate(-1000)}
+                    className="flex-1 py-1.5 bg-stone-900 hover:bg-amber-600 hover:text-white text-slate-300 rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer border border-stone-800"
+                  >
+                    -1000 Koin
+                  </button>
+                </div>
+
+                {/* Custom withdraw input */}
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <input
+                    type="number"
+                    min="1"
+                    placeholder="Jumlah penarikan koin..."
+                    value={customAmount}
+                    onChange={(e) => setCustomAmount(e.target.value)}
+                    className="flex-1 w-full bg-[#262421] border border-stone-800 rounded-xl px-3 py-1.5 text-xs text-white placeholder-slate-500 font-mono focus:outline-none focus:border-amber-500"
+                  />
+                  <button
+                    onClick={() => {
+                      const val = Number(customAmount);
+                      if (val > 0) {
+                        if (handleGuildWithdraw) {
+                          handleGuildWithdraw(val);
+                        } else {
+                          handleGuildDonate(-val);
+                        }
+                        setCustomAmount('');
+                      } else {
+                        triggerAudio('error');
+                        triggerReward(0, 'Masukkan nominal koin penarikan yang valid!', 'info');
+                      }
+                    }}
+                    className="px-4 py-1.5 bg-amber-600 hover:bg-amber-500 text-white rounded-xl text-[10px] font-black uppercase transition-all cursor-pointer shadow-sm whitespace-nowrap shrink-0"
+                  >
+                    Cairkan
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
 
           {/* Visual Buttons for Logs and Edit */}

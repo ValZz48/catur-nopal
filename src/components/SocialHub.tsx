@@ -23,6 +23,8 @@ export function SocialHub({
   triggerAudio, 
   showLocalToast 
 }: SocialHubProps) {
+  const currentUsername = user?.username || "Guest";
+
   const [activeTab, setActiveTab] = useState<'search' | 'followers' | 'following' | 'chat'>('search');
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
@@ -32,7 +34,22 @@ export function SocialHub({
   const [viewingProfile, setViewingProfile] = useState<any | null>(null);
   
   // Privacy Settings state
-  const [isPrivateAccount, setIsPrivateAccount] = useState(false);
+  const [isPrivateAccount, setIsPrivateAccount] = useState(() => {
+    const activeName = (currentUsername || user?.username || 'guest').trim().toLowerCase();
+    const saved = localStorage.getItem(`isPrivate:${activeName}`);
+    if (saved !== null) return saved === 'true';
+    return !!user?.isPrivate;
+  });
+
+  useEffect(() => {
+    const activeName = (currentUsername || user?.username || 'guest').trim().toLowerCase();
+    const saved = localStorage.getItem(`isPrivate:${activeName}`);
+    if (saved !== null) {
+      setIsPrivateAccount(saved === 'true');
+    } else if (user?.isPrivate !== undefined) {
+      setIsPrivateAccount(!!user.isPrivate);
+    }
+  }, [user, currentUsername]);
 
   // Follow requests received
   const [followRequests, setFollowRequests] = useState<any[]>([]);
@@ -53,17 +70,15 @@ export function SocialHub({
   const [chatSentCount, setChatSentCount] = useState(0);
   const [isChatRestricted, setIsChatRestricted] = useState(false);
 
-  const currentUsername = user?.username || "Guest";
-
   // Load account properties
   useEffect(() => {
-    if (user) {
+    if (user?.username) {
       setIsPrivateAccount(!!user.isPrivate);
       fetchConversations();
       fetchVisitorLogs();
       fetchExtendedProfile();
     }
-  }, [user]);
+  }, [user?.username]);
 
   // Sync follow requests etc. from index inbox
   const fetchExtendedProfile = async () => {
@@ -124,7 +139,9 @@ export function SocialHub({
   // Toggle Account Privacy
   const togglePrivacy = async () => {
     const nextVal = !isPrivateAccount;
+    const activeName = (currentUsername || user?.username || 'guest').trim().toLowerCase();
     setIsPrivateAccount(nextVal);
+    localStorage.setItem(`isPrivate:${activeName}`, nextVal ? 'true' : 'false');
     triggerAudio('move');
     try {
       const res = await fetch('/api/social/privacy', {
@@ -165,6 +182,18 @@ export function SocialHub({
         } else {
           showLocalToast(`Anda sekarang mengikuti @${target.username}!`, "success");
           setViewingProfile({ ...target, isFollowing: true });
+          try {
+            const savedU = localStorage.getItem('user');
+            if (savedU) {
+              const uObj = JSON.parse(savedU);
+              const currentFollowing = Array.isArray(uObj.following) ? uObj.following : [];
+              if (!currentFollowing.includes(target.username)) {
+                uObj.following = [...currentFollowing, target.username];
+                localStorage.setItem('user', JSON.stringify(uObj));
+                window.dispatchEvent(new Event('user_updated'));
+              }
+            }
+          } catch (e) {}
         }
         handleSearch(searchQuery);
       }
@@ -187,6 +216,16 @@ export function SocialHub({
         triggerAudio('move');
         showLocalToast(`Batal mengikuti @${target.username}`, "info");
         setViewingProfile({ ...target, isFollowing: false, isRequested: false });
+        try {
+          const savedU = localStorage.getItem('user');
+          if (savedU) {
+            const uObj = JSON.parse(savedU);
+            const currentFollowing = Array.isArray(uObj.following) ? uObj.following : [];
+            uObj.following = currentFollowing.filter((u: string) => u.toLowerCase() !== target.username.toLowerCase());
+            localStorage.setItem('user', JSON.stringify(uObj));
+            window.dispatchEvent(new Event('user_updated'));
+          }
+        } catch (e) {}
         handleSearch(searchQuery);
       }
     } catch (e) {
@@ -486,81 +525,139 @@ export function SocialHub({
           )}
 
           {/* PROFILE WALL PANEL (Shown when user profile clicked) */}
-          {viewingProfile ? (
-            <div className="bg-[#1e1c1a] border-2 border-[#3c3934] rounded-2xl p-4 sm:p-5 relative animate-fade-in duration-300 shadow-xl mt-4">
-              <button 
-                onClick={() => setViewingProfile(null)}
-                className="absolute top-3 right-3 text-slate-400 hover:text-white p-1"
-              >
-                <X className="w-4 h-4" />
-              </button>
+          {viewingProfile ? (() => {
+            const isSelf = viewingProfile.username.toLowerCase() === currentUsername.toLowerCase();
+            const canViewPrivateWall = !viewingProfile.isPrivate || viewingProfile.isFollowing || viewingProfile.isFriend || isSelf;
 
-              <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-                <AvatarWithFrame src={viewingProfile.profileAvatar} frameId={viewingProfile.selectedFrame || 'none'} size="lg" />
-                <div className="flex-1 space-y-1 min-w-0">
-                  <h3 className="text-white font-black text-base flex items-center gap-1 justify-center sm:justify-start">
-                    @{viewingProfile.username}
-                    {viewingProfile.isPrivate && (
-                      <span className="px-1.5 py-0.5 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-[8px] font-black rounded uppercase">PRIVAT</span>
-                    )}
-                  </h3>
-                  <div className="text-xs text-[#81b64c] font-extrabold uppercase">Rating: {viewingProfile.elo} ELO</div>
-                  <p className="text-slate-300 text-xs italic truncate">"{viewingProfile.profileBio || 'Status catur tidak ditentukan.'}"</p>
+            if (!canViewPrivateWall) {
+              return (
+                <div className="bg-[#1e1c1a] border-2 border-[#3c3934] rounded-2xl p-5 relative animate-fade-in duration-300 shadow-xl mt-4">
+                  <button 
+                    onClick={() => setViewingProfile(null)}
+                    className="absolute top-3 right-3 text-slate-400 hover:text-white p-1"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+
+                  <div className="flex flex-col items-center text-center py-4 space-y-3">
+                    <AvatarWithFrame src={viewingProfile.profileAvatar} frameId={viewingProfile.selectedFrame || 'none'} size="lg" />
+                    <div>
+                      <h3 className="text-white font-black text-base flex items-center gap-1.5 justify-center">
+                        @{viewingProfile.username}
+                        <span className="px-1.5 py-0.5 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-[8px] font-black rounded uppercase flex items-center gap-1">
+                          <Lock className="w-2.5 h-2.5" /> PRIVAT
+                        </span>
+                      </h3>
+                      <p className="text-slate-400 text-xs mt-2 max-w-xs leading-relaxed">
+                        Akun ini bersifat privat. Anda harus mengikuti (follow) atau berteman terlebih dahulu untuk melihat dinding profil, riwayat pertandingan, dan berkirim pesan.
+                      </p>
+                    </div>
+
+                    <div className="w-full max-w-xs pt-2">
+                      {viewingProfile.isFollowing ? (
+                        <button
+                          onClick={() => handleUnfollow(viewingProfile)}
+                          className="w-full flex items-center justify-center gap-1 py-2.5 bg-stone-900 border border-stone-800 hover:bg-stone-800 text-slate-300 text-xs font-black uppercase rounded-xl transition-all"
+                        >
+                          <UserMinus className="w-4 h-4" /> Unfollow
+                        </button>
+                      ) : viewingProfile.isRequested ? (
+                        <button
+                          disabled
+                          className="w-full flex items-center justify-center gap-1 py-2.5 bg-[#312e2b] border border-[#3c3934] text-amber-500 text-xs font-black uppercase rounded-xl opacity-80 cursor-not-allowed"
+                        >
+                          <Clock className="w-4 h-4 animate-spin" /> Permintaan Mengikuti Terkirim
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleFollow(viewingProfile)}
+                          className="w-full flex items-center justify-center gap-1 py-2.5 bg-[#81b64c] hover:bg-[#81b64c]/90 text-white text-xs font-black uppercase rounded-xl shadow-lg transition-all"
+                        >
+                          <UserPlus className="w-4 h-4" /> Kirim Permintaan Follow
+                        </button>
+                      )}
+                    </div>
+                  </div>
                 </div>
-              </div>
+              );
+            }
 
-              {/* ACTION BUTTONS FOR THE PROFILE WALL */}
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-5">
-                {/* Follow Button */}
-                {viewingProfile.isFollowing ? (
-                  <button
-                    onClick={() => handleUnfollow(viewingProfile)}
-                    className="w-full flex items-center justify-center gap-1 py-2.5 bg-stone-900 border border-stone-800 hover:bg-stone-800 text-slate-300 text-[10px] font-black uppercase rounded-xl tracking-wider transition-all"
-                  >
-                    <UserMinus className="w-3.5 h-3.5" />
-                    <span>Unfollow</span>
-                  </button>
-                ) : viewingProfile.isRequested ? (
-                  <button
-                    disabled
-                    className="w-full flex items-center justify-center gap-1 py-2.5 bg-[#312e2b] border border-[#3c3934] text-amber-500 text-[10px] font-black uppercase rounded-xl tracking-wider transition-all opacity-80 cursor-not-allowed"
-                  >
-                    <Clock className="w-3.5 h-3.5 animate-spin" />
-                    <span>Menunggu Persetujuan</span>
-                  </button>
-                ) : (
-                  <button
-                    onClick={() => handleFollow(viewingProfile)}
-                    className="w-full flex items-center justify-center gap-1 py-2.5 bg-[#81b64c] hover:bg-[#81b64c]/90 text-white text-[10px] font-black uppercase rounded-xl tracking-wider shadow-md transition-all"
-                  >
-                    <UserPlus className="w-3.5 h-3.5" />
-                    <span>Follow</span>
-                  </button>
-                )}
-
-                {/* Direct Message (DM) Button */}
-                <button
-                  onClick={() => openDirectChat(viewingProfile)}
-                  className="w-full flex items-center justify-center gap-1 py-2.5 bg-sky-950/40 border border-sky-800 hover:bg-sky-900 text-sky-400 text-[10px] font-black uppercase rounded-xl tracking-wider transition-all"
+            return (
+              <div className="bg-[#1e1c1a] border-2 border-[#3c3934] rounded-2xl p-4 sm:p-5 relative animate-fade-in duration-300 shadow-xl mt-4">
+                <button 
+                  onClick={() => setViewingProfile(null)}
+                  className="absolute top-3 right-3 text-slate-400 hover:text-white p-1"
                 >
-                  <MessageSquare className="w-3.5 h-3.5" />
-                  <span>Kirim Pesan Langsung (DM)</span>
+                  <X className="w-4 h-4" />
+                </button>
+
+                <div className="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
+                  <AvatarWithFrame src={viewingProfile.profileAvatar} frameId={viewingProfile.selectedFrame || 'none'} size="lg" />
+                  <div className="flex-1 space-y-1 min-w-0">
+                    <h3 className="text-white font-black text-base flex items-center gap-1 justify-center sm:justify-start">
+                      @{viewingProfile.username}
+                      {viewingProfile.isPrivate && (
+                        <span className="px-1.5 py-0.5 bg-rose-500/10 border border-rose-500/30 text-rose-400 text-[8px] font-black rounded uppercase">PRIVAT</span>
+                      )}
+                    </h3>
+                    <div className="text-xs text-[#81b64c] font-extrabold uppercase">Rating: {viewingProfile.elo} ELO</div>
+                    <p className="text-slate-300 text-xs italic truncate">"{viewingProfile.profileBio || 'Status catur tidak ditentukan.'}"</p>
+                  </div>
+                </div>
+
+                {/* ACTION BUTTONS FOR THE PROFILE WALL */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-5">
+                  {/* Follow Button */}
+                  {viewingProfile.isFollowing ? (
+                    <button
+                      onClick={() => handleUnfollow(viewingProfile)}
+                      className="w-full flex items-center justify-center gap-1 py-2.5 bg-stone-900 border border-stone-800 hover:bg-stone-800 text-slate-300 text-[10px] font-black uppercase rounded-xl tracking-wider transition-all"
+                    >
+                      <UserMinus className="w-3.5 h-3.5" />
+                      <span>Unfollow</span>
+                    </button>
+                  ) : viewingProfile.isRequested ? (
+                    <button
+                      disabled
+                      className="w-full flex items-center justify-center gap-1 py-2.5 bg-[#312e2b] border border-[#3c3934] text-amber-500 text-[10px] font-black uppercase rounded-xl tracking-wider transition-all opacity-80 cursor-not-allowed"
+                    >
+                      <Clock className="w-3.5 h-3.5 animate-spin" />
+                      <span>Menunggu Persetujuan</span>
+                    </button>
+                  ) : (
+                    <button
+                      onClick={() => handleFollow(viewingProfile)}
+                      className="w-full flex items-center justify-center gap-1 py-2.5 bg-[#81b64c] hover:bg-[#81b64c]/90 text-white text-[10px] font-black uppercase rounded-xl tracking-wider shadow-md transition-all"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>Follow</span>
+                    </button>
+                  )}
+
+                  {/* Direct Message (DM) Button */}
+                  <button
+                    onClick={() => openDirectChat(viewingProfile)}
+                    className="w-full flex items-center justify-center gap-1 py-2.5 bg-sky-950/40 border border-sky-800 hover:bg-sky-900 text-sky-400 text-[10px] font-black uppercase rounded-xl tracking-wider transition-all"
+                  >
+                    <MessageSquare className="w-3.5 h-3.5" />
+                    <span>Kirim Pesan Langsung (DM)</span>
+                  </button>
+                </div>
+
+                {/* Friends list shortcut button */}
+                <button
+                  onClick={() => {
+                    showLocalToast(`Mengirim permintaan pertemanan ke @${viewingProfile.username}!`, "success");
+                    triggerAudio('win');
+                  }}
+                  className="w-full mt-2.5 flex items-center justify-center gap-1.5 py-2.5 bg-purple-950/30 border border-purple-900 hover:bg-purple-900/60 text-purple-400 text-[10px] font-black uppercase rounded-xl tracking-wider transition-all"
+                >
+                  <Plus className="w-3.5 h-3.5" />
+                  <span>Tambahkan Teman Utama</span>
                 </button>
               </div>
-
-              {/* Friends list shortcut button */}
-              <button
-                onClick={() => {
-                  showLocalToast(`Mengirim permintaan pertemanan ke @${viewingProfile.username}!`, "success");
-                  triggerAudio('win');
-                }}
-                className="w-full mt-2.5 flex items-center justify-center gap-1.5 py-2.5 bg-purple-950/30 border border-purple-900 hover:bg-purple-900/60 text-purple-400 text-[10px] font-black uppercase rounded-xl tracking-wider transition-all"
-              >
-                <Plus className="w-3.5 h-3.5" />
-                <span>Tambahkan Teman Utama</span>
-              </button>
-            </div>
-          ) : (
+            );
+          })() : (
             <div className="bg-[#1e1c1a]/40 p-6 rounded-2xl text-center border border-[#3c3934] mt-4">
               <Search className="w-7 h-7 text-slate-600 mx-auto mb-2" />
               <div className="text-white text-xs font-extrabold uppercase">Cari & Sambungkan</div>

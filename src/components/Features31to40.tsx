@@ -4,7 +4,7 @@ import {
   Calendar, Gift, Percent, Coins, Gem, Crown, Shield, ArrowRight, 
   Lock, Plus, Search, Award, Flame, UserCheck, ThumbsUp, Check, 
   Settings, Activity, Sparkles, Timer, Bookmark, Trash, Heart, Mail, Swords,
-  ChevronLeft, ShieldAlert
+  ChevronLeft, ShieldAlert, UserPlus, RotateCw, Filter, PlusCircle, LogOut
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { SukuDashboard } from './SukuDashboard';
@@ -46,6 +46,7 @@ interface Features31to40Props {
   setDiamondSavings?: React.Dispatch<React.SetStateAction<number>>;
   friendsList?: any[];
   prefLang?: 'id' | 'en';
+  onlineHistory?: any[];
 }
 
 // -------------------------------------------------------------------------
@@ -88,13 +89,61 @@ export const Features31to40: React.FC<Features31to40Props> = ({
   diamondSavings,
   setDiamondSavings,
   friendsList,
-  prefLang
+  prefLang,
+  onlineHistory
 }) => {
   // Navigation for Features 31-40 tabs
   const [activeTab, setActiveTab] = useState<'guild' | 'tournament' | 'posts' | 'deals' | 'stats'>(initialTab || 'guild');
 
+  // Tracing ELO history backwards from the current onlineRating dynamically to prevent hardcoding leakage
+  const eloPoints = React.useMemo(() => {
+    const points = [onlineRating];
+    let current = onlineRating;
+    const historyToUse = onlineHistory || [];
+    for (let i = 0; i < Math.min(7, historyToUse.length); i++) {
+      const diff = historyToUse[i]?.eloDiff || 0;
+      current = current - diff;
+      points.push(current);
+    }
+    points.reverse();
+    
+    const targetLength = 8;
+    if (points.length < targetLength) {
+      const firstComputed = points[0];
+      const gap = targetLength - points.length;
+      const padding = [];
+      for (let i = 0; i < gap; i++) {
+        const val = Math.round(400 + (firstComputed - 400) * (i / gap));
+        padding.push(val);
+      }
+      return [...padding, ...points];
+    }
+    return points.slice(-8);
+  }, [onlineRating, onlineHistory]);
+
+  const chartData = React.useMemo(() => {
+    const minRating = Math.min(...eloPoints);
+    const maxRating = Math.max(...eloPoints);
+    const xCoords = [10, 80, 150, 220, 290, 360, 430, 490];
+    const minYCoord = 30;
+    const maxYCoord = 145;
+    
+    return eloPoints.map((val, idx) => {
+      const x = xCoords[idx];
+      const y = maxRating === minRating 
+        ? 110 
+        : maxYCoord - ((val - minRating) / (maxRating - minRating)) * (maxYCoord - minYCoord);
+      return { x, y, val };
+    });
+  }, [eloPoints]);
+
+  const svgPathD = React.useMemo(() => {
+    if (chartData.length === 0) return '';
+    return chartData.map((p, idx) => `${idx === 0 ? 'M' : 'L'} ${p.x} ${p.y}`).join(' ');
+  }, [chartData]);
+
   useEffect(() => {
-    if (initialTab) {
+    if (initialTab && activeTab !== initialTab) {
       setActiveTab(initialTab);
     }
   }, [initialTab]);
@@ -129,29 +178,48 @@ export const Features31to40: React.FC<Features31to40Props> = ({
   }, []);
 
   const getUserDetails = (name: string) => {
-    if (name === username) {
-      let activeAvatar = '';
-      let activeFrame = 'none';
-      let activeLvl = 15;
-      try {
-        const saved = localStorage.getItem('user');
-        if (saved) {
-          const uObj = JSON.parse(saved);
-          activeAvatar = uObj.profileAvatar || '';
-          activeFrame = uObj.selectedFrame || 'none';
-          activeLvl = uObj.level || 15;
-        }
-      } catch (e) {}
+    if (!name) {
+      return {
+        avatar: '/src/assets/images/avatar_martin_1779709510230.png',
+        frameId: 'none',
+        lvl: 10
+      };
+    }
+    const cleanName = name.trim().toLowerCase();
+    const cleanUsername = (username || '').trim().toLowerCase();
+
+    let savedUserObj: any = null;
+    try {
+      const saved = localStorage.getItem('user');
+      if (saved) savedUserObj = JSON.parse(saved);
+    } catch (e) {}
+
+    const savedUsername = (savedUserObj?.username || '').trim().toLowerCase();
+
+    if (cleanName === cleanUsername || (savedUsername && cleanName === savedUsername) || cleanName === 'nopal' || cleanName === 'pecatur handal') {
+      let activeAvatar = savedUserObj?.profileAvatar || savedUserObj?.avatar || '';
+      let activeFrame = savedUserObj?.selectedFrame || 'none';
+      let activeLvl = savedUserObj?.level || (typeof xp === 'number' ? getLevelFromXP(xp) : 15);
+
       if (!activeAvatar) {
-        const guestLvlStr = localStorage.getItem('guestLevel') || '5';
-        activeLvl = parseInt(guestLvlStr, 10) || 5;
+        activeAvatar = localStorage.getItem('profileAvatar') || localStorage.getItem('guestAvatar') || '';
+      }
+      if (!activeFrame || activeFrame === 'none') {
         activeFrame = localStorage.getItem('selectedFrame') || 'none';
-        activeAvatar = localStorage.getItem('profileAvatar') || '';
       }
       return {
-        avatar: activeAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150',
+        avatar: activeAvatar || '/src/assets/images/avatar_martin_1779709510230.png',
         frameId: activeFrame,
         lvl: activeLvl
+      };
+    }
+
+    const member = guildMembers.find(m => m && m.name && m.name.toLowerCase() === name.toLowerCase());
+    if (member) {
+      return {
+        avatar: member.avatar || member.profileAvatar || '/src/assets/images/avatar_martin_1779709510230.png',
+        frameId: member.frameId || member.selectedFrame || 'none',
+        lvl: member.lvl || member.level || 10
       };
     }
     
@@ -169,16 +237,22 @@ export const Features31to40: React.FC<Features31to40Props> = ({
         lvl: 28
       };
     }
-    if (name === 'Grandmaster_X') {
+
+    return {
+      avatar: '/src/assets/images/avatar_martin_1779709510230.png',
+      frameId: 'none',
+      lvl: 10
+    };
+    if (name === 'Grandmaster_X' || name === 'Martin_Pratama') {
       return {
         avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&h=150',
         frameId: 'cyber',
         lvl: 50
       };
     }
-    
+
     return {
-      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150',
+      avatar: '/src/assets/images/avatar_martin_1779709510230.png',
       frameId: 'none',
       lvl: 10
     };
@@ -254,6 +328,85 @@ export const Features31to40: React.FC<Features31to40Props> = ({
   const [tourneyHistory, setTourneyHistory] = useState<number>(() => {
     return Number(localStorage.getItem('tourney_wins_count')) || 0;
   });
+
+  interface HiddenAchievement {
+    id: string;
+    title: string;
+    hint: string;
+    requirement: string;
+    reward: string;
+    unlocked: boolean;
+  }
+
+  const [secretAchievements, setSecretAchievements] = useState<HiddenAchievement[]>(() => {
+    const list = [
+      { id: 'ach_quick_win', title: 'Kilat Singkat', hint: 'Menang tanding AI di bawah 10 langkah.', requirement: 'Win bot under 10 moves', reward: '+150 Xp & +5 Diamond', unlocked: false },
+      { id: 'ach_treasury_lord', title: 'Juragan Donatur Klan', hint: 'Melakukan sumbangan Treasury klan sebesar 500 koin.', requirement: 'Donate 500 gold at once', reward: '+100 Xp & +5 Diamond', unlocked: false },
+      { id: 'ach_tourney_conqueror', title: 'Penakluk Liga Kerajaan', hint: 'Menjuarai Turnamen Mingguan minimal 1 kali.', requirement: 'Win 8-player knockout', reward: '+200 Xp & +10 Diamond', unlocked: false },
+      { id: 'ach_spammer', title: 'Sahabat Karib', hint: 'Kirim hadiah Gift sosial kepada pemain lain.', requirement: 'Gifting coins to players', reward: '+75 Xp & +2 Diamond', unlocked: false }
+    ];
+
+    try {
+      const saved = localStorage.getItem('hidden_achievements_v1');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return list.map(item => {
+          const matched = parsed.find((p: any) => p.id === item.id);
+          return matched ? { ...item, unlocked: matched.unlocked } : item;
+        });
+      }
+    } catch(e) {}
+    return list;
+  });
+
+  const triggerHiddenAchievement = (achId: string) => {
+    let newlyUnlocked = false;
+    setSecretAchievements(prev => {
+      const existing = prev.find(item => item.id === achId);
+      if (existing && existing.unlocked) return prev;
+      newlyUnlocked = true;
+      const updated = prev.map(item => {
+        if (item.id === achId) {
+          return { ...item, unlocked: true };
+        }
+        return item;
+      });
+      localStorage.setItem('hidden_achievements_v1', JSON.stringify(updated));
+      return updated;
+    });
+
+    if (newlyUnlocked) {
+      triggerAudio('win');
+      const addDiamondsWithSavings = (amt: number) => {
+        if (setDiamondSavings) {
+          setDiamondSavings(prev => {
+            const next = prev + amt;
+            return next > 150 ? 150 : next;
+          });
+        } else {
+          setDiamonds(d => d + amt);
+        }
+      };
+
+      if (achId === 'ach_quick_win') {
+        setXp(x => x + 150);
+        addDiamondsWithSavings(5);
+        triggerReward(150, 'Bonus RAHASIA TERBONGKAR! Achievement Tersembunyi [Kilat Singkat] terbuka! Hadiah: +150 XP & +5 Diamond (Dipindahkan ke Tabungan)!', 'level_up');
+      } else if (achId === 'ach_treasury_lord') {
+        setXp(x => x + 100);
+        addDiamondsWithSavings(5);
+        triggerReward(100, 'Bonus RAHASIA TERBONGKAR! Achievement Tersembunyi [Juragan Donatur] terbuka! Hadiah: +100 XP & +5 Diamond (Dipindahkan ke Tabungan)!', 'level_up');
+      } else if (achId === 'ach_tourney_conqueror') {
+        setXp(x => x + 200);
+        addDiamondsWithSavings(10);
+        triggerReward(200, 'Bonus RAHASIA TERBONGKAR! Achievement Tersembunyi [Penakluk Liga] terbuka! Hadiah: +200 XP & +10 Diamond (Dipindahkan ke Tabungan)!', 'level_up');
+      } else if (achId === 'ach_spammer') {
+        setXp(x => x + 75);
+        addDiamondsWithSavings(2);
+        triggerReward(75, 'Bonus RAHASIA TERBONGKAR! Achievement Tersembunyi [Sahabat Karib] terbuka! Hadiah: +75 XP & +2 Diamond (Dipindahkan ke Tabungan)!', 'level_up');
+      }
+    }
+  };
 
   const [tourneyActive, setTourneyActive] = useState<boolean>(() => {
     return localStorage.getItem('tourney_is_active') === 'true';
@@ -443,11 +596,8 @@ export const Features31to40: React.FC<Features31to40Props> = ({
   // FEATURE 32: KLUB & GUILD STATES
   // -------------------------------------------------------------------------
   const [hasGuild, setHasGuild] = useState<boolean>(() => {
-    const isGuest = localStorage.getItem('user') === null;
-    if (isGuest) return false;
     const saved = localStorage.getItem('guild_has_owner');
-    if (saved) return saved === 'true';
-    localStorage.setItem('guild_has_owner', 'false');
+    if (saved !== null) return saved === 'true';
     return false;
   });
 
@@ -462,7 +612,10 @@ export const Features31to40: React.FC<Features31to40Props> = ({
   }>(() => {
     try {
       const saved = localStorage.getItem('guild_profile_data');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (parsed && typeof parsed === 'object' && parsed.name) return parsed;
+      }
     } catch(e) {}
     return {
       name: 'Klub Pal Mate Mandiri',
@@ -504,16 +657,18 @@ export const Features31to40: React.FC<Features31to40Props> = ({
       const saved = localStorage.getItem('guild_members');
       if (saved) {
         const parsed = JSON.parse(saved);
-        return parsed.map((m: any) => {
-          const cleanMemberName = m.name.replace(/\s*\(Kamu\)\s*/gi, '').trim().toLowerCase();
-          const cleanUsername = username.replace(/\s*\(Kamu\)\s*/gi, '').trim().toLowerCase();
-          const isMe = cleanMemberName === cleanUsername || m.name === username;
-          return {
-            ...m,
-            contribution: m.contribution !== undefined ? m.contribution : 0,
-            level: isMe ? playerLevel : (m.level !== undefined ? m.level : Math.floor((m.rating || 600) / 30) + 1)
-          };
-        });
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((m: any) => {
+            const cleanMemberName = m.name.replace(/\s*\(Kamu\)\s*/gi, '').trim().toLowerCase();
+            const cleanUsername = username.replace(/\s*\(Kamu\)\s*/gi, '').trim().toLowerCase();
+            const isMe = cleanMemberName === cleanUsername || m.name === username;
+            return {
+              ...m,
+              contribution: m.contribution !== undefined ? m.contribution : 0,
+              level: isMe ? playerLevel : (m.level !== undefined ? m.level : Math.floor((m.rating || 600) / 30) + 1)
+            };
+          });
+        }
       }
     } catch(e) {}
     return [
@@ -539,7 +694,7 @@ export const Features31to40: React.FC<Features31to40Props> = ({
         return m;
       }));
     }
-  }, [xp, username, guildMembers]);
+  }, [xp, username]);
 
   const [guildJoinRequests, setGuildJoinRequests] = useState<Array<{ name: string; rating: number; role: string }>>(() => {
     try {
@@ -665,52 +820,55 @@ export const Features31to40: React.FC<Features31to40Props> = ({
   const [completedStageMessage, setCompletedStageMessage] = useState<string>('');
 
   useEffect(() => {
-    localStorage.setItem('guild_has_owner', String(hasGuild));
-    localStorage.setItem('guild_profile_data', JSON.stringify(guildProfile));
-    localStorage.setItem('guild_lvl', String(guildLevel));
-    localStorage.setItem('guild_treasury_gold', String(guildTreasury));
-    localStorage.setItem('guild_blacklist_list', JSON.stringify(guildBlacklist));
-    localStorage.setItem('guild_action_history', JSON.stringify(guildLogs));
-    localStorage.setItem('guild_members', JSON.stringify(guildMembers));
-    localStorage.setItem('guild_join_requests', JSON.stringify(guildJoinRequests));
-    localStorage.setItem('requested_fragment_skin', requestedFragmentSkin);
-    localStorage.setItem('has_active_fragment_req', String(hasActiveFragmentReq));
-    localStorage.setItem('today_fragment_donation_count', String(todayFragmentDonationCount));
-    localStorage.setItem('conquered_boards_list', JSON.stringify(conqueredBoards));
+    if (hasGuild) {
+      localStorage.setItem('guild_has_owner', 'true');
+      localStorage.removeItem('guild_explicitly_left');
+      localStorage.setItem('guild_profile_data', JSON.stringify(guildProfile));
+      localStorage.setItem('guild_lvl', String(guildLevel));
+      localStorage.setItem('guild_treasury_gold', String(guildTreasury));
+      localStorage.setItem('guild_blacklist_list', JSON.stringify(guildBlacklist));
+      localStorage.setItem('guild_action_history', JSON.stringify(guildLogs));
+      localStorage.setItem('guild_members', JSON.stringify(guildMembers));
+      localStorage.setItem('guild_join_requests', JSON.stringify(guildJoinRequests));
+      localStorage.setItem('requested_fragment_skin', requestedFragmentSkin);
+      localStorage.setItem('has_active_fragment_req', String(hasActiveFragmentReq));
+      localStorage.setItem('today_fragment_donation_count', String(todayFragmentDonationCount));
+      localStorage.setItem('conquered_boards_list', JSON.stringify(conqueredBoards));
+
+      if (guildProfile?.name) {
+        let ownerName = username || 'Ketua Klan';
+        const activeUser = localStorage.getItem('user');
+        if (activeUser) {
+          try {
+            const parsed = JSON.parse(activeUser);
+            if (parsed && parsed.username) ownerName = parsed.username;
+          } catch (_) {}
+        }
+        const totalElo = (guildMembers || []).reduce((sum: number, m: any) => sum + (m.rating || m.elo || 600), 0);
+        fetch('/api/guilds/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            guild: {
+              id: (guildProfile as any).id || guildProfile.name,
+              name: guildProfile.name,
+              tag: guildProfile.tag || 'ELIT',
+              leader: (guildProfile as any).leader || ownerName,
+              ownerUsername: ownerName,
+              level: guildLevel || 1,
+              totalElo: totalElo || 1200,
+              membersCount: (guildMembers || []).length || 1,
+              maxMembers: 30,
+              motto: (guildProfile as any).motto || guildProfile.description || 'Klan Catur Sejati',
+              logo: guildProfile.logo || 'perisai'
+            }
+          })
+        }).catch(() => {});
+      }
+    }
   }, [hasGuild, guildProfile, guildLevel, guildTreasury, guildBlacklist, guildLogs, guildMembers, guildJoinRequests, requestedFragmentSkin, hasActiveFragmentReq, todayFragmentDonationCount, conqueredBoards]);
 
   useEffect(() => {
-    const isGuest = localStorage.getItem('user') === null;
-    if (isGuest) {
-      setHasGuild(false);
-      setGuildProfile({
-        name: 'Klub Pal Mate Mandiri',
-        description: 'Markas para ksatria papan hitam putih taktis Indonesia! Tempat mabar santai tapi ber-bintang.',
-        tag: 'Kompetitif',
-        logo: 'perisai',
-        frame: 'gold',
-        minRating: 600,
-        joinSystem: 'Bebas'
-      });
-      const playerLevel = getLevelFromXP(xp);
-      setGuildMembers([
-        { name: username, role: 'Founder', rating: onlineRating, status: 'Online', contribution: 1250, level: playerLevel }
-      ]);
-      setGuildJoinRequests([]);
-      setGuildLevel(1);
-      setGuildTreasury(250);
-      setGuildBlacklist([]);
-      setGuildLogs([
-        'Klub Catur didirikan secara resmi.',
-        'Sistem donasi treasury dan sumbangan fragment diaktifkan.'
-      ]);
-      setRequestedFragmentSkin('');
-      setHasActiveFragmentReq(false);
-      setTodayFragmentDonationCount(0);
-      setConqueredBoards([]);
-      return;
-    }
-
     const savedHasOwner = localStorage.getItem('guild_has_owner');
     if (savedHasOwner === null) {
       setHasGuild(false);
@@ -743,7 +901,12 @@ export const Features31to40: React.FC<Features31to40Props> = ({
       setHasGuild(savedHasOwner === 'true');
       try {
         const pObj = localStorage.getItem('guild_profile_data');
-        if (pObj) setGuildProfile(JSON.parse(pObj));
+        if (pObj) {
+          const parsed = JSON.parse(pObj);
+          if (parsed && typeof parsed === 'object' && parsed.name) {
+            setGuildProfile(parsed);
+          }
+        }
       } catch (e) {}
       try {
         const mObj = localStorage.getItem('guild_members');
@@ -771,7 +934,110 @@ export const Features31to40: React.FC<Features31to40Props> = ({
         if (cObj) setConqueredBoards(JSON.parse(cObj));
       } catch (e) {}
     }
+
+    const handleGuildStateUpdated = () => {
+      const isOwner = localStorage.getItem('guild_has_owner') === 'true';
+      setHasGuild(isOwner);
+      if (isOwner) {
+        try {
+          const pObj = localStorage.getItem('guild_profile_data');
+          if (pObj) {
+            const parsed = JSON.parse(pObj);
+            if (parsed && parsed.name) setGuildProfile(parsed);
+          }
+        } catch (e) {}
+        try {
+          const mObj = localStorage.getItem('guild_members');
+          if (mObj) setGuildMembers(JSON.parse(mObj));
+        } catch (e) {}
+        const savedTreasury = localStorage.getItem('guild_treasury_gold');
+        if (savedTreasury) setGuildTreasury(Number(savedTreasury));
+      } else {
+        setGuildMembers([]);
+        setGuildTreasury(250);
+      }
+    };
+
+    window.addEventListener('guild_state_updated', handleGuildStateUpdated);
+    return () => {
+      window.removeEventListener('guild_state_updated', handleGuildStateUpdated);
+    };
   }, [username]);
+
+  // Real-time polling for guild details & online member statuses
+  useEffect(() => {
+    if (!hasGuild || !guildProfile?.name) return;
+
+    const syncRealtimeClanDetails = async () => {
+      try {
+        const activeUser = username || localStorage.getItem('username') || '';
+        const res = await fetch(`/api/guilds/details?name=${encodeURIComponent(guildProfile.name)}&username=${encodeURIComponent(activeUser)}`);
+        const data = await res.json();
+        if (data.success && data.guild) {
+          const g = data.guild;
+          const updatedProf = {
+            ...guildProfile,
+            name: g.name || guildProfile.name,
+            description: g.motto || g.description || guildProfile.description,
+            tag: g.tag || guildProfile.tag,
+            logo: g.logo || guildProfile.logo,
+            minRating: g.minRating || guildProfile.minRating,
+            joinSystem: g.joinSystem || guildProfile.joinSystem
+          };
+          setGuildProfile(updatedProf);
+          localStorage.setItem('guild_profile_data', JSON.stringify(updatedProf));
+
+          if (Array.isArray(g.members) && g.members.length > 0) {
+            setGuildMembers(g.members);
+            localStorage.setItem('guild_members', JSON.stringify(g.members));
+          }
+          if (g.level) {
+            setGuildLevel(g.level);
+            localStorage.setItem('guild_lvl', String(g.level));
+          }
+          if (g.treasury !== undefined) {
+            const serverTreasury = Number(g.treasury);
+            setGuildTreasury(serverTreasury);
+            localStorage.setItem('guild_treasury_gold', String(serverTreasury));
+          }
+        } else if (res.status === 404) {
+          // If server returned 404 (e.g. restart or cache miss), auto re-sync local guild to server
+          if (guildProfile && guildProfile.name) {
+            const activeUserStr = username || localStorage.getItem('username') || 'Member';
+            const guildToSync = {
+              id: guildProfile.name,
+              name: guildProfile.name,
+              motto: guildProfile.description,
+              description: guildProfile.description,
+              tag: guildProfile.tag,
+              logo: guildProfile.logo,
+              frame: guildProfile.frame || 'gold',
+              minRating: guildProfile.minRating || 600,
+              joinSystem: guildProfile.joinSystem || 'Bebas',
+              leader: activeUserStr,
+              ownerUsername: activeUserStr,
+              level: guildLevel || 1,
+              treasury: guildTreasury || 250,
+              members: guildMembers && guildMembers.length > 0 ? guildMembers : [
+                { name: activeUserStr, role: 'Founder', rating: onlineRating || 600, status: 'Online', contribution: 1250, level: Math.floor((onlineRating || 600) / 30) + 1 }
+              ],
+              membersCount: guildMembers?.length || 1,
+              totalElo: onlineRating || 600
+            };
+            await fetch('/api/guilds/sync', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ guild: guildToSync })
+            }).catch(() => {});
+          }
+        }
+      } catch (err) {}
+    };
+
+    syncRealtimeClanDetails();
+    const interval = setInterval(syncRealtimeClanDetails, 5000);
+    return () => clearInterval(interval);
+  }, [hasGuild, guildProfile?.name, username, guildLevel, guildTreasury, guildMembers, onlineRating]);
 
   // Guild Form State
   const [formName, setFormName] = useState('Klub Pal Mate Mandiri');
@@ -780,7 +1046,109 @@ export const Features31to40: React.FC<Features31to40Props> = ({
   const [formJoin, setFormJoin] = useState<'Bebas' | 'Persetujuan' | 'Undangan'>('Bebas');
   const [formMinRating, setFormMinRating] = useState(600);
 
-  const handleCreateGuild = () => {
+  // --- JOIN & RECOMMENDATION CLAN STATES ---
+  const [noGuildTab, setNoGuildTab] = useState<'search' | 'create'>('search');
+  const [availableClans, setAvailableClans] = useState<any[]>([]);
+  const [isFetchingClans, setIsFetchingClans] = useState<boolean>(false);
+  const [clanSearchQuery, setClanSearchQuery] = useState<string>('');
+  const [selectedClanFilterTag, setSelectedClanFilterTag] = useState<string>('Semua');
+  const [joiningClanName, setJoiningClanName] = useState<string | null>(null);
+
+  const fetchAvailableClans = () => {
+    setIsFetchingClans(true);
+    fetch('/api/guilds/leaderboard')
+      .then(res => res.json())
+      .then(data => {
+        if (data && data.success && Array.isArray(data.guilds)) {
+          setAvailableClans(data.guilds);
+        }
+      })
+      .catch(() => {})
+      .finally(() => setIsFetchingClans(false));
+  };
+
+  useEffect(() => {
+    if (!hasGuild) {
+      fetchAvailableClans();
+    }
+  }, [hasGuild, noGuildTab]);
+
+  const handleJoinClan = async (clan: any) => {
+    const userRating = onlineRating || 600;
+    if (userRating < (clan.minRating || 0)) {
+      triggerAudio('error');
+      triggerReward(0, `Rating ELO Anda (${userRating}) belum memenuhi syarat minimal (${clan.minRating} ELO) klan ${clan.name}!`, 'error');
+      return;
+    }
+
+    setJoiningClanName(clan.name);
+    try {
+      const activeUsername = username || localStorage.getItem('username') || 'Guest';
+      const playerLevel = getLevelFromXP(xp);
+      const res = await fetch('/api/guilds/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: activeUsername,
+          guildName: clan.name,
+          userRating: userRating,
+          userLevel: playerLevel
+        })
+      });
+      const data = await res.json();
+      if (data.success && data.guild) {
+        const g = data.guild;
+        setHasGuild(true);
+        const newProf = {
+          name: g.name,
+          description: g.motto || g.description || 'Klan Catur Sejati',
+          tag: g.tag || 'ELIT',
+          logo: g.logo || 'perisai',
+          frame: 'gold',
+          minRating: g.minRating || 600,
+          joinSystem: g.joinSystem || 'Bebas'
+        };
+        setGuildProfile(newProf);
+        const membersList = Array.isArray(data.members) && data.members.length > 0
+          ? data.members
+          : [
+              { name: g.leader || 'Ketua Klan', role: 'Founder', rating: g.totalElo || 1200, status: 'Online', contribution: 1000, level: g.level || 1 },
+              { name: activeUsername, role: 'Member', rating: userRating, status: 'Online', contribution: 100, level: playerLevel }
+            ];
+        setGuildMembers(membersList);
+        setGuildLevel(g.level || 1);
+        const joinTreasury = g.treasury !== undefined ? Number(g.treasury) : 250;
+        setGuildTreasury(joinTreasury);
+        const newLogs = [
+          `Anda resmi bergabung dengan klan ${g.name}!`,
+          'Sistem donasi treasury dan sumbangan fragment diaktifkan.'
+        ];
+        setGuildLogs(newLogs);
+
+        // Persist to localStorage
+        localStorage.setItem('guild_has_owner', 'true');
+        localStorage.setItem('guild_profile_data', JSON.stringify(newProf));
+        localStorage.setItem('guild_members', JSON.stringify(membersList));
+        localStorage.setItem('guild_lvl', String(g.level || 1));
+        localStorage.setItem('guild_treasury_gold', String(joinTreasury));
+        localStorage.setItem('guild_action_history', JSON.stringify(newLogs));
+        window.dispatchEvent(new Event('guild_state_updated'));
+
+        triggerAudio('win');
+        triggerReward(0, `Selamat! Anda berhasil bergabung dengan klan ${g.name}.`, 'level_up');
+      } else {
+        triggerAudio('error');
+        triggerReward(0, data.error || 'Gagal bergabung dengan klan.', 'error');
+      }
+    } catch (err) {
+      triggerAudio('error');
+      triggerReward(0, 'Terjadi kesalahan koneksi ke server.', 'error');
+    } finally {
+      setJoiningClanName(null);
+    }
+  };
+
+  const handleCreateGuild = async () => {
     if (coins < 2000) {
       triggerAudio('error');
       triggerReward(0, 'Koin Anda tidak cukup! Pembentukan Guild memerlukan investasi 2,000 Koin Tabungan.', 'info');
@@ -793,7 +1161,11 @@ export const Features31to40: React.FC<Features31to40Props> = ({
       return next;
     });
 
-    setGuildProfile({
+    const activeUserStr = username || localStorage.getItem('username') || 'Member';
+    const playerRating = onlineRating || 600;
+    const playerLevel = Math.floor(playerRating / 30) + 1;
+
+    const newProfile = {
       name: formName,
       description: formDesc,
       tag: formTag,
@@ -801,51 +1173,225 @@ export const Features31to40: React.FC<Features31to40Props> = ({
       frame: 'gold',
       minRating: formMinRating,
       joinSystem: formJoin
-    });
+    };
 
-    // Reset members list to contain ONLY the creator as Founder
-    setGuildMembers([
-      { name: username, role: 'Founder', rating: onlineRating, status: 'Online', contribution: 1250, level: Math.floor(onlineRating / 30) + 1 }
-    ]);
+    const initialMembers = [
+      { name: activeUserStr, role: 'Founder', rating: playerRating, status: 'Online', contribution: 1250, level: playerLevel }
+    ];
 
-    // Ensure initial join requests are completely empty for a real online feel
+    setGuildProfile(newProfile);
+    setGuildMembers(initialMembers);
     setGuildJoinRequests([]);
-
+    setGuildLevel(1);
+    setGuildTreasury(250);
     setHasGuild(true);
-    // Add logger
+
     const dateObj = new Date().toLocaleDateString('id-ID');
     const logs = [`Klub "${formName}" didirikan tanggal ${dateObj}`, ...guildLogs];
     setGuildLogs(logs);
+
+    // Persist to localStorage
+    localStorage.setItem('guild_has_owner', 'true');
+    localStorage.setItem('guild_profile_data', JSON.stringify(newProfile));
+    localStorage.setItem('guild_members', JSON.stringify(initialMembers));
+    localStorage.setItem('guild_lvl', '1');
+    localStorage.setItem('guild_treasury_gold', '250');
+    localStorage.setItem('guild_action_history', JSON.stringify(logs));
+    window.dispatchEvent(new Event('guild_state_updated'));
+
+    // Sync to backend database
+    try {
+      await fetch('/api/guilds/sync', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          guild: {
+            id: formName,
+            name: formName,
+            motto: formDesc,
+            description: formDesc,
+            tag: formTag,
+            logo: 'perisai',
+            frame: 'gold',
+            minRating: formMinRating,
+            joinSystem: formJoin,
+            leader: activeUserStr,
+            ownerUsername: activeUserStr,
+            level: 1,
+            treasury: 250,
+            members: initialMembers,
+            membersCount: 1,
+            totalElo: playerRating
+          }
+        })
+      });
+    } catch (err) {}
 
     triggerAudio('win');
     triggerReward(100, `Spesial Selamat! Klub Catur "${formName}" Berhasil Didirikan sebesar 2,000 Koin! Kelola klan catur Anda sekarang.`, 'level_up');
   };
 
-  const handleGuildDonate = (amount: number) => {
-    if (coins < amount) {
+  const handleGuildDonate = async (amount: number) => {
+    const numAmt = Math.floor(Number(amount));
+    if (isNaN(numAmt) || numAmt <= 0) {
+      triggerAudio('error');
+      triggerReward(0, 'Masukkan jumlah koin donasi yang valid!', 'info');
+      return;
+    }
+    if (coins < numAmt) {
       triggerAudio('error');
       triggerReward(0, 'Koin Anda tidak mencukupi untuk sumbangan ini!', 'info');
       return;
     }
-    setCoins(c => {
-      const next = c - amount;
-      localStorage.setItem('coins', String(next));
-      return next;
-    });
-    setGuildTreasury(gt => {
-      const next = gt + amount;
-      // Upgrade auto level up threshold
-      if (next >= guildLevel * 1200) {
-        setGuildLevel(lvl => lvl + 1);
-        triggerReward(50, `MAKSIMAL! Level Klub Catur meningkat ke LEVEL ${guildLevel + 1}! Anggota baru kini bertambah.`, 'level_up');
+
+    const nextCoins = Math.max(0, coins - numAmt);
+    setCoins(nextCoins);
+    localStorage.setItem('coins', String(nextCoins));
+
+    const nextTreasury = (Number(guildTreasury) || 0) + numAmt;
+    setGuildTreasury(nextTreasury);
+    localStorage.setItem('guild_treasury_gold', String(nextTreasury));
+
+    const calcLevel = Math.max(1, Math.floor(nextTreasury / 1200) + 1);
+    if (calcLevel > guildLevel) {
+      setGuildLevel(calcLevel);
+      localStorage.setItem('guild_lvl', String(calcLevel));
+      triggerReward(50, `MAKSIMAL! Level Klub Catur meningkat ke LEVEL ${calcLevel}! Anggota baru kini bertambah.`, 'level_up');
+    }
+
+    const activeUserStr = username || 'Anggota';
+    const cleanUser = activeUserStr.trim().toLowerCase();
+    let found = false;
+    const updatedMembers = (guildMembers || []).map(m => {
+      if (m && m.name && m.name.trim().toLowerCase() === cleanUser) {
+        found = true;
+        return { ...m, contribution: (Number(m.contribution) || 0) + numAmt };
       }
-      return next;
+      return m;
     });
 
-    const logs = [`Anggota ${username} berkontribusi +${amount} Coin ke brankas klan.`, ...guildLogs];
+    if (!found) {
+      updatedMembers.unshift({
+        name: activeUserStr,
+        role: 'Founder',
+        rating: onlineRating || 600,
+        status: 'Online',
+        contribution: numAmt,
+        level: Math.floor((onlineRating || 600) / 30) + 1
+      });
+    }
+
+    setGuildMembers(updatedMembers);
+    localStorage.setItem('guild_members', JSON.stringify(updatedMembers));
+
+    const logMsg = `Anggota ${activeUserStr} berkontribusi +${numAmt} Coin ke brankas klan.`;
+    const logs = [logMsg, ...(guildLogs || [])];
     setGuildLogs(logs);
+    localStorage.setItem('guild_action_history', JSON.stringify(logs));
+
+    if (numAmt >= 500) {
+      try {
+        triggerHiddenAchievement('ach_treasury_lord');
+      } catch (e) {}
+    }
+
+    try {
+      const res = await fetch('/api/guilds/donate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: activeUserStr,
+          guildName: guildProfile?.name || 'Klub Pal Mate Mandiri',
+          amount: numAmt
+        })
+      });
+      const data = await res.json();
+      if (data && data.success && data.treasury !== undefined) {
+        const sTreasury = Number(data.treasury);
+        setGuildTreasury(sTreasury);
+        localStorage.setItem('guild_treasury_gold', String(sTreasury));
+        if (data.level) {
+          setGuildLevel(Number(data.level));
+          localStorage.setItem('guild_lvl', String(data.level));
+        }
+        if (Array.isArray(data.members)) {
+          setGuildMembers(data.members);
+          localStorage.setItem('guild_members', JSON.stringify(data.members));
+        }
+      }
+    } catch (e) {}
+
+    setTimeout(() => {
+      window.dispatchEvent(new Event('guild_state_updated'));
+    }, 0);
+
     triggerAudio('win');
-    triggerReward(15, `Terimakasih! Sumbangan +${amount} Koin berhasil disalurkan ke Treasury Klub. Perkembangan klan dipercepat!`, 'success');
+    triggerReward(15, `Terimakasih! Sumbangan +${numAmt} Koin berhasil disalurkan ke Treasury Klub (+${numAmt} Poin Suku)!`, 'success');
+  };
+
+  const handleGuildWithdraw = async (amount: number) => {
+    const numAmt = Math.floor(Number(amount));
+    if (isNaN(numAmt) || numAmt <= 0) {
+      triggerAudio('error');
+      triggerReward(0, 'Masukkan jumlah koin yang valid untuk penarikan!', 'info');
+      return;
+    }
+    const currentTreasury = Number(guildTreasury) || 0;
+    if (currentTreasury < numAmt) {
+      triggerAudio('error');
+      triggerReward(0, 'Saldo koin di Brankas Klan tidak mencukupi untuk pencairan ini!', 'info');
+      return;
+    }
+
+    const nextTreasury = Math.max(0, currentTreasury - numAmt);
+    const nextCoins = coins + numAmt;
+    const calcLevel = Math.max(1, Math.floor(nextTreasury / 1200) + 1);
+
+    setGuildTreasury(nextTreasury);
+    localStorage.setItem('guild_treasury_gold', String(nextTreasury));
+
+    setCoins(nextCoins);
+    localStorage.setItem('coins', String(nextCoins));
+
+    if (calcLevel !== guildLevel) {
+      setGuildLevel(calcLevel);
+      localStorage.setItem('guild_lvl', String(calcLevel));
+    }
+
+    const activeUserStr = username || 'Anggota';
+    const logMsg = `Anggota ${activeUserStr} mencairkan ${numAmt} Coin dari brankas klan.`;
+    const logs = [logMsg, ...(guildLogs || [])];
+    setGuildLogs(logs);
+    localStorage.setItem('guild_action_history', JSON.stringify(logs));
+
+    try {
+      const res = await fetch('/api/guilds/withdraw', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: activeUserStr,
+          guildName: guildProfile?.name || 'Klub Pal Mate Mandiri',
+          amount: numAmt
+        })
+      });
+      const data = await res.json();
+      if (data && data.success && data.treasury !== undefined) {
+        const sTreasury = Number(data.treasury);
+        setGuildTreasury(sTreasury);
+        localStorage.setItem('guild_treasury_gold', String(sTreasury));
+        if (data.level) {
+          setGuildLevel(Number(data.level));
+          localStorage.setItem('guild_lvl', String(data.level));
+        }
+      }
+    } catch (e) {}
+
+    setTimeout(() => {
+      window.dispatchEvent(new Event('guild_state_updated'));
+    }, 0);
+
+    triggerAudio('win');
+    triggerReward(10, `Sukses! Berhasil mencairkan +${numAmt} Koin dari Brankas Klan ke dompet Anda!`, 'success');
   };
 
   const handleTransferOwnership = () => {
@@ -922,7 +1468,27 @@ export const Features31to40: React.FC<Features31to40Props> = ({
   }>>(() => {
     try {
       const saved = localStorage.getItem('chess_posts');
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((p: any) => ({
+            id: p.id || `p-${Date.now()}-${Math.random()}`,
+            author: p.author || 'Pecatur',
+            lvl: typeof p.lvl === 'number' ? p.lvl : 1,
+            title: p.title || 'Tanpa Judul',
+            category: p.category || 'Analisa Match',
+            content: p.content || '',
+            likes: typeof p.likes === 'number' && !isNaN(p.likes) ? p.likes : 0,
+            hasLiked: !!p.hasLiked,
+            comments: Array.isArray(p.comments) ? p.comments.map((c: any) => ({
+              user: c?.user || 'Guest',
+              text: c?.text || ''
+            })) : [],
+            frameId: p.frameId || 'none',
+            avatar: p.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150'
+          }));
+        }
+      }
     } catch (e) {}
     return [
       {
@@ -934,10 +1500,7 @@ export const Features31to40: React.FC<Features31to40Props> = ({
         content: 'Bagi teman-teman yang bermain hitam, Marshall Attack adalah senjata taktis luar biasa untuk melawan Ruy Lopez. Setelah 1.e4 e5 2.Nf3 Nc6 3.Bb5 a6 4.Ba4 Nf6 5.O-O Be7 6.Re1 b5 7.Bb3 O-O 8.c3 d5! Kita mengorbankan bidak d5 untuk mendapatkan inisiatif serangan yang luar biasa di sayap raja. Bagaimana tanggapan kalian?',
         likes: 18,
         hasLiked: false,
-        comments: [
-          { user: 'Naufal_Catur', text: 'Sangat tajam! Saya sering kewalahan menghadapi ini sebagai putih.' },
-          { user: 'Grandmaster_X', text: 'Marshall Attack membutuhkan akurasi tinggi dari pihak putih untuk bertahan.' }
-        ],
+        comments: [],
         frameId: 'gold',
         avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&h=150'
       },
@@ -950,9 +1513,7 @@ export const Features31to40: React.FC<Features31to40Props> = ({
         content: 'Selalu awasi petak c2 (untuk putih) dan c7 (untuk hitam). Seringkali pemula lupa melindunginya sehingga terkena garpu dari kuda lawan yang mengancam Raja dan Benteng sekaligus. Cara terbaik melindunginya adalah dengan menempatkan menteri atau perwira ringan secara aktif.',
         likes: 12,
         hasLiked: false,
-        comments: [
-          { user: 'Catur_Mania', text: 'Klasik sekali tapi masih sering terjadi di ELO 1000!' }
-        ],
+        comments: [],
         frameId: 'cyber',
         avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150'
       }
@@ -960,7 +1521,27 @@ export const Features31to40: React.FC<Features31to40Props> = ({
   });
 
   useEffect(() => {
-    localStorage.setItem('chess_posts', JSON.stringify(chessPosts));
+    try {
+      if (!Array.isArray(chessPosts)) return;
+      const sanitized = chessPosts.slice(0, 30).map((p: any) => ({
+        ...p,
+        avatar: (p?.avatar && p.avatar.length > 500)
+          ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150'
+          : (p?.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150')
+      }));
+      localStorage.setItem('chess_posts', JSON.stringify(sanitized));
+    } catch (e) {
+      try {
+        const slim = (Array.isArray(chessPosts) ? chessPosts : []).slice(0, 10).map((p: any) => ({
+          ...p,
+          avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150',
+          content: (p?.content || '').slice(0, 500)
+        }));
+        localStorage.setItem('chess_posts', JSON.stringify(slim));
+      } catch (err2) {
+        // Fail silently if localStorage is completely full, app remains responsive
+      }
+    }
   }, [chessPosts]);
 
   const [newPostTitle, setNewPostTitle] = useState('');
@@ -969,140 +1550,140 @@ export const Features31to40: React.FC<Features31to40Props> = ({
 
   const handleCreatePost = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!newPostTitle || !newPostContent) return;
-
-    // Load active frame/avatar to save
-    let activeFrame = 'none';
-    let activeAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150';
     try {
-      const savedU = localStorage.getItem('user');
-      if (savedU) {
-        const parsed = JSON.parse(savedU);
-        activeFrame = parsed.selectedFrame || 'none';
-        activeAvatar = parsed.profileAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150';
-      } else {
-        activeFrame = localStorage.getItem('selectedFrame') || 'none';
-        activeAvatar = localStorage.getItem('guestAvatar') || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150';
+      const cleanTitle = (newPostTitle || '').trim();
+      const cleanContent = (newPostContent || '').trim();
+      if (!cleanTitle || !cleanContent) {
+        triggerAudio('error');
+        triggerReward(0, 'Judul dan Deskripsi strategi/taktik wajib diisi!', 'info');
+        return;
       }
-    } catch (err) {}
 
-    const newPost = {
-      id: `p-${Date.now()}`,
-      author: username,
-      lvl: getLevelFromXP(xp),
-      title: newPostTitle,
-      category: newPostCat,
-      content: newPostContent,
-      likes: 0,
-      comments: [],
-      frameId: activeFrame,
-      avatar: activeAvatar
-    };
+      if (cleanTitle.length > 150) {
+        triggerAudio('error');
+        triggerReward(0, 'Judul terlalu panjang (maksimal 150 karakter)', 'info');
+        return;
+      }
 
-    setChessPosts([newPost, ...chessPosts]);
-    setNewPostTitle('');
-    setNewPostContent('');
-    triggerAudio('win');
-    triggerReward(25, 'Catatan Kontribusi Forum Cemerlang! Postingan strategi catur diunggah. Dapatkan feedback dari master yang lain!', 'success');
+      if (cleanContent.length > 3000) {
+        triggerAudio('error');
+        triggerReward(0, 'Deskripsi postingan terlalu panjang (maksimal 3000 karakter)', 'info');
+        return;
+      }
 
+      // Load active frame/avatar to save
+      let activeFrame = 'none';
+      let activeAvatar = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150';
+      try {
+        const savedU = localStorage.getItem('user');
+        if (savedU) {
+          const parsed = JSON.parse(savedU);
+          activeFrame = parsed.selectedFrame || 'none';
+          activeAvatar = parsed.profileAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150';
+        } else {
+          activeFrame = localStorage.getItem('selectedFrame') || 'none';
+          activeAvatar = localStorage.getItem('guestAvatar') || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150';
+        }
+      } catch (err) {}
 
+      const safeAvatar = (activeAvatar && activeAvatar.length > 500)
+        ? 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150'
+        : activeAvatar;
+
+      const newPost = {
+        id: `p-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+        author: username || 'Pecatur',
+        lvl: typeof xp === 'number' ? getLevelFromXP(xp) : 1,
+        title: cleanTitle,
+        category: newPostCat || 'Analisa Match',
+        content: cleanContent,
+        likes: 0,
+        hasLiked: false,
+        comments: [],
+        frameId: activeFrame,
+        avatar: safeAvatar
+      };
+
+      setChessPosts(prev => [newPost, ...(Array.isArray(prev) ? prev : [])]);
+      setNewPostTitle('');
+      setNewPostContent('');
+      triggerAudio('win');
+      triggerReward(25, 'Catatan Kontribusi Forum Cemerlang! Postingan strategi catur diunggah. Dapatkan feedback dari master yang lain!', 'success');
+    } catch (err) {
+      console.error("Error creating post:", err);
+      triggerAudio('error');
+      triggerReward(0, 'Terjadi kesalahan saat mempublikasikan postingan. Silakan coba lagi!', 'error');
+    }
   };
 
   const handleLikePost = (postId: string) => {
-    setChessPosts(chessPosts.map(p => {
-      if (p.id === postId) {
-        const nextLiked = !p.hasLiked;
-        return {
-          ...p,
-          likes: nextLiked ? p.likes + 1 : p.likes - 1,
-          hasLiked: nextLiked
-        };
+    let isNowLiked = false;
+    let targetPostAuthor = '';
+
+    setChessPosts(prev => {
+      const list = Array.isArray(prev) ? prev : [];
+      const updatedList = list.map(p => {
+        if (p.id === postId) {
+          const currentlyLiked = !!p.hasLiked;
+          const currentLikes = typeof p.likes === 'number' && !isNaN(p.likes) ? p.likes : 0;
+          const nextLiked = !currentlyLiked;
+          const nextLikesCount = nextLiked ? currentLikes + 1 : Math.max(0, currentLikes - 1);
+          
+          isNowLiked = nextLiked;
+          targetPostAuthor = p.author || '';
+
+          return {
+            ...p,
+            likes: nextLikesCount,
+            hasLiked: nextLiked
+          };
+        }
+        return p;
+      });
+
+      try {
+        localStorage.setItem('chess_posts', JSON.stringify(updatedList));
+      } catch (e) {}
+
+      return updatedList;
+    });
+
+    // Update profile likes count if liking own post or syncing stats
+    try {
+      const savedU = localStorage.getItem('user');
+      let userObj = savedU ? JSON.parse(savedU) : null;
+      
+      if (userObj) {
+        // If user liked a post authored by themselves or general forum activity
+        const currentLikes = typeof userObj.likesCount === 'number' ? userObj.likesCount : 0;
+        const newLikes = isNowLiked ? currentLikes + 1 : Math.max(0, currentLikes - 1);
+        userObj = { ...userObj, likesCount: newLikes };
+        localStorage.setItem('user', JSON.stringify(userObj));
+        const uScope = userObj.username.trim().toLowerCase();
+        localStorage.setItem(`likesCount:${uScope}`, String(newLikes));
+        localStorage.setItem('likesCount', String(newLikes));
+        window.dispatchEvent(new Event('user_updated'));
+
+        // Sync with backend without toggling profile likedBy array
+        fetch('/api/auth/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username: userObj.username, likesCount: newLikes })
+        }).catch(() => {});
+      } else {
+        const savedLikes = Number(localStorage.getItem('guest_profile_likes') || '0');
+        const nextGuestLikes = isNowLiked ? savedLikes + 1 : Math.max(0, savedLikes - 1);
+        localStorage.setItem('guest_profile_likes', String(nextGuestLikes));
+        window.dispatchEvent(new Event('user_updated'));
       }
-      return p;
-    }));
+    } catch (err) {}
+
     triggerAudio('move');
   };
 
   // -------------------------------------------------------------------------
   // FEATURE 36: HIDDEN ACHIEVEMENTS STATES
   // -------------------------------------------------------------------------
-  interface HiddenAchievement {
-    id: string;
-    title: string;
-    hint: string;
-    requirement: string;
-    reward: string;
-    unlocked: boolean;
-  }
-
-  const [secretAchievements, setSecretAchievements] = useState<HiddenAchievement[]>(() => {
-    const list = [
-      { id: 'ach_quick_win', title: 'Kilat Singkat', hint: 'Menang tanding AI di bawah 10 langkah.', requirement: 'Win bot under 10 moves', reward: '+150 Xp & +5 Diamond', unlocked: false },
-      { id: 'ach_treasury_lord', title: 'Juragan Donatur Klan', hint: 'Melakukan sumbangan Treasury klan sebesar 500 koin.', requirement: 'Donate 500 gold at once', reward: '+100 Xp & +5 Diamond', unlocked: false },
-      { id: 'ach_tourney_conqueror', title: 'Penakluk Liga Kerajaan', hint: 'Menjuarai Turnamen Mingguan minimal 1 kali.', requirement: 'Win 8-player knockout', reward: '+200 Xp & +10 Diamond', unlocked: false },
-      { id: 'ach_spammer', title: 'Sahabat Karib', hint: 'Kirim hadiah Gift sosial kepada pemain lain.', requirement: 'Gifting coins to players', reward: '+75 Xp & +2 Diamond', unlocked: false }
-    ];
-
-    try {
-      const saved = localStorage.getItem('hidden_achievements_v1');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        return list.map(item => {
-          const matched = parsed.find((p: any) => p.id === item.id);
-          return matched ? { ...item, unlocked: matched.unlocked } : item;
-        });
-      }
-    } catch(e) {}
-    return list;
-  });
-
-  const triggerHiddenAchievement = (achId: string) => {
-    let newlyUnlocked = false;
-    setSecretAchievements(prev => {
-      const updated = prev.map(item => {
-        if (item.id === achId && !item.unlocked) {
-          newlyUnlocked = true;
-          return { ...item, unlocked: true };
-        }
-        return item;
-      });
-      localStorage.setItem('hidden_achievements_v1', JSON.stringify(updated));
-      return updated;
-    });
-
-    if (newlyUnlocked) {
-      triggerAudio('win');
-      const addDiamondsWithSavings = (amt: number) => {
-        if (setDiamondSavings) {
-          setDiamondSavings(prev => {
-            const next = prev + amt;
-            return next > 150 ? 150 : next;
-          });
-        } else {
-          setDiamonds(d => d + amt);
-        }
-      };
-
-      if (achId === 'ach_quick_win') {
-        setXp(x => x + 150);
-        addDiamondsWithSavings(5);
-        triggerReward(150, 'Bonus RAHASIA TERBONGKAR! Achievement Tersembunyi [Kilat Singkat] terbuka! Hadiah: +150 XP & +5 Diamond (Dipindahkan ke Tabungan)!', 'level_up');
-      } else if (achId === 'ach_treasury_lord') {
-        setXp(x => x + 100);
-        addDiamondsWithSavings(5);
-        triggerReward(100, 'Bonus RAHASIA TERBONGKAR! Achievement Tersembunyi [Juragan Donatur] terbuka! Hadiah: +100 XP & +5 Diamond (Dipindahkan ke Tabungan)!', 'level_up');
-      } else if (achId === 'ach_tourney_conqueror') {
-        setXp(x => x + 200);
-        addDiamondsWithSavings(10);
-        triggerReward(200, 'Bonus RAHASIA TERBONGKAR! Achievement Tersembunyi [Penakluk Liga] terbuka! Hadiah: +200 XP & +10 Diamond (Dipindahkan ke Tabungan)!', 'level_up');
-      } else if (achId === 'ach_spammer') {
-        setXp(x => x + 75);
-        addDiamondsWithSavings(2);
-        triggerReward(75, 'Bonus RAHASIA TERBONGKAR! Achievement Tersembunyi [Sahabat Karib] terbuka! Hadiah: +75 XP & +2 Diamond (Dipindahkan ke Tabungan)!', 'level_up');
-      }
-    }
-  };
-
   // -------------------------------------------------------------------------
   // FEATURE 37: STATISTICS ELO TIMELINE CHART (SVG BASED FULL FIDELITY)
   // -------------------------------------------------------------------------
@@ -1116,10 +1697,12 @@ export const Features31to40: React.FC<Features31to40Props> = ({
   const [giftMsgCustom, setGiftMsgCustom] = useState('Tetap semangat mengasah otak kawan!');
 
   useEffect(() => {
-    if (friendsList && friendsList.length > 0) {
-      setGiftTargetUser(friendsList[0].username || friendsList[0].name || '');
-    } else if (realPlayers && realPlayers.length > 0) {
-      setGiftTargetUser(realPlayers[0].name || '');
+    if (!giftTargetUser) {
+      if (friendsList && friendsList.length > 0) {
+        setGiftTargetUser(friendsList[0].username || friendsList[0].name || '');
+      } else if (realPlayers && realPlayers.length > 0) {
+        setGiftTargetUser(realPlayers[0].name || '');
+      }
     }
   }, [friendsList, realPlayers]);
 
@@ -1367,6 +1950,14 @@ export const Features31to40: React.FC<Features31to40Props> = ({
         const next = prev.includes(frameId) ? prev : [...prev, frameId];
         localStorage.setItem('unlockedFrames', JSON.stringify(next));
         localStorage.setItem('unlockedFrames:' + username.trim().toLowerCase(), JSON.stringify(next));
+        const userRaw = localStorage.getItem('user');
+        if (userRaw) {
+          try {
+            const userObj = JSON.parse(userRaw);
+            userObj.unlockedFrames = next;
+            localStorage.setItem('user', JSON.stringify(userObj));
+          } catch (e) {}
+        }
         return next;
       });
       triggerReward(0, `Pembelian Berhasil! Bingkai "${frameId === 'magma' ? 'Lava Vulkanik' : 'Nebula Kosmik'}" berhasil dibeli! Silakan cek di profil Anda.`, 'success_no_xp');
@@ -1424,8 +2015,7 @@ export const Features31to40: React.FC<Features31to40Props> = ({
           <div className="flex border-b border-[#3c3934] overflow-x-auto scroller-hidden gap-1.5">
             {[
               { id: 'guild', label: prefLang === 'en' ? 'Club Arena' : 'Arena Klub', desc: prefLang === 'en' ? 'Community & War' : 'Komunitas & War', Icon: Shield },
-              { id: 'tournament', label: prefLang === 'en' ? 'Tournament' : 'Turnamen', desc: prefLang === 'en' ? 'Weekly League Bracket' : 'Braket Liga Mingguan', Icon: Trophy },
-              { id: 'deals', label: prefLang === 'en' ? 'Friend Gift' : 'Gift Kawan', desc: prefLang === 'en' ? 'Send Friendly Pack' : 'Kirim Bingkisan Persahabatan', Icon: Gift }
+              { id: 'tournament', label: prefLang === 'en' ? 'Tournament' : 'Turnamen', desc: prefLang === 'en' ? 'Weekly League Bracket' : 'Braket Liga Mingguan', Icon: Trophy }
             ].map((tab) => (
               <button
                 key={tab.id}
@@ -1459,9 +2049,9 @@ export const Features31to40: React.FC<Features31to40Props> = ({
             className="space-y-8"
           >
             {!hasGuild ? (
-              // BUILD NO GUILD INITIAL DISPLAY
+              // BUILD NO GUILD INITIAL DISPLAY WITH DUAL MODE (JOIN/RECOMMENDED vs CREATE)
               <div className="bg-[#312e2b] p-6 rounded-3xl border border-[#3c3934] space-y-6">
-                <div className="text-center max-w-lg mx-auto py-4 space-y-3">
+                <div className="text-center max-w-lg mx-auto py-2 space-y-3">
                   <div className="w-16 h-16 bg-[#262421] border border-[#3c3934] text-yellow-500 rounded-2xl flex items-center justify-center mx-auto shadow-md">
                     <Shield className="w-8 h-8" />
                   </div>
@@ -1472,84 +2062,299 @@ export const Features31to40: React.FC<Features31to40Props> = ({
                   </p>
                 </div>
 
-                {/* Create Form */}
-                <div className="p-6 bg-[#262421] rounded-2xl border border-[#3c3934]/60 space-y-4 max-w-2xl mx-auto">
-                  <h4 className="text-xs font-black uppercase text-[#81b64c] tracking-wider">Formulir Pendaftaran Klub Catur Baru</h4>
-                  <div className="space-y-3.5">
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {/* Segmented Mode Selector: Cari & Rekomendasi vs Buat Baru */}
+                <div className="flex justify-center max-w-md mx-auto bg-[#1c1a19] p-1.5 rounded-2xl border border-[#3c3934]">
+                  <button
+                    onClick={() => { setNoGuildTab('search'); triggerAudio('move'); }}
+                    className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black uppercase transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                      noGuildTab === 'search'
+                        ? 'bg-[#81b64c] text-slate-950 shadow-md'
+                        : 'text-slate-400 hover:text-white hover:bg-[#262421]'
+                    }`}
+                  >
+                    <Search className="w-4 h-4" />
+                    Cari & Rekomendasi Klan
+                  </button>
+                  <button
+                    onClick={() => { setNoGuildTab('create'); triggerAudio('move'); }}
+                    className={`flex-1 py-2.5 px-4 rounded-xl text-xs font-black uppercase transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                      noGuildTab === 'create'
+                        ? 'bg-yellow-500 text-slate-950 shadow-md'
+                        : 'text-slate-400 hover:text-white hover:bg-[#262421]'
+                    }`}
+                  >
+                    <PlusCircle className="w-4 h-4" />
+                    Buat Klan Baru
+                  </button>
+                </div>
+
+                {noGuildTab === 'search' ? (
+                  /* SEARCH & RECOMMENDATIONS PANEL */
+                  <div className="space-y-5 max-w-4xl mx-auto">
+                    {/* Search & Filter Controls */}
+                    <div className="bg-[#262421] p-4 rounded-2xl border border-[#3c3934]/60 space-y-3">
+                      <div className="flex flex-col sm:flex-row gap-3">
+                        <div className="relative flex-1">
+                          <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                          <input
+                            type="text"
+                            value={clanSearchQuery}
+                            onChange={(e) => setClanSearchQuery(e.target.value)}
+                            placeholder="Cari nama klan, slogan, atau nama pimpinan..."
+                            className="w-full bg-[#1c1a19] border border-[#3c3934] pl-10 pr-4 py-2.5 rounded-xl text-xs text-white placeholder-slate-500 focus:outline-none focus:border-[#81b64c]"
+                          />
+                        </div>
+                        <button
+                          onClick={fetchAvailableClans}
+                          className="px-4 py-2.5 bg-[#1c1a19] hover:bg-[#312e2b] border border-[#3c3934] text-slate-300 hover:text-white text-xs font-bold rounded-xl transition-all flex items-center justify-center gap-2 cursor-pointer shrink-0"
+                          title="Perbarui daftar klan"
+                        >
+                          <RotateCw className={`w-3.5 h-3.5 ${isFetchingClans ? 'animate-spin text-yellow-500' : ''}`} />
+                          Refresh
+                        </button>
+                      </div>
+
+                      {/* Filter Pills */}
+                      <div className="flex items-center gap-2 overflow-x-auto pb-1 text-[11px] font-bold">
+                        <span className="text-slate-500 text-[10px] uppercase font-black shrink-0 mr-1">Tag:</span>
+                        {['Semua', 'Kompetitif', 'Agresif', 'Defensif', 'Santai'].map((tag) => (
+                          <button
+                            key={tag}
+                            onClick={() => setSelectedClanFilterTag(tag)}
+                            className={`px-3 py-1 rounded-lg border transition-all cursor-pointer whitespace-nowrap ${
+                              selectedClanFilterTag === tag
+                                ? 'bg-[#81b64c]/20 border-[#81b64c] text-[#81b64c]'
+                                : 'bg-[#1c1a19] border-[#3c3934] text-slate-400 hover:text-white'
+                            }`}
+                          >
+                            {tag}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Real Clans List */}
+                    {isFetchingClans ? (
+                      <div className="text-center py-12 space-y-3">
+                        <RotateCw className="w-8 h-8 text-yellow-500 animate-spin mx-auto" />
+                        <p className="text-xs text-slate-400 font-medium">Memuat rekomendasi klan asli dari server...</p>
+                      </div>
+                    ) : (() => {
+                      const filteredClans = availableClans.filter((c: any) => {
+                        if (!c || !c.name) return false;
+                        const matchesQuery = 
+                          c.name.toLowerCase().includes(clanSearchQuery.toLowerCase()) ||
+                          (c.leader && c.leader.toLowerCase().includes(clanSearchQuery.toLowerCase())) ||
+                          (c.motto && c.motto.toLowerCase().includes(clanSearchQuery.toLowerCase()));
+                        const matchesTag = selectedClanFilterTag === 'Semua' || (c.tag && c.tag.toLowerCase() === selectedClanFilterTag.toLowerCase());
+                        return matchesQuery && matchesTag;
+                      });
+
+                      if (filteredClans.length === 0) {
+                        return (
+                          <div className="bg-[#262421] p-8 rounded-2xl border border-[#3c3934]/60 text-center space-y-4">
+                            <div className="w-12 h-12 bg-[#1c1a19] rounded-2xl flex items-center justify-center mx-auto text-slate-500 border border-[#3c3934]">
+                              <ShieldAlert className="w-6 h-6" />
+                            </div>
+                            <div className="space-y-1">
+                              <h4 className="text-sm font-extrabold text-white">Tidak Ada Klan Ditemukan</h4>
+                              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                                {clanSearchQuery || selectedClanFilterTag !== 'Semua' 
+                                  ? 'Tidak ada klan yang cocok dengan kriteria pencarian Anda.' 
+                                  : 'Belum ada klan asli yang terdaftar di server. Jadilah ketua pertama yang mendirikan klan!'}
+                              </p>
+                            </div>
+                            <button
+                              onClick={() => { setNoGuildTab('create'); triggerAudio('move'); }}
+                              className="px-5 py-2.5 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black uppercase text-xs rounded-xl shadow-md transition-all cursor-pointer inline-flex items-center gap-2"
+                            >
+                              <PlusCircle className="w-4 h-4" />
+                              Mulai Buat Klan Sekarang
+                            </button>
+                          </div>
+                        );
+                      }
+
+                      return (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          {filteredClans.map((clan: any, idx: number) => {
+                            const userRating = onlineRating || 600;
+                            const minRating = clan.minRating || 600;
+                            const meetsMinRating = userRating >= minRating;
+                            const isJoiningThis = joiningClanName === clan.name;
+
+                            return (
+                              <div 
+                                key={clan.id || clan.name || idx}
+                                className="bg-[#262421] p-5 rounded-2xl border border-[#3c3934]/70 hover:border-[#81b64c]/40 transition-all space-y-4 relative flex flex-col justify-between"
+                              >
+                                <div className="space-y-3">
+                                  <div className="flex items-start justify-between gap-3">
+                                    <div className="flex items-center gap-3">
+                                      <div className="w-12 h-12 bg-[#1c1a19] border border-yellow-500/50 rounded-xl flex items-center justify-center shrink-0 overflow-hidden">
+                                        {renderGuildLogo(clan.logo || 'perisai')}
+                                      </div>
+                                      <div>
+                                        <div className="flex items-center gap-2">
+                                          <h4 className="text-sm font-black text-white uppercase tracking-wider">{clan.name}</h4>
+                                          <span className="text-[9px] font-extrabold px-2 py-0.5 bg-yellow-500/10 text-yellow-400 border border-yellow-500/30 rounded-md">
+                                            LVL {clan.level || 1}
+                                          </span>
+                                        </div>
+                                        <p className="text-[10px] text-slate-400 font-medium italic mt-0.5">
+                                          "{clan.motto || 'Klan Catur Sejati'}"
+                                        </p>
+                                      </div>
+                                    </div>
+
+                                    <span className="text-[9px] font-bold px-2 py-0.5 bg-[#1c1a19] border border-[#3c3934] text-indigo-400 rounded-md shrink-0">
+                                      {clan.tag || 'ELIT'}
+                                    </span>
+                                  </div>
+
+                                  <div className="grid grid-cols-2 gap-2 p-2.5 bg-[#1c1a19] rounded-xl border border-[#3c3934]/40 text-[10px] text-slate-300 font-sans">
+                                    <div>
+                                      <span className="text-slate-500 block text-[9px] font-black uppercase">Pimpinan:</span>
+                                      <span className="font-bold text-slate-200">@{clan.leader || 'Ketua Klan'}</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-slate-500 block text-[9px] font-black uppercase">Anggota:</span>
+                                      <span className="font-bold text-slate-200">{clan.membersCount || 1} / 30</span>
+                                    </div>
+                                    <div>
+                                      <span className="text-slate-500 block text-[9px] font-black uppercase">Syarat ELO:</span>
+                                      <span className={`font-mono font-bold ${meetsMinRating ? 'text-[#81b64c]' : 'text-amber-400'}`}>
+                                        {minRating}+ ELO
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <span className="text-slate-500 block text-[9px] font-black uppercase">Sistem Join:</span>
+                                      <span className="font-bold text-slate-200">{clan.joinSystem || 'Bebas'}</span>
+                                    </div>
+                                  </div>
+                                </div>
+
+                                <div className="pt-2 border-t border-[#3c3934]/40 flex items-center justify-between gap-3">
+                                  <div className="text-[10px] font-mono text-slate-400">
+                                    Total ELO: <span className="font-bold text-yellow-400">{(clan.totalElo || 1200).toLocaleString('id-ID')}</span>
+                                  </div>
+
+                                  <button
+                                    onClick={() => handleJoinClan(clan)}
+                                    disabled={isJoiningThis}
+                                    className={`px-4 py-2 rounded-xl text-xs font-black uppercase transition-all flex items-center gap-1.5 cursor-pointer shadow-md ${
+                                      isJoiningThis
+                                        ? 'bg-slate-700 text-slate-400 cursor-not-allowed'
+                                        : meetsMinRating
+                                        ? 'bg-gradient-to-r from-[#81b64c] to-emerald-600 hover:from-[#92ca59] hover:to-emerald-500 text-slate-950'
+                                        : 'bg-amber-950/40 hover:bg-amber-900/60 text-amber-300 border border-amber-800/50'
+                                    }`}
+                                  >
+                                    {isJoiningThis ? (
+                                      <>
+                                        <RotateCw className="w-3.5 h-3.5 animate-spin" />
+                                        Bergabung...
+                                      </>
+                                    ) : meetsMinRating ? (
+                                      <>
+                                        <UserPlus className="w-3.5 h-3.5" />
+                                        Gabung Klan
+                                      </>
+                                    ) : (
+                                      <>
+                                        <Lock className="w-3.5 h-3.5" />
+                                        Syarat ELO
+                                      </>
+                                    )}
+                                  </button>
+                                </div>
+                              </div>
+                            );
+                          })}
+                        </div>
+                      );
+                    })()}
+                  </div>
+                ) : (
+                  /* CREATE GUILD FORM PANEL */
+                  <div className="p-6 bg-[#262421] rounded-2xl border border-[#3c3934]/60 space-y-4 max-w-2xl mx-auto">
+                    <h4 className="text-xs font-black uppercase text-[#81b64c] tracking-wider">Formulir Pendaftaran Klub Catur Baru</h4>
+                    <div className="space-y-3.5">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[9px] uppercase font-black text-slate-400 block mb-1">Nama Klub</label>
+                          <input 
+                            type="text" 
+                            value={formName}
+                            onChange={(e) => setFormName(e.target.value)}
+                            className="w-full bg-[#1c1a19] border border-[#3c3934] p-2.5 rounded-xl text-xs text-white uppercase tracking-wider font-extrabold focus:outline-none focus:border-[#81b64c]" 
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] uppercase font-black text-slate-400 block mb-1">Kategori Tag Klub</label>
+                          <select 
+                            value={formTag}
+                            onChange={(e) => setFormTag(e.target.value)}
+                            className="w-full bg-[#1c1a19] border border-[#3c3934] p-2.5 rounded-xl text-xs text-slate-300 font-extrabold focus:outline-none focus:border-[#81b64c]"
+                          >
+                            <option value="Agresif">Agresif dan Serbu</option>
+                            <option value="Defensif">Defensif dan Kokoh</option>
+                            <option value="Santai">Santai dan Diskusi</option>
+                            <option value="Kompetitif">Kompetitif Tinggi</option>
+                          </select>
+                        </div>
+                      </div>
+
                       <div>
-                        <label className="text-[9px] uppercase font-black text-slate-400 block mb-1">Nama Klub</label>
+                        <label className="text-[9px] uppercase font-black text-slate-400 block mb-1">Slogan & Deskripsi Klan</label>
                         <input 
                           type="text" 
-                          value={formName}
-                          onChange={(e) => setFormName(e.target.value)}
-                          className="w-full bg-[#1c1a19] border border-[#3c3934] p-2.5 rounded-xl text-xs text-white uppercase tracking-wider font-extrabold focus:outline-none focus:border-[#81b64c]" 
+                          value={formDesc}
+                          onChange={(e) => setFormDesc(e.target.value)}
+                          className="w-full bg-[#1c1a19] border border-[#3c3934] p-2.5 rounded-xl text-xs text-slate-200 focus:outline-none focus:border-[#81b64c]" 
+                          placeholder="Masukkan deskripsi misi tim catur kalian..."
                         />
                       </div>
-                      <div>
-                        <label className="text-[9px] uppercase font-black text-slate-400 block mb-1">Kategori Tag Klub</label>
-                        <select 
-                          value={formTag}
-                          onChange={(e) => setFormTag(e.target.value)}
-                          className="w-full bg-[#1c1a19] border border-[#3c3934] p-2.5 rounded-xl text-xs text-slate-300 font-extrabold focus:outline-none focus:border-[#81b64c]"
-                        >
-                          <option value="Agresif">Agresif dan Serbu</option>
-                          <option value="Defensif">Defensif dan Kokoh</option>
-                          <option value="Santai">Santai dan Diskusi</option>
-                          <option value="Kompetitif">Kompetitif Tinggi</option>
-                        </select>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div>
+                          <label className="text-[9px] uppercase font-black text-slate-400 block mb-1">Minimal ELO</label>
+                          <input 
+                            type="number" 
+                            value={formMinRating}
+                            onChange={(e) => setFormMinRating(Number(e.target.value))}
+                            className="w-full bg-[#1c1a19] border border-[#3c3934] p-2.5 rounded-xl text-xs text-white focus:outline-none focus:border-[#81b64c] font-mono" 
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[9px] uppercase font-black text-slate-400 block mb-1">Sistem Penerimaan Anggota</label>
+                          <select 
+                            value={formJoin}
+                            onChange={(e) => setFormJoin(e.target.value as any)}
+                            className="w-full bg-[#1c1a19] border border-[#3c3934] p-2.5 rounded-xl text-xs text-slate-300 font-extrabold focus:outline-none"
+                          >
+                            <option value="Bebas">Terbuka Untuk Siapa Saja (Bebas)</option>
+                            <option value="Persetujuan">Persetujuan Founder/Officer</option>
+                            <option value="Undangan">Hanya Undangan (Closed)</option>
+                          </select>
+                        </div>
                       </div>
                     </div>
 
-                    <div>
-                      <label className="text-[9px] uppercase font-black text-slate-400 block mb-1">Slogan & Deskripsi Klan</label>
-                      <input 
-                        type="text" 
-                        value={formDesc}
-                        onChange={(e) => setFormDesc(e.target.value)}
-                        className="w-full bg-[#1c1a19] border border-[#3c3934] p-2.5 rounded-xl text-xs text-slate-205 focus:outline-none focus:border-[#81b64c]" 
-                        placeholder="Masukkan deskripsi misi tim catur kalian..."
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                      <div>
-                        <label className="text-[9px] uppercase font-black text-slate-400 block mb-1">Minimal ELO</label>
-                        <input 
-                          type="number" 
-                          value={formMinRating}
-                          onChange={(e) => setFormMinRating(Number(e.target.value))}
-                          className="w-full bg-[#1c1a19] border border-[#3c3934] p-2.5 rounded-xl text-xs text-white focus:outline-none focus:border-[#81b64c] font-mono" 
-                        />
+                    <div className="flex flex-col sm:flex-row justify-between items-center pt-4 border-t border-[#3c3934]/35 gap-4">
+                      <div className="text-left font-sans">
+                        <span className="text-[9px] uppercase font-black text-slate-450 block">Biaya Pendirian Legal Hukum Klub:</span>
+                        <span className="text-white font-black text-sm block flex items-center gap-1.5"><Coins className="w-4 h-4 text-yellow-500" /> 2,000 Coin Tabungan</span>
                       </div>
-                      <div>
-                        <label className="text-[9px] uppercase font-black text-slate-400 block mb-1">Sistem Penerimaan Anggota</label>
-                        <select 
-                          value={formJoin}
-                          onChange={(e) => setFormJoin(e.target.value as any)}
-                          className="w-full bg-[#1c1a19] border border-[#3c3934] p-2.5 rounded-xl text-xs text-slate-300 font-extrabold focus:outline-none"
-                        >
-                          <option value="Bebas">Terbuka Untuk Siapa Saja (Bebas)</option>
-                          <option value="Persetujuan">Persetujuan Founder/Officer</option>
-                          <option value="Undangan">Hanya Undangan (Closed)</option>
-                        </select>
-                      </div>
+                      <button 
+                        onClick={handleCreateGuild}
+                        className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-slate-900 font-black uppercase text-xs rounded-xl transition-all cursor-pointer shadow-lg"
+                      >
+                        Bentuk Klub Sekarang
+                      </button>
                     </div>
                   </div>
-
-                  <div className="flex flex-col sm:flex-row justify-between items-center pt-4 border-t border-[#3c3934]/35 gap-4">
-                    <div className="text-left font-sans">
-                      <span className="text-[9px] uppercase font-black text-slate-450 block">Biaya Pendirian Legal Hukum Klub:</span>
-                      <span className="text-white font-black text-sm block flex items-center gap-1.5"><Coins className="w-4 h-4 text-yellow-500" /> 2,000 Coin Tabungan</span>
-                    </div>
-                    <button 
-                      onClick={handleCreateGuild}
-                      className="w-full sm:w-auto px-6 py-3 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 text-slate-900 font-black uppercase text-xs rounded-xl transition-all cursor-pointer shadow-lg"
-                    >
-                      Bentuk Klub Sekarang
-                    </button>
-                  </div>
-                </div>
+                )}
               </div>
             ) : (
               // =========================================================================
@@ -1585,31 +2390,101 @@ export const Features31to40: React.FC<Features31to40Props> = ({
                     </div>
 
                     <div className="flex gap-2">
-                      <button 
-                        onClick={() => {
-                          setCustomConfirm({
-                            show: true,
-                            title: "Bubarkan Klub Suku",
-                            message: "Apakah Anda yakin ingin membubarkan Klub Catur Anda? Seluruh koin di brankas akan hangus dan data klan direset.",
-                            confirmText: "Bubarkan Suku",
-                            cancelText: "Batal",
-                            onConfirm: () => {
-                              setHasGuild(false);
-                              setGuildMembers([]);
-                              setGuildJoinRequests([]);
-                              setConqueredBoards([]);
-                              localStorage.removeItem('guild_has_owner');
-                              localStorage.removeItem('guild_members');
-                              localStorage.removeItem('guild_profile_data');
-                              triggerAudio('lose');
-                              triggerReward(0, 'Klub Catur Anda dibubarkan secara permanen.', 'error');
-                            }
-                          });
-                        }}
-                        className="px-3.5 py-2 bg-red-950/40 hover:bg-red-900 border border-red-900/40 text-red-300 text-[9px] font-black uppercase rounded-lg transition-all cursor-pointer"
-                      >
-                        Bubarkan Suku
-                      </button>
+                      {(() => {
+                        const activeUserLower = (username || localStorage.getItem('username') || '').toLowerCase();
+                        const isFounder = (guildMembers || []).some(m => m.name?.toLowerCase() === activeUserLower && (m.role === 'Founder' || m.role === 'Leader' || m.role === 'Ketua Klan')) || (guildProfile.leader?.toLowerCase() === activeUserLower);
+
+                        if (isFounder) {
+                          return (
+                            <button 
+                              onClick={() => {
+                                setCustomConfirm({
+                                  show: true,
+                                  title: "Bubarkan Klub Suku",
+                                  message: "Apakah Anda yakin ingin membubarkan Klub Catur Anda? Seluruh koin di brankas akan hangus dan data klan direset.",
+                                  confirmText: "Bubarkan Suku",
+                                  cancelText: "Batal",
+                                  onConfirm: async () => {
+                                    const activeUser = username || localStorage.getItem('username') || 'Guest';
+                                    try {
+                                      await fetch('/api/guilds/disband', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                          username: activeUser,
+                                          guildName: guildProfile.name
+                                        })
+                                      });
+                                    } catch (err) {}
+
+                                    setHasGuild(false);
+                                    setGuildMembers([]);
+                                    setGuildJoinRequests([]);
+                                    setConqueredBoards([]);
+                                    setGuildTreasury(250);
+                                    localStorage.setItem('guild_explicitly_left', 'true');
+                                    localStorage.setItem('guild_has_owner', 'false');
+                                    localStorage.removeItem('guild_members');
+                                    localStorage.removeItem('guild_profile_data');
+                                    localStorage.removeItem('guild_treasury_gold');
+                                    setTimeout(() => window.dispatchEvent(new Event('guild_state_updated')), 0);
+                                    triggerAudio('lose');
+                                    triggerReward(0, 'Klub Catur Anda dibubarkan secara permanen.', 'error');
+                                  }
+                                });
+                              }}
+                              className="px-3.5 py-2 bg-red-950/40 hover:bg-red-900 border border-red-900/40 text-red-300 text-[9px] font-black uppercase rounded-lg transition-all cursor-pointer"
+                            >
+                              Bubarkan Suku
+                            </button>
+                          );
+                        } else {
+                          return (
+                            <button 
+                              onClick={() => {
+                                setCustomConfirm({
+                                  show: true,
+                                  title: "Keluar dari Klan",
+                                  message: `Apakah Anda yakin ingin keluar dari klan ${guildProfile.name}?`,
+                                  confirmText: "Keluar Klan",
+                                  cancelText: "Batal",
+                                  onConfirm: async () => {
+                                    const activeUser = username || localStorage.getItem('username') || 'Guest';
+                                    try {
+                                      await fetch('/api/guilds/leave', {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json' },
+                                        body: JSON.stringify({
+                                          username: activeUser,
+                                          guildName: guildProfile.name
+                                        })
+                                      });
+                                    } catch (err) {}
+
+                                    setHasGuild(false);
+                                    setGuildMembers([]);
+                                    setGuildJoinRequests([]);
+                                    setConqueredBoards([]);
+                                    setGuildTreasury(250);
+                                    localStorage.setItem('guild_explicitly_left', 'true');
+                                    localStorage.setItem('guild_has_owner', 'false');
+                                    localStorage.removeItem('guild_members');
+                                    localStorage.removeItem('guild_profile_data');
+                                    localStorage.removeItem('guild_treasury_gold');
+                                    setTimeout(() => window.dispatchEvent(new Event('guild_state_updated')), 0);
+                                    triggerAudio('lose');
+                                    triggerReward(0, `Anda telah keluar dari klan ${guildProfile.name}.`, 'info');
+                                  }
+                                });
+                              }}
+                              className="px-3.5 py-2 bg-amber-950/40 hover:bg-amber-900 border border-amber-900/40 text-amber-300 text-[9px] font-black uppercase rounded-lg transition-all cursor-pointer flex items-center gap-1.5"
+                            >
+                              <LogOut className="w-3 h-3" />
+                              Keluar dari Klan
+                            </button>
+                          );
+                        }
+                      })()}
                     </div>
                   </div>
                 </div>
@@ -1659,6 +2534,7 @@ export const Features31to40: React.FC<Features31to40Props> = ({
                           setGuildProfile={setGuildProfile}
                           setGuildLogs={setGuildLogs}
                           handleGuildDonate={handleGuildDonate}
+                          handleGuildWithdraw={handleGuildWithdraw}
                           triggerAudio={triggerAudio}
                           triggerReward={triggerReward}
                         />
@@ -1746,7 +2622,7 @@ export const Features31to40: React.FC<Features31to40Props> = ({
                 </div>
 
                 {/* BYPASSED DETACHED BLOCK FOR DEPRECATED PAGES - DO NOT EXECUTE OUTSIDE ORIGINAL STRUCTURE */}
-                <div className="hidden">
+                {false && (
                   <div className="bg-[#312e2b] p-6 rounded-3xl border border-[#3c3934] shadow-inner font-sans">
                     <AnimatePresence mode="wait">
                       {guildSubPage === 'dashboard' && (
@@ -1893,7 +2769,11 @@ export const Features31to40: React.FC<Features31to40Props> = ({
                           <div className="bg-[#262421] p-5 rounded-2xl border border-stone-800 flex flex-col justify-between">
                             <div>
                               <span className="text-[9.5px] font-black text-yellow-500 uppercase block tracking-wider">Brankas Lembaga Klan (Treasury)</span>
-                              <h4 className="text-white font-mono font-black text-2xl mt-1">{guildTreasury} <span className="text-xs text-slate-450">/ {guildLevel * 1200} Coins</span></h4>
+                              <h4 className="text-white font-mono font-black text-2xl mt-1 flex flex-row items-center gap-2">
+                                <Coins className="w-6 h-6 text-yellow-500 shrink-0 inline-block" />
+                                <span>{guildTreasury}</span>
+                                <span className="text-xs text-slate-450 font-sans font-bold">/ {guildLevel * 1200} Koin</span>
+                              </h4>
                               <p className="text-[10px] text-slate-450 mt-1 leading-normal">Tingkatkan Coin di dalam Brankas bersama anggota klan untuk menaikkan Level Suku klub secara otomatis. Level tinggi membuka bonus XP tanding!</p>
                               
                               <div className="w-full bg-[#1c1a19] h-2 rounded-full overflow-hidden mt-4 border border-stone-800">
@@ -1979,20 +2859,59 @@ export const Features31to40: React.FC<Features31to40Props> = ({
                           </div>
 
                           <div className="divide-y divide-stone-800/40 font-sans">
-                            {guildMembers.map((member) => (
-                              <div key={member.name} className="py-3 flex sm:flex-row flex-col justify-between items-start sm:items-center gap-3">
-                                <div className="flex items-center gap-3">
-                                  <div className="w-9 h-9 rounded-xl bg-stone-900 text-xs font-black text-slate-350 flex items-center justify-center border border-stone-800 shadow">
-                                    {member.name.substring(0, 2).toUpperCase()}
+                            {guildMembers.map((member) => {
+                              const cleanMemberName = member.name.replace(/\s*\(Kamu\)\s*/gi, '').trim().toLowerCase();
+                              const cleanUsername = username.replace(/\s*\(Kamu\)\s*/gi, '').trim().toLowerCase();
+                              const isMe = cleanMemberName === cleanUsername || member.name === username;
+
+                              let memberAvatar = (member as any).profileAvatar || (member as any).avatar;
+                              let memberFrame = (member as any).selectedFrame || 'none';
+                              if (isMe) {
+                                try {
+                                  const savedUser = localStorage.getItem('user');
+                                  if (savedUser) {
+                                    const u = JSON.parse(savedUser);
+                                    if (u.profileAvatar || u.avatar) memberAvatar = u.profileAvatar || u.avatar;
+                                    if (u.selectedFrame) memberFrame = u.selectedFrame;
+                                  }
+                                } catch(e) {}
+                                if (!memberAvatar) memberAvatar = localStorage.getItem('guestAvatar') || 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
+                              }
+                              if (!memberAvatar) memberAvatar = 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&q=80&w=200';
+
+                              let memberLevel = member.level;
+                              if (isMe) {
+                                try {
+                                  const xpVal = Number(localStorage.getItem('xp')) || 0;
+                                  memberLevel = getLevelFromXP(xpVal);
+                                } catch(e) {
+                                  memberLevel = member.level || 1;
+                                }
+                              } else if (typeof member.xp === 'number' && member.xp > 0) {
+                                memberLevel = getLevelFromXP(member.xp);
+                              } else if (member.level) {
+                                memberLevel = member.level;
+                              } else {
+                                memberLevel = Math.max(1, Math.floor((member.rating || 600) / 200) + 1);
+                              }
+
+                              return (
+                                <div key={member.name} className="py-3 flex sm:flex-row flex-col justify-between items-start sm:items-center gap-3">
+                                  <div className="flex items-center gap-3">
+                                    <div className="relative shrink-0">
+                                      <AvatarWithFrame src={memberAvatar} frameId={memberFrame} size="sm" />
+                                      <span className="absolute -top-1.5 -right-1.5 bg-yellow-500 text-slate-900 text-[8px] px-1.5 py-0.5 rounded-full font-black scale-90 z-10 shadow border border-yellow-300/50">
+                                        Lv.{memberLevel}
+                                      </span>
+                                    </div>
+                                    <div>
+                                      <h5 className="text-xs font-black text-white flex items-center gap-1.5">
+                                        {member.name} {isMe ? '(Kamu)' : ''}
+                                        {member.role === 'Founder' && <Crown className="w-3" />}
+                                      </h5>
+                                      <span className="text-[9px] text-[#81b64c] font-black uppercase leading-none font-mono">rating: {member.rating} ELO</span>
+                                    </div>
                                   </div>
-                                  <div>
-                                    <h5 className="text-xs font-black text-white flex items-center gap-1.5">
-                                      {member.name} {member.name === username ? '(Kamu)' : ''}
-                                      {member.role === 'Founder' && <Crown className="w-3" />}
-                                    </h5>
-                                    <span className="text-[9px] text-[#81b64c] font-black uppercase leading-none font-mono">rating: {member.rating} ELO</span>
-                                  </div>
-                                </div>
 
                                 <div className="flex items-center gap-2 flex-wrap">
                                   {/* Role Display Tag */}
@@ -2061,7 +2980,8 @@ export const Features31to40: React.FC<Features31to40Props> = ({
                                   )}
                                 </div>
                               </div>
-                            ))}
+                            );
+                          })}
                           </div>
                         </div>
 
@@ -2752,26 +3672,58 @@ export const Features31to40: React.FC<Features31to40Props> = ({
                         className="space-y-4 font-sans"
                       >
                         <div className="bg-[#262421] p-5 rounded-2xl border border-stone-850 space-y-3.5">
-                          <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5 leading-none">
-                            Pesan Ruang Obrolan Interaktif Suku Klan ({guildMembers.length} Online)
+                          <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center justify-between border-b border-stone-850 pb-2.5 leading-none">
+                            <span className="flex items-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                              Pesan Ruang Obrolan Interaktif Suku Klan ({Math.max(1, (guildMembers || []).length)} Online)
+                            </span>
+                            <span className="text-[9px] font-mono text-[#81b64c] font-black uppercase">● ONLINE REALTIME</span>
                           </h4>
-                          <p className="text-[10px] text-slate-400 font-medium">Bicaralah dengan teman klan Anda. Bot pintar akan merespon ucapan Anda secara taktis!</p>
-
-                          <div className="space-y-3 max-h-[16rem] overflow-y-auto pr-1 bg-black/15 p-3 rounded-xl border border-stone-900/60 divide-y divide-stone-900/35">
-                            {guildChatMessages.filter(msg => guildMembers.some(m => m.name.toLowerCase() === msg.sender.toLowerCase()) || msg.sender.toLowerCase() === username.toLowerCase()).map((msg, idx) => (
-                              <div key={idx} className="text-[11px] leading-relaxed pt-2.5 first:pt-0">
-                                <div className="flex items-center gap-1.5 font-sans">
-                                  <span className="font-extrabold text-[#81b64c] text-xs">{msg.sender}</span>
-                                  <span className="text-[7.5px] text-slate-500 font-mono italic">{msg.time}</span>
-                                </div>
-                                <span className="text-slate-300 font-medium mt-0.5 block font-sans">{msg.text}</span>
+                          <div className="space-y-3 max-h-[18rem] overflow-y-auto pr-1 bg-[#161514] p-3.5 rounded-2xl border border-stone-850">
+                            {guildChatMessages.length === 0 ? (
+                              <div className="text-center py-6 text-stone-500 text-xs italic">
+                                Belum ada obrolan suku. Mulai sapa klan Anda sekarang!
                               </div>
-                            ))}
+                            ) : (
+                              guildChatMessages.map((msg, idx) => {
+                                const details = getUserDetails(msg.sender);
+                                const isSelf = msg.sender?.toLowerCase() === username?.toLowerCase();
+
+                                return (
+                                  <div 
+                                    key={idx} 
+                                    className={`flex items-start gap-2.5 ${isSelf ? 'flex-row-reverse' : 'flex-row'}`}
+                                  >
+                                    <AvatarWithFrame
+                                      src={details.avatar}
+                                      frameId={details.frameId}
+                                      size="xs"
+                                    />
+                                    <div className={`max-w-[80%] space-y-1 ${isSelf ? 'text-right' : 'text-left'}`}>
+                                      <div className={`flex items-center gap-1.5 ${isSelf ? 'justify-end' : 'justify-start'}`}>
+                                        <span className={`font-extrabold text-[11px] ${isSelf ? 'text-[#81b64c]' : 'text-amber-400'}`}>
+                                          {isSelf ? 'Anda (Kamu)' : msg.sender}
+                                        </span>
+                                        <span className="text-[8px] text-stone-500 font-mono">{msg.time}</span>
+                                      </div>
+                                      <div className={`p-3 rounded-2xl text-xs font-sans leading-relaxed text-white inline-block text-left shadow-sm ${
+                                        isSelf 
+                                          ? 'bg-gradient-to-r from-[#81b64c]/20 to-[#81b64c]/10 border border-[#81b64c]/40 rounded-tr-none' 
+                                          : 'bg-[#1c1a19] border border-stone-800 rounded-tl-none'
+                                      }`}>
+                                        {msg.text}
+                                      </div>
+                                    </div>
+                                  </div>
+                                );
+                              })
+                            )}
                           </div>
 
                           {/* Message input */}
                           <div className="flex gap-2">
                             <input 
+                              id="f3140-chat-input"
                               type="text"
                               placeholder="Ketik pesan chat klan..."
                               onKeyDown={(e) => {
@@ -2783,39 +3735,31 @@ export const Features31to40: React.FC<Features31to40Props> = ({
                                   setGuildChatMessages(prev => [...prev, { sender: username, text: text, time: timeStr }]);
                                   e.currentTarget.value = '';
                                   triggerAudio('move');
-
-                                  // Simulate responsive reply after delay
-                                  setTimeout(() => {
-                                    const botAnswers = [
-                                      "Luar biasa pimpinan! Terus pupuk perjuangan klan kita!",
-                                      "Ayo kerjakan semua teka-teki taktis di Perang Klan (Guild War) biar sabet juara 1!",
-                                      "Wah mabar catur sore ini sepertinya asyik, yuk janjian!",
-                                      "Siapa yang butuh fragment skin? Saya punya sisa fragment neon tak terpakai.",
-                                      "Jangan lupa donasikan koin tabungan ke brankas klan ya biar pangkat lvl kita naik!",
-                                      "Taktik catur garpu ksatria di board perang benar-benar brilian!"
-                                    ];
-                                    const botSenders = ['Isna Caturia', 'Naufal_Catur', 'Martin_Pratama'];
-                                    const randAnswer = botAnswers[Math.floor(Math.random() * botAnswers.length)];
-                                    const randSender = botSenders[Math.floor(Math.random() * botSenders.length)];
-                                    
-                                    setGuildChatMessages(prev => [...prev, { 
-                                      sender: randSender, 
-                                      text: randAnswer, 
-                                      time: new Date().toLocaleTimeString('id-id', { hour: '2-digit', minute: '2-digit' }) 
-                                    }]);
-                                    triggerAudio('win');
-                                  }, 1500);
                                 }
                               }}
-                              className="flex-1 bg-[#1a1817] border border-stone-800 p-2.5 rounded-xl text-xs text-white placeholder-stone-605 focus:outline-none focus:border-[#81b64c]"
+                              className="flex-1 bg-[#1a1817] border border-stone-800 p-2.5 px-3.5 rounded-xl text-xs text-white placeholder-stone-600 focus:outline-none focus:border-[#81b64c] transition"
                             />
+                            <button
+                              onClick={() => {
+                                const el = document.getElementById('f3140-chat-input') as HTMLInputElement;
+                                if (el && el.value.trim()) {
+                                  const timeStr = new Date().toLocaleTimeString('id-id', { hour: '2-digit', minute: '2-digit' });
+                                  setGuildChatMessages(prev => [...prev, { sender: username, text: el.value.trim(), time: timeStr }]);
+                                  el.value = '';
+                                  triggerAudio('move');
+                                }
+                              }}
+                              className="px-4 py-2.5 bg-[#81b64c] hover:bg-green-500 text-white font-black text-xs uppercase rounded-xl transition cursor-pointer shadow flex items-center justify-center shrink-0"
+                            >
+                              Kirim
+                            </button>
                           </div>
                         </div>
                       </motion.div>
                     )}
                   </AnimatePresence>
                 </div>
-                </div> {/* Closes legacy hidden wrapper */}
+                )} {/* Closes legacy hidden wrapper */}
 
               </div>
             )}
@@ -3077,7 +4021,7 @@ export const Features31to40: React.FC<Features31to40Props> = ({
 
             {/* RIGHT COLUMN: DISCUSSION BOARD CHANNELS */}
             <div className="md:col-span-8 space-y-4">
-              {chessPosts.length === 0 ? (
+              {!Array.isArray(chessPosts) || chessPosts.length === 0 ? (
                 <div className="bg-[#312e2b] p-8 rounded-3xl border border-[#3c3934] text-center space-y-3">
                   <MessageSquare className="w-10 h-10 text-[#81b64c] mx-auto" />
                   <h4 className="text-white text-xs font-black uppercase tracking-wider">
@@ -3088,36 +4032,49 @@ export const Features31to40: React.FC<Features31to40Props> = ({
                   </p>
                 </div>
               ) : (
-                chessPosts.map((post) => (
-                  <div key={post.id} className="bg-[#312e2b] p-6 rounded-3xl border border-[#3c3934] space-y-4">
-                    <div className="flex justify-between items-start gap-4">
-                      <div className="flex items-center gap-3">
-                        <AvatarWithFrame
-                          src={post.avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150'}
-                          frameId={post.frameId || 'none'}
-                          size="sm"
-                        />
-                        <div>
-                          <div className="flex items-center gap-1.5 flex-wrap">
-                            <h4 className="text-xs font-black text-white">{post.author}</h4>
-                            <span className="text-[8px] font-black bg-stone-900 border border-stone-800 text-yellow-500 px-1.5 py-0.5 rounded">
-                              LVL {post.lvl}
-                            </span>
+                (Array.isArray(chessPosts) ? chessPosts : []).map((post) => {
+                  const authorDetails = getUserDetails(post.author);
+                  return (
+                    <div key={post.id} className="bg-[#312e2b] p-6 rounded-3xl border border-[#3c3934] space-y-4">
+                      <div className="flex justify-between items-start gap-4">
+                        <div className="flex items-center gap-3">
+                          <AvatarWithFrame
+                            src={authorDetails.avatar}
+                            frameId={authorDetails.frameId}
+                            size="sm"
+                          />
+                          <div>
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <h4 className="text-xs font-black text-white">{post.author}</h4>
+                              <span className="text-[8px] font-black bg-stone-900 border border-stone-800 text-yellow-500 px-1.5 py-0.5 rounded">
+                                LVL {authorDetails.lvl || post.lvl}
+                              </span>
+                            </div>
+                            <span className="text-[8.5px] text-[#81b64c] font-black tracking-wider uppercase font-mono">{post.category}</span>
                           </div>
-                          <span className="text-[8.5px] text-[#81b64c] font-black tracking-wider uppercase font-mono">{post.category}</span>
                         </div>
-                      </div>
 
-                      <button 
-                        onClick={() => handleLikePost(post.id)}
-                        className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase flex items-center gap-1.5 transition-colors cursor-pointer border ${
-                          post.hasLiked 
-                            ? 'bg-[#81b64c]/10 border-[#81b64c] text-[#81b64c]' 
-                            : 'bg-[#1c1a19] border-[#3c3934] text-slate-450 hover:text-white'
-                        }`}
-                      >
-                        <ThumbsUp className="w-3.5 h-3.5" /> {post.likes} Like
-                      </button>
+                      <div className="flex items-center gap-2">
+                        {/* Display count badge (read-only indicator) */}
+                        <div className="px-2.5 py-1 rounded-lg text-[10px] font-mono font-black text-amber-400 bg-black/30 border border-stone-800 flex items-center gap-1.5 shrink-0">
+                          <Heart className="w-3 h-3 text-red-500 fill-red-500" />
+                          <span>{post.likes} Suka</span>
+                        </div>
+
+                        {/* Interactive Like Toggle Button */}
+                        <button 
+                          type="button"
+                          onClick={() => handleLikePost(post.id)}
+                          className={`px-3 py-1.5 rounded-lg text-[10px] font-black uppercase flex items-center gap-1.5 transition-all cursor-pointer border shrink-0 ${
+                            post.hasLiked 
+                              ? 'bg-[#81b64c]/20 border-[#81b64c] text-[#81b64c] hover:bg-[#81b64c]/30 shadow-sm' 
+                              : 'bg-[#1c1a19] border-[#3c3934] text-slate-400 hover:text-white hover:border-slate-500'
+                          }`}
+                        >
+                          <ThumbsUp className={`w-3.5 h-3.5 ${post.hasLiked ? 'fill-[#81b64c]' : ''}`} />
+                          <span>{post.hasLiked ? 'Disukai' : 'Suka'}</span>
+                        </button>
+                      </div>
                     </div>
 
                     <div className="space-y-2">
@@ -3127,9 +4084,9 @@ export const Features31to40: React.FC<Features31to40Props> = ({
 
                     {/* COMMENTS BOX */}
                     <div className="border-t border-[#3c3934]/40 pt-4 space-y-2">
-                      <span className="text-[8.5px] font-black text-slate-500 uppercase tracking-wide">Umpan Balik Taktis Master ({post.comments.length})</span>
+                      <span className="text-[8.5px] font-black text-slate-500 uppercase tracking-wide">Umpan Balik Taktis Master ({(Array.isArray(post.comments) ? post.comments : []).length})</span>
                       <div className="space-y-2">
-                        {post.comments.map((comment, cIndex) => {
+                        {(Array.isArray(post.comments) ? post.comments : []).map((comment, cIndex) => {
                           const details = getUserDetails(comment.user);
                           return (
                             <div key={cIndex} className="p-2.5 bg-black/15 rounded-xl border border-stone-800/80 text-[10.5px] flex items-center justify-between gap-3">
@@ -3162,13 +4119,14 @@ export const Features31to40: React.FC<Features31to40Props> = ({
                           onKeyDown={(e) => {
                             if (e.key === 'Enter') {
                               const input = e.currentTarget;
-                              if (!input.value) return;
+                              if (!input.value.trim()) return;
                               
                               const updatedPosts = chessPosts.map(p => {
                                 if (p.id === post.id) {
+                                  const existingComments = Array.isArray(p.comments) ? p.comments : [];
                                   return {
                                     ...p,
-                                    comments: [...p.comments, { user: username, text: input.value }]
+                                    comments: [...existingComments, { user: username || 'Guest', text: input.value.trim() }]
                                   };
                                 }
                                 return p;
@@ -3184,7 +4142,8 @@ export const Features31to40: React.FC<Features31to40Props> = ({
                     </div>
 
                   </div>
-                ))
+                );
+              })
               )}
             </div>
 
@@ -3402,14 +4361,7 @@ export const Features31to40: React.FC<Features31to40Props> = ({
 
                   {/* Rating Coordinates Path line */}
                   <path
-                    d={`M 10 140 
-                        L 80 135 
-                        L 150 115 
-                        L 220 120 
-                        L 290 100 
-                        L 360 85 
-                        L 430 90 
-                        L 490 60`}
+                    d={svgPathD}
                     fill="none"
                     stroke="#81b64c"
                     strokeWidth="3.5"
@@ -3418,10 +4370,10 @@ export const Features31to40: React.FC<Features31to40Props> = ({
                   />
 
                   {/* Glowing gradient indicators on dots */}
-                  {[[10,140,400],[80,135,420],[150,115,480],[220,120,460],[290,100,510],[360,85,540],[430,90,530],[490,60,onlineRating]].map(([x,y,val], idx) => (
+                  {chartData.map((pt, idx) => (
                     <g key={idx}>
-                      <circle cx={x} cy={y} r="5" className="fill-[#81b64c] stroke-white stroke-2" />
-                      <text x={x} y={y - 10} textAnchor="middle" className="fill-white font-mono font-black text-[9px]">{val}</text>
+                      <circle cx={pt.x} cy={pt.y} r="5" className="fill-[#81b64c] stroke-white stroke-2" />
+                      <text x={pt.x} y={pt.y - 10} textAnchor="middle" className="fill-white font-mono font-black text-[9px]">{pt.val}</text>
                     </g>
                   ))}
                 </svg>

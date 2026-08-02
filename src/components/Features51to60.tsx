@@ -6,9 +6,11 @@ import {
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AvatarWithFrame } from './AvatarWithFrame';
+import { DuolingoMascotHeader } from './DuolingoMascotHeader';
+import { AnimatedMascot } from './AnimatedMascot';
 import { ChessPiece } from './ChessPieces';
 import martinAvatar from '../assets/images/avatar_martin_1779709510230.png';
-import { getLevelFromXP } from '../utils';
+import { getLevelFromXP, handleQuizSubmission } from '../utils';
 
 // =========================================================================
 // TYPES & PROPS
@@ -71,7 +73,9 @@ export interface Features51to60Props {
     updatedUnlockedItems?: string[],
     updatedUnlockedFrames?: string[],
     updatedCoins?: number,
-    updatedDiamonds?: number
+    updatedDiamonds?: number,
+    updatedFrame?: string,
+    forceSeasonalReset?: boolean
   ) => Promise<void>;
   prefLang?: 'id' | 'en';
   starterPackClaimed?: boolean;
@@ -590,14 +594,14 @@ export const Features51to60: React.FC<Features51to60Props> = ({
 
   // --- MINI INTERACTIVE PUZZLE BOARD STATES ---
   const initialMiniBoard = [
-    ['', '', '', '', '♚', '', '', ''],
-    ['', '', '', '', '', '♟', '', ''],
-    ['', '', '', '', '', '', '', ''],
-    ['', '', '', '', '', '', '', '♕'],
-    ['', '', '♗', '', '', '', '', ''],
     ['', '', '', '', '', '', '', ''],
     ['', '', '', '', '', '', '', ''],
-    ['', '', '', '', '♔', '', '', '']
+    ['', '', '', '', '', '', '', ''],
+    ['', '', '', '', '', '', '', ''],
+    ['', '', '', '', '', '', '', ''],
+    ['', '', '', '', '', '', '', ''],
+    ['', '', '', '', '', '', '', ''],
+    ['', '', '', '', '', '', '', '']
   ];
   const [miniBoard, setMiniBoard] = useState<string[][]>(initialMiniBoard);
   const [selectedSquare, setSelectedSquare] = useState<[number, number] | null>(null);
@@ -708,42 +712,121 @@ export const Features51to60: React.FC<Features51to60Props> = ({
     }
   }, [selectedMonthSim, selectedEventId]);
 
+  const [seasonTimerText, setSeasonTimerText] = useState<string>('');
+
+  useEffect(() => {
+    let targetTs = Number(localStorage.getItem('season_end_timestamp') || '0');
+    if (!targetTs || targetTs <= Date.now()) {
+      targetTs = Date.now() + 14 * 24 * 60 * 60 * 1000;
+      localStorage.setItem('season_end_timestamp', String(targetTs));
+    }
+    const tick = () => {
+      const diff = targetTs - Date.now();
+      if (diff <= 0) {
+        setSeasonTimerText('0 Hari, 0 Jam');
+        return;
+      }
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const secs = Math.floor((diff % (1000 * 60)) / 1000);
+      setSeasonTimerText(`${days}h ${hours}j ${mins}m ${secs}s`);
+    };
+    tick();
+    const inv = setInterval(tick, 1000);
+    return () => clearInterval(inv);
+  }, []);
+
   const [eventScore, setEventScore] = useState<number>(() => {
-    return Number(localStorage.getItem('seasonal_event_score') || '15');
+    const scope = username ? username.trim().toLowerCase() : 'guest';
+    return Number(localStorage.getItem(`seasonal_event_score:${scope}`) || '15');
   });
   const [completedQuestIds, setCompletedQuestIds] = useState<string[]>(() => {
-    return JSON.parse(localStorage.getItem('seasonal_completed_quests') || '[]');
+    const scope = username ? username.trim().toLowerCase() : 'guest';
+    return JSON.parse(localStorage.getItem(`seasonal_completed_quests:${scope}`) || '[]');
   });
   const [answeredQuizIds, setAnsweredQuizIds] = useState<string[]>(() => {
-    return JSON.parse(localStorage.getItem('seasonal_answered_quizzes') || '[]');
+    const scope = username ? username.trim().toLowerCase() : 'guest';
+    return JSON.parse(localStorage.getItem(`seasonal_answered_quizzes:${scope}`) || '[]');
   });
   const [selectedQuizAnswer, setSelectedQuizAnswer] = useState<number | null>(null);
   const [quizFeedback, setQuizFeedback] = useState<string | null>(null);
   const [currentQuizIndex, setCurrentQuizIndex] = useState<number>(0);
+  const isSyncingQuizRef = useRef<boolean>(false);
+
+  const lastUsernameRef = useRef<string | null>(null);
 
   useEffect(() => {
-    if (user) {
-      if (user.seasonal_event_score !== undefined) {
-        setEventScore(user.seasonal_event_score);
+    const isUserSwitched = lastUsernameRef.current !== username;
+    lastUsernameRef.current = username;
+    const scope = username ? username.trim().toLowerCase() : 'guest';
+
+    if (isUserSwitched) {
+      console.log("[Seasonal Sync] User switched or initial load. Resetting seasonal states with merge...");
+      if (user) {
+        const serverScore = user.seasonal_event_score !== undefined ? Number(user.seasonal_event_score) : 0;
+        const localScore = Number(localStorage.getItem(`seasonal_event_score:${scope}`) || '15');
+        const finalScore = Math.max(serverScore, localScore);
+        setEventScore(finalScore);
+        localStorage.setItem(`seasonal_event_score:${scope}`, String(finalScore));
+
+        const serverQuests: string[] = user.seasonal_completed_quests || [];
+        const localQuests: string[] = JSON.parse(localStorage.getItem(`seasonal_completed_quests:${scope}`) || '[]');
+        const mergedQuests = Array.from(new Set([...serverQuests, ...localQuests]));
+        setCompletedQuestIds(mergedQuests);
+        localStorage.setItem(`seasonal_completed_quests:${scope}`, JSON.stringify(mergedQuests));
+
+        const serverQuizzes: string[] = user.seasonal_answered_quizzes || [];
+        const localQuizzes: string[] = JSON.parse(localStorage.getItem(`seasonal_answered_quizzes:${scope}`) || '[]');
+        const mergedQuizzes = Array.from(new Set([...serverQuizzes, ...localQuizzes]));
+        setAnsweredQuizIds(mergedQuizzes);
+        localStorage.setItem(`seasonal_answered_quizzes:${scope}`, JSON.stringify(mergedQuizzes));
       } else {
-        setEventScore(Number(localStorage.getItem('seasonal_event_score') || '15'));
+        const finalScore = Number(localStorage.getItem(`seasonal_event_score:${scope}`) || '15');
+        setEventScore(finalScore);
+        
+        const finalQuests = JSON.parse(localStorage.getItem(`seasonal_completed_quests:${scope}`) || '[]');
+        setCompletedQuestIds(finalQuests);
+        
+        const finalQuizzes = JSON.parse(localStorage.getItem(`seasonal_answered_quizzes:${scope}`) || '[]');
+        setAnsweredQuizIds(finalQuizzes);
+      }
+      return;
+    }
+
+    // Otherwise, we only merge incoming server states if they are NEWER/MORE PROGRESSIVE than our local state,
+    // to prevent any race condition or unrelated user updates (like gaining XP or buying a skin) from resetting/reverting our local seasonal state.
+    if (user) {
+      const serverScore = user.seasonal_event_score !== undefined ? Number(user.seasonal_event_score) : 0;
+      if (serverScore > eventScore) {
+        console.log(`[Seasonal Sync] Merging server eventScore: ${serverScore} (local: ${eventScore})`);
+        setEventScore(serverScore);
+        localStorage.setItem(`seasonal_event_score:${scope}`, String(serverScore));
       }
       if (user.seasonal_completed_quests !== undefined) {
-        setCompletedQuestIds(user.seasonal_completed_quests);
-      } else {
-        setCompletedQuestIds(JSON.parse(localStorage.getItem('seasonal_completed_quests') || '[]'));
+        const hasNewQuests = user.seasonal_completed_quests.some((q: string) => !completedQuestIds.includes(q));
+        if (hasNewQuests) {
+          console.log(`[Seasonal Sync] Merging server completed quests:`, user.seasonal_completed_quests);
+          setCompletedQuestIds(prev => {
+            const merged = Array.from(new Set([...prev, ...user.seasonal_completed_quests]));
+            localStorage.setItem(`seasonal_completed_quests:${scope}`, JSON.stringify(merged));
+            return merged;
+          });
+        }
       }
       if (user.seasonal_answered_quizzes !== undefined) {
-        setAnsweredQuizIds(user.seasonal_answered_quizzes);
-      } else {
-        setAnsweredQuizIds(JSON.parse(localStorage.getItem('seasonal_answered_quizzes') || '[]'));
+        const hasNewQuizzes = user.seasonal_answered_quizzes.some((q: string) => !answeredQuizIds.includes(q));
+        if (hasNewQuizzes) {
+          console.log(`[Seasonal Sync] Merging server answered quizzes:`, user.seasonal_answered_quizzes);
+          setAnsweredQuizIds(prev => {
+            const merged = Array.from(new Set([...prev, ...user.seasonal_answered_quizzes]));
+            localStorage.setItem(`seasonal_answered_quizzes:${scope}`, JSON.stringify(merged));
+            return merged;
+          });
+        }
       }
-    } else {
-      setEventScore(Number(localStorage.getItem('seasonal_event_score') || '15'));
-      setCompletedQuestIds(JSON.parse(localStorage.getItem('seasonal_completed_quests') || '[]'));
-      setAnsweredQuizIds(JSON.parse(localStorage.getItem('seasonal_answered_quizzes') || '[]'));
     }
-  }, [username, user]);
+  }, [username, user, eventScore, completedQuestIds, answeredQuizIds]);
 
   // --- STARTER PACK SUBSTATE ---
   const [localStarterPackClaimed, setLocalStarterPackClaimed] = useState<boolean>(() => {
@@ -769,31 +852,35 @@ export const Features51to60: React.FC<Features51to60Props> = ({
   }, [selectedMonthSim]);
 
   useEffect(() => {
-    localStorage.setItem('seasonal_event_score', String(eventScore));
-  }, [eventScore]);
+    const scope = username ? username.trim().toLowerCase() : 'guest';
+    localStorage.setItem(`seasonal_event_score:${scope}`, String(eventScore));
+  }, [eventScore, username]);
 
   useEffect(() => {
-    localStorage.setItem('seasonal_completed_quests', JSON.stringify(completedQuestIds));
-  }, [completedQuestIds]);
+    const scope = username ? username.trim().toLowerCase() : 'guest';
+    localStorage.setItem(`seasonal_completed_quests:${scope}`, JSON.stringify(completedQuestIds));
+  }, [completedQuestIds, username]);
 
   useEffect(() => {
-    localStorage.setItem('seasonal_answered_quizzes', JSON.stringify(answeredQuizIds));
-  }, [answeredQuizIds]);
+    const scope = username ? username.trim().toLowerCase() : 'guest';
+    localStorage.setItem(`seasonal_answered_quizzes:${scope}`, JSON.stringify(answeredQuizIds));
+  }, [answeredQuizIds, username]);
 
   // Handle Event Quest Click Complete
   const completeQuest = (qId: string, pts: number) => {
     if (completedQuestIds.includes(qId)) return;
+    const scope = username ? username.trim().toLowerCase() : 'guest';
     
     const nextCompleted = [...completedQuestIds];
     if (!nextCompleted.includes(qId)) {
       nextCompleted.push(qId);
     }
     setCompletedQuestIds(nextCompleted);
-    localStorage.setItem('seasonal_completed_quests', JSON.stringify(nextCompleted));
+    localStorage.setItem(`seasonal_completed_quests:${scope}`, JSON.stringify(nextCompleted));
 
     const nextScore = eventScore + pts;
     setEventScore(nextScore);
-    localStorage.setItem('seasonal_event_score', String(nextScore));
+    localStorage.setItem(`seasonal_event_score:${scope}`, String(nextScore));
     
     triggerAudio('win');
     triggerReward(15, isEng ? `Completed event quest! +${pts} Event Points` : `Selesaikan misi event! +${pts} Poin Event`, 'reward');
@@ -801,6 +888,78 @@ export const Features51to60: React.FC<Features51to60Props> = ({
     // Sync to backend immediately
     if (syncUserStats) {
       syncUserStats(undefined, xp + 15);
+    }
+  };
+
+  // Dedicated atomic transactional function to commit quiz completions with concurrency control and duplicate prevention.
+  const commitQuizCompletionAtomic = async (quizId: string, optionIdx: number, correctAnswerIdx: number, pointsAwarded: number) => {
+    const timestamp = new Date().toISOString();
+    console.log(`[Atomic Quiz Sync - ${timestamp}] INITIATED for Quiz ID: ${quizId}. Option: ${optionIdx}, Correct: ${correctAnswerIdx}, Points: +${pointsAwarded}`);
+    const scope = username ? username.trim().toLowerCase() : 'guest';
+
+    // Check concurrency lock
+    if (isSyncingQuizRef.current) {
+      console.warn(`[Atomic Quiz Sync - ${timestamp}] CONCURRENCY ALERT: Sync already in progress. Ignoring duplicate request.`);
+      return { success: false, reason: 'concurrency_lock' };
+    }
+
+    // Retrieve freshest values from local storage
+    const currentStoredQuizzes: string[] = JSON.parse(localStorage.getItem(`seasonal_answered_quizzes:${scope}`) || '[]');
+    const currentStoredScore = Number(localStorage.getItem(`seasonal_event_score:${scope}`) || '15');
+
+    console.log(`[Atomic Quiz Sync - ${timestamp}] Current state snapshot:`, {
+      stateQuizzes: answeredQuizIds,
+      storedQuizzes: currentStoredQuizzes,
+      stateScore: eventScore,
+      storedScore: currentStoredScore,
+      isUserLoggedIn: !!user
+    });
+
+    // Check for duplicate submissions to avoid double-claiming points
+    if (answeredQuizIds.includes(quizId) || currentStoredQuizzes.includes(quizId)) {
+      console.warn(`[Atomic Quiz Sync - ${timestamp}] DUPLICATE PREVENTED: Quiz ID "${quizId}" has already been processed.`);
+      return { success: false, reason: 'already_completed' };
+    }
+
+    // Acquire lock
+    isSyncingQuizRef.current = true;
+    console.log(`[Atomic Quiz Sync - ${timestamp}] Concurrency lock acquired.`);
+
+    try {
+      const res = await handleQuizSubmission({
+        username,
+        quizId,
+        optionIdx,
+        correctAnswerIdx,
+        pointsAwarded,
+        isLoggedIn: !!user,
+        currentScore: currentStoredScore,
+        currentQuizzes: currentStoredQuizzes,
+        setAnsweredQuizIds,
+        setEventScore,
+        setXp,
+        triggerReward,
+        isEng,
+        syncUserStats
+      });
+      // Ensure the atomic response also writes to the scoped local storage
+      const finalScore = currentStoredScore + pointsAwarded;
+      const finalQuizzes = [...currentStoredQuizzes, quizId];
+      localStorage.setItem(`seasonal_event_score:${scope}`, String(finalScore));
+      localStorage.setItem(`seasonal_answered_quizzes:${scope}`, JSON.stringify(finalQuizzes));
+      return res;
+    } catch (err: any) {
+      console.error(`[Atomic Quiz Sync - ${timestamp}] FATAL: Transaction failed! Reverting local state changes...`, err);
+      // Revert states
+      setAnsweredQuizIds(currentStoredQuizzes);
+      setEventScore(currentStoredScore);
+      localStorage.setItem(`seasonal_answered_quizzes:${scope}`, JSON.stringify(currentStoredQuizzes));
+      localStorage.setItem(`seasonal_event_score:${scope}`, String(currentStoredScore));
+      return { success: false, error: err };
+    } finally {
+      // Release lock
+      isSyncingQuizRef.current = false;
+      console.log(`[Atomic Quiz Sync - ${timestamp}] Concurrency lock released.`);
     }
   };
 
@@ -817,27 +976,15 @@ export const Features51to60: React.FC<Features51to60Props> = ({
       setQuizFeedback('correct');
       triggerAudio('win');
       if (!answeredQuizIds.includes(qId)) {
-        const nextAnswered = [...answeredQuizIds];
-        if (!nextAnswered.includes(qId)) {
-          nextAnswered.push(qId);
-        }
-        setAnsweredQuizIds(nextAnswered);
-        localStorage.setItem('seasonal_answered_quizzes', JSON.stringify(nextAnswered));
-
-        const nextScore = eventScore + 20;
-        setEventScore(nextScore);
-        localStorage.setItem('seasonal_event_score', String(nextScore));
-        
-        triggerReward(10, isEng ? "Correct Event Quiz! +20 Event Points" : "Kuis Event Benar! +20 Poin Event", "reward");
-        
-        // Sync to backend immediately
-        if (syncUserStats) {
-          syncUserStats(undefined, xp + 10);
-        }
+        console.log(`[Quiz Submission] Answer validated as CORRECT for Quiz ID: ${qId}. Initiating secure atomic commit...`);
+        commitQuizCompletionAtomic(qId, optionIdx, quizItem.answerIdx, 20);
+      } else {
+        console.log(`[Quiz Submission] Answer validated as CORRECT, but Quiz ID: ${qId} was already answered.`);
       }
     } else {
       setQuizFeedback('incorrect');
       triggerAudio('error');
+      console.log(`[Quiz Submission] Answer validated as INCORRECT for Quiz ID: ${qId}. No points awarded.`);
     }
   };
 
@@ -848,6 +995,48 @@ export const Features51to60: React.FC<Features51to60Props> = ({
       setCurrentQuizIndex(p => p + 1);
     } else {
       setCurrentQuizIndex(0);
+    }
+  };
+
+  const handleResetAllQuizzes = async () => {
+    try {
+      console.log(`[Quiz Reset] Resetting progress on client...`);
+      const scope = username ? username.trim().toLowerCase() : 'guest';
+      localStorage.setItem(`seasonal_answered_quizzes:${scope}`, '[]');
+      localStorage.setItem(`seasonal_event_score:${scope}`, '0');
+      localStorage.setItem(`seasonal_completed_milestones:${scope}`, '[]');
+      setAnsweredQuizIds([]);
+      setEventScore(0);
+      setSelectedQuizAnswer(null);
+      setQuizFeedback(null);
+      setCurrentQuizIndex(0);
+
+      if (user && username) {
+        console.log(`[Quiz Reset] Triggering backend reset for @${username}...`);
+        const response = await fetch('/api/seasonal/reset-quizzes', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username })
+        });
+        if (!response.ok) {
+          throw new Error(`Failed to reset on server. Status: ${response.status}`);
+        }
+        console.log(`[Quiz Reset] Backend reset success.`);
+
+        if (syncUserStats) {
+          await syncUserStats(
+            undefined, undefined, undefined, undefined, undefined,
+            undefined, undefined, undefined, undefined, undefined,
+            undefined, undefined, undefined, true
+          ).catch((e: any) => console.error("Error syncing reset to parent:", e));
+        }
+      }
+
+      triggerAudio('win');
+      triggerReward(10, isEng ? "All quizzes reset successfully! You can replay them now." : "Semua kuis berhasil direset! Anda dapat mengerjakannya kembali.", "reward");
+    } catch (err: any) {
+      console.error("[Quiz Reset] Error resetting quizzes:", err);
+      triggerReward(0, isEng ? "Failed to reset progress." : "Gagal mereset progress kuis.", "info");
     }
   };
 
@@ -899,7 +1088,8 @@ export const Features51to60: React.FC<Features51to60Props> = ({
 
     const nextScore = eventScore - rewardItem.cost;
     setEventScore(nextScore);
-    localStorage.setItem('seasonal_event_score', String(nextScore));
+    const scope = username ? username.trim().toLowerCase() : 'guest';
+    localStorage.setItem(`seasonal_event_score:${scope}`, String(nextScore));
     triggerAudio('win');
     triggerReward(25, `Berhasil membeli ${rewardItem.name}!`, 'reward', 0, 0);
 
@@ -1063,35 +1253,6 @@ export const Features51to60: React.FC<Features51to60Props> = ({
               exit={{ opacity: 0, y: -15 }}
               className="space-y-6"
             >
-              {/* Month Simulator Widget */}
-              <div className="p-4 bg-[#1c1a19] border border-[#3c3934] rounded-2xl text-left space-y-2">
-                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                  <div>
-                    <h4 className="text-xs font-black text-white hover:text-green-400 transition-colors uppercase tracking-wider flex items-center gap-1.5">
-                      <Calendar className="w-3.5 h-3.5 text-[#81b64c]" />
-                      Sistem Deteksi Kalender Riil & Simulasi
-                    </h4>
-                    <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">
-                      Sistem melacak kalender asli perangkat Anda secara otomatis. Anda juga dapat menggunakan simulator di samping untuk menguji event musiman lainnya:
-                    </p>
-                  </div>
-                  <select
-                    value={selectedMonthSim}
-                    onChange={(e) => {
-                      setSelectedMonthSim(Number(e.target.value));
-                      triggerAudio('move');
-                    }}
-                    className="p-2.5 bg-[#262421] text-xs font-bold text-slate-200 border border-[#4d4a44] rounded-xl focus:outline-none focus:border-[#81b64c] cursor-pointer"
-                  >
-                    <option value={-1}>Otomatis: Ikuti Kalender Riil Perangkat</option>
-                    {getSimOptions().map(opt => (
-                      <option key={opt.value} value={opt.value}>
-                        {opt.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
               {/* Event & Turnamen Terjadwal Server */}
               {adminEvents && adminEvents.length > 0 && (
                 <div className="p-5 bg-gradient-to-r from-purple-950/40 to-blue-950/40 border-2 border-purple-800/50 rounded-2xl text-left space-y-3.5 shadow-xl relative overflow-hidden backdrop-blur">
@@ -1278,8 +1439,16 @@ export const Features51to60: React.FC<Features51to60Props> = ({
                           }
                         ];
 
-                        // Pick 10 random tactics (Request 3)
-                        const shuffled = [...bank].sort(() => 0.5 - Math.random());
+                        // Process bank to randomize options and dynamically calculate correct answer index
+                        const shuffled = bank.map(item => {
+                          const correctAnsText = item.opts[item.ans];
+                          const shuffledOpts = [...item.opts].sort(() => 0.5 - Math.random());
+                          return {
+                            ...item,
+                            opts: shuffledOpts,
+                            ans: shuffledOpts.indexOf(correctAnsText)
+                          };
+                        }).sort(() => 0.5 - Math.random());
                         setTacticQuestions(shuffled.slice(0, 10));
                         setCurrentTacticIndex(0);
                         setSelectedTacticAnswer(null);
@@ -1304,7 +1473,7 @@ export const Features51to60: React.FC<Features51to60Props> = ({
                       const RPG_PLAYER_TEMPLATES = [
                         {
                           name: 'Pion Perkasa',
-                          symbol: '♙',
+                          symbol: '',
                           hp: 120,
                           element: 'Petir',
                           moves: [
@@ -1316,7 +1485,7 @@ export const Features51to60: React.FC<Features51to60Props> = ({
                         },
                         {
                           name: 'Ksatria Sakti',
-                          symbol: '♘',
+                          symbol: '',
                           hp: 150,
                           element: 'Api',
                           moves: [
@@ -1328,7 +1497,7 @@ export const Features51to60: React.FC<Features51to60Props> = ({
                         },
                         {
                           name: 'Ratu Agung',
-                          symbol: '♕',
+                          symbol: '',
                           hp: 140,
                           element: 'Fairy',
                           moves: [
@@ -1343,7 +1512,7 @@ export const Features51to60: React.FC<Features51to60Props> = ({
                       const RPG_ENEMY_TEMPLATES = [
                         {
                           name: 'Ksatria Hitam',
-                          symbol: '♞',
+                          symbol: '',
                           hp: 130,
                           element: 'Api',
                           moves: [
@@ -1353,7 +1522,7 @@ export const Features51to60: React.FC<Features51to60Props> = ({
                         },
                         {
                           name: 'Gajah Hitam',
-                          symbol: '♝',
+                          symbol: '',
                           hp: 120,
                           element: 'Air',
                           moves: [
@@ -1363,7 +1532,7 @@ export const Features51to60: React.FC<Features51to60Props> = ({
                         },
                         {
                           name: 'Ratu Kegelapan',
-                          symbol: '♛',
+                          symbol: '',
                           hp: 160,
                           element: 'Kegelapan',
                           moves: [
@@ -1497,7 +1666,7 @@ export const Features51to60: React.FC<Features51to60Props> = ({
                                     <div className="flex items-center justify-between gap-2">
                                       <span className="text-slate-400">Minimal Rating ELO:</span>
                                       <span className={`font-mono font-bold ${onlineRating >= Number(ev.reqMinRating) ? 'text-emerald-400' : 'text-red-400'}`}>
-                                        {ev.reqMinRating} (Anda: {onlineRating}) {onlineRating >= Number(ev.reqMinRating) ? '✓' : ''}
+                                        {ev.reqMinRating} (Anda: {onlineRating}) {onlineRating >= Number(ev.reqMinRating) ? '' : ''}
                                       </span>
                                     </div>
                                   ) : null}
@@ -1505,7 +1674,7 @@ export const Features51to60: React.FC<Features51to60Props> = ({
                                     <div className="flex items-center justify-between gap-2">
                                       <span className="text-slate-400">Minimal Level Akun:</span>
                                       <span className={`font-mono font-bold ${userLevel >= Number(ev.reqMinLevel) ? 'text-emerald-400' : 'text-red-400'}`}>
-                                        Level {ev.reqMinLevel} (Anda: Lvl {userLevel}) {userLevel >= Number(ev.reqMinLevel) ? '✓' : ''}
+                                        Level {ev.reqMinLevel} (Anda: Lvl {userLevel}) {userLevel >= Number(ev.reqMinLevel) ? '' : ''}
                                       </span>
                                     </div>
                                   ) : null}
@@ -1513,7 +1682,7 @@ export const Features51to60: React.FC<Features51to60Props> = ({
                                     <div className="flex items-center justify-between gap-2">
                                       <span className="text-slate-400">Status Akun:</span>
                                       <span className={`font-mono font-bold ${membershipStatus === 'premium' ? 'text-emerald-400 animate-pulse' : 'text-red-400'}`}>
-                                        {isEng ? 'Premium Exclusive' : 'Wajib Premium'} (Anda: {membershipStatus === 'premium' ? 'Premium' : 'Gratis'}) {membershipStatus === 'premium' ? '✓' : ''}
+                                        {isEng ? 'Premium Exclusive' : 'Wajib Premium'} (Anda: {membershipStatus === 'premium' ? 'Premium' : 'Gratis'}) {membershipStatus === 'premium' ? '' : ''}
                                       </span>
                                     </div>
                                   ) : null}
@@ -1540,7 +1709,7 @@ export const Features51to60: React.FC<Features51to60Props> = ({
                               {preRegStates[ev.id] ? (
                                 <span className="w-full text-[10px] text-emerald-400 font-black flex items-center justify-center gap-1 bg-emerald-950/40 border border-emerald-800/60 py-1.5 rounded-lg">
                                   <Check className="w-3.5 h-3.5" />
-                                  {isEng ? "PRE-REGISTERED" : "✓ TERDAFTAR AWAL"}
+                                  {isEng ? "PRE-REGISTERED" : " TERDAFTAR AWAL"}
                                 </span>
                               ) : (
                                 <button
@@ -2066,37 +2235,37 @@ export const Features51to60: React.FC<Features51to60Props> = ({
                     </div>
                   )}
 
-              {/* Event Hero Box */}
-              <div className={`p-5 rounded-2xl bg-gradient-to-br ${activeEvent.bgGradient} border border-[#444] shadow-lg text-left`}>
-                <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+              {/* Event Hero Box - Sleek & Compact */}
+              <div className={`p-3.5 rounded-2xl bg-gradient-to-br ${activeEvent.bgGradient} border border-[#444] shadow-md text-left`}>
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                   <div>
-                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 text-[9px] font-black uppercase rounded-full bg-slate-900 border border-slate-700/60 shadow-inner ${activeEvent.badgeTextColor}`}>
-                      <Calendar className="w-3 h-3" />
-                      Musim Aktif: Limited Time
+                    <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[8.5px] font-black uppercase rounded-full bg-slate-900/90 border border-slate-700/60 shadow-inner ${activeEvent.badgeTextColor}`}>
+                      <Calendar className="w-3 h-3 text-[#81b64c]" />
+                      Musim Aktif: Sisa {seasonTimerText || '14 Hari'}
                     </span>
-                    <h2 className="text-xl font-black text-white uppercase tracking-tight mt-2 flex items-center gap-2">
+                    <h2 className="text-base font-black text-white uppercase tracking-tight mt-1 flex items-center gap-2">
                       {activeEvent.name}
                     </h2>
-                    <p className="text-xs text-slate-300 font-medium max-w-lg mt-1 leading-relaxed">
+                    <p className="text-[10.5px] text-slate-300 font-medium max-w-lg mt-0.5 leading-snug">
                       {activeEvent.tagline}
                     </p>
                   </div>
 
                   {/* Seasonal Meter (Milestone Progress Bar) */}
-                  <div className="bg-black/50 p-4 rounded-xl border border-[#3c3934] shrink-0 text-center md:w-56">
-                    <div className="flex items-center justify-between text-[11px] font-bold text-slate-300 uppercase mb-1">
+                  <div className="bg-black/60 p-2.5 rounded-xl border border-[#3c3934] shrink-0 text-center sm:w-48">
+                    <div className="flex items-center justify-between text-[10px] font-bold text-slate-300 uppercase mb-1">
                       <span>{isEng ? 'Event Meter' : 'Meter Event'}</span>
                       <span className="text-[#81b64c]">{eventScore} {isEng ? 'Points' : 'Poin'}</span>
                     </div>
                     {/* Progress bar */}
-                    <div className="w-full h-3 bg-[#2a2826] rounded-full overflow-hidden p-0.5 border border-[#3c3934]">
+                    <div className="w-full h-2.5 bg-[#2a2826] rounded-full overflow-hidden p-0.5 border border-[#3c3934]">
                       <div 
                         style={{ width: `${Math.min(100, (eventScore / 120) * 100)}%` }} 
                         className="h-full bg-gradient-to-r from-emerald-500 to-[#81b64c] rounded-full transition-all duration-500" 
                       />
                     </div>
                     {/* Milestone labels */}
-                    <div className="flex justify-between text-[9px] text-slate-400 font-bold mt-1.5">
+                    <div className="flex justify-between text-[8px] text-slate-400 font-bold mt-1">
                       <span>0</span>
                       <span>Milestone I (40)</span>
                       <span>Target (120)</span>
@@ -2155,96 +2324,148 @@ export const Features51to60: React.FC<Features51to60Props> = ({
                     {isEng ? 'Seasonal Quiz Challenge' : 'Tantangan Kuis Musiman'}
                   </h3>
                   
-                  {activeEvent.quiz[currentQuizIndex] ? (
-                    <div className="space-y-3">
-                      {/* Interactive Quiz Question Navigator */}
-                      <div className="flex items-center justify-between gap-2 bg-[#22201e]/60 p-2 rounded-xl border border-[#3c3934]/60">
-                        <button
-                          type="button"
-                          disabled={currentQuizIndex === 0}
-                          onClick={() => {
-                            setCurrentQuizIndex(p => Math.max(0, p - 1));
-                            setSelectedQuizAnswer(null);
-                            setQuizFeedback(null);
-                          }}
-                          className="px-3 py-1.5 bg-[#2a2826] hover:bg-[#343230] border border-[#3c3934] rounded-lg text-[9px] font-black uppercase text-slate-300 hover:text-white cursor-pointer disabled:opacity-30 disabled:pointer-events-none transition-colors"
-                        >
-                          &larr; Prev
-                        </button>
-                        <span className="text-[10px] font-black text-slate-400 uppercase font-mono">
-                          Soal {currentQuizIndex + 1} dari {activeEvent.quiz.length}
-                        </span>
-                        <button
-                          type="button"
-                          disabled={currentQuizIndex === activeEvent.quiz.length - 1}
-                          onClick={() => {
-                            setCurrentQuizIndex(p => Math.min(activeEvent.quiz.length - 1, p + 1));
-                            setSelectedQuizAnswer(null);
-                            setQuizFeedback(null);
-                          }}
-                          className="px-3 py-1.5 bg-[#2a2826] hover:bg-[#343230] border border-[#3c3934] rounded-lg text-[9px] font-black uppercase text-slate-300 hover:text-white cursor-pointer disabled:opacity-30 disabled:pointer-events-none transition-colors"
-                        >
-                          Next &rarr;
-                        </button>
-                      </div>
+                  {activeEvent.quiz[currentQuizIndex] ? (() => {
+                    const currentQuiz = activeEvent.quiz[currentQuizIndex];
+                    const isAlreadyAnswered = answeredQuizIds.includes(currentQuiz.id);
 
-                      <div className="bg-[#22201e] p-3 rounded-xl border border-[#3c3934]">
-                        <p className="text-xs font-semibold leading-relaxed text-slate-200">
-                          {activeEvent.quiz[currentQuizIndex].question}
-                        </p>
-                      </div>
+                    return (
+                      <div className="space-y-4">
+                        {/* CLEAN QUIZ HEADER & QUESTION */}
+                        <div className="bg-[#262421] p-4 rounded-xl border border-[#3c3934] text-left space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-black uppercase tracking-wider text-[#81b64c] bg-[#81b64c]/10 border border-[#81b64c]/30 px-2.5 py-0.5 rounded-md">
+                              {isEng ? 'SEASONAL EVENT QUIZ' : 'KUIS EVENT MUSIMAN'}
+                            </span>
+                            <span className="text-[10px] font-bold text-slate-400 font-mono">
+                              {currentQuizIndex + 1} / {activeEvent.quiz.length}
+                            </span>
+                          </div>
+                          <h4 className="text-sm font-extrabold text-white leading-snug">
+                            {currentQuiz.question}
+                          </h4>
+                        </div>
 
-                      <div className="space-y-2">
-                        {activeEvent.quiz[currentQuizIndex].options.map((opt, oIdx) => {
-                          const isSelected = selectedQuizAnswer === oIdx;
-                          const isCorrect = oIdx === activeEvent.quiz[currentQuizIndex].answerIdx;
-                          let btnStyle = "bg-[#22201e] border-[#3c3934] text-slate-200 hover:bg-black/30";
-                          
-                          if (selectedQuizAnswer !== null) {
-                            if (isCorrect) {
-                              btnStyle = "bg-emerald-900/40 border-emerald-500 text-emerald-300";
-                            } else if (isSelected) {
-                              btnStyle = "bg-red-950/40 border-red-500 text-red-300";
-                            } else {
-                              btnStyle = "bg-[#22201e]/50 border-transparent text-slate-500 pointer-events-none";
-                            }
-                          }
-
-                          return (
-                            <button
-                              key={oIdx}
-                              disabled={selectedQuizAnswer !== null}
-                              onClick={() => handleQuizAnswerSubmit(oIdx)}
-                              className={`w-full text-left p-3 text-xs rounded-xl border transition-all cursor-pointer flex justify-between items-center ${btnStyle}`}
-                            >
-                              <span>{opt}</span>
-                              {selectedQuizAnswer !== null && isCorrect && <Check className="w-4 h-4 text-emerald-400 shrink-0" />}
-                            </button>
-                          );
-                        })}
-                      </div>
-
-                      {/* Quiz Feedback explanation */}
-                      {selectedQuizAnswer !== null && (
-                        <div className="p-3 bg-black/40 border border-[#3c3934]/60 rounded-xl space-y-2">
-                          <p className={`text-[10px] font-black uppercase ${quizFeedback === 'correct' ? 'text-emerald-400' : 'text-red-400'}`}>
-                            {quizFeedback === 'correct' 
-                              ? (isEng ? 'Correct!' : 'Benar sekali!') 
-                              : (isEng ? 'Incorrect. Here is the explanation:' : 'Salah. Ini penjelasan terbaik:')}
-                          </p>
-                          <p className="text-[10px] font-bold text-slate-400 leading-relaxed">
-                            {activeEvent.quiz[currentQuizIndex].explanation}
-                          </p>
+                        {/* Interactive Quiz Question Navigator */}
+                        <div className="flex items-center justify-between gap-2 bg-[#1c2c38] p-2 rounded-xl border border-[#2d4252]">
                           <button
-                            onClick={nextQuizItem}
-                            className="mt-2 w-full py-2 bg-[#2a2826] hover:bg-[#343230] text-[10px] font-black uppercase text-white rounded-lg transition-colors border border-[#3c3934]"
+                            type="button"
+                            disabled={currentQuizIndex === 0}
+                            onClick={() => {
+                              setCurrentQuizIndex(p => Math.max(0, p - 1));
+                              setSelectedQuizAnswer(null);
+                              setQuizFeedback(null);
+                            }}
+                            className="px-3 py-1.5 bg-[#253947] hover:bg-[#2e4556] border border-[#375063] rounded-lg text-[9px] font-black uppercase text-slate-300 hover:text-white cursor-pointer disabled:opacity-30 disabled:pointer-events-none transition-colors"
                           >
-                            {isEng ? 'Next Challenge' : 'Tantangan Berikutnya'}
+                            &larr; Prev
+                          </button>
+                          <span className="text-[10px] font-black text-[#1cb0f6] uppercase font-mono">
+                            Soal {currentQuizIndex + 1} dari {activeEvent.quiz.length}
+                          </span>
+                          <button
+                            type="button"
+                            disabled={currentQuizIndex === activeEvent.quiz.length - 1}
+                            onClick={() => {
+                              setCurrentQuizIndex(p => Math.min(activeEvent.quiz.length - 1, p + 1));
+                              setSelectedQuizAnswer(null);
+                              setQuizFeedback(null);
+                            }}
+                            className="px-3 py-1.5 bg-[#253947] hover:bg-[#2e4556] border border-[#375063] rounded-lg text-[9px] font-black uppercase text-slate-300 hover:text-white cursor-pointer disabled:opacity-30 disabled:pointer-events-none transition-colors"
+                          >
+                            Next &rarr;
                           </button>
                         </div>
-                      )}
-                    </div>
-                  ) : (
+
+                        <div className="space-y-2">
+                          {currentQuiz.options.map((opt, oIdx) => {
+                            const isSelected = selectedQuizAnswer === oIdx;
+                            const isCorrect = oIdx === currentQuiz.answerIdx;
+                            let btnStyle = "bg-[#22201e] border-[#3c3934] text-slate-200 hover:bg-black/30";
+                            
+                            if (selectedQuizAnswer !== null) {
+                              if (isCorrect) {
+                                btnStyle = "bg-emerald-900/40 border-emerald-500 text-emerald-300";
+                              } else if (isSelected) {
+                                btnStyle = "bg-red-950/40 border-red-500 text-red-300";
+                              } else {
+                                btnStyle = "bg-[#22201e]/50 border-transparent text-slate-500 pointer-events-none";
+                              }
+                            } else if (isAlreadyAnswered) {
+                              if (isCorrect) {
+                                btnStyle = "bg-emerald-950/30 border-emerald-500/40 text-emerald-400/80 pointer-events-none";
+                              } else {
+                                btnStyle = "bg-[#22201e]/30 border-transparent text-slate-500/50 pointer-events-none";
+                              }
+                            }
+
+                            return (
+                              <button
+                                key={oIdx}
+                                disabled={isAlreadyAnswered || selectedQuizAnswer !== null}
+                                onClick={() => handleQuizAnswerSubmit(oIdx)}
+                                className={`w-full text-left p-3 text-xs rounded-xl border transition-all flex justify-between items-center ${
+                                  (isAlreadyAnswered || selectedQuizAnswer !== null) ? 'cursor-default' : 'cursor-pointer hover:bg-black/30'
+                                } ${btnStyle}`}
+                              >
+                                <span>{opt}</span>
+                                {(isAlreadyAnswered && isCorrect) || (selectedQuizAnswer !== null && isCorrect) ? (
+                                  <Check className="w-4 h-4 text-emerald-400 shrink-0" />
+                                ) : null}
+                              </button>
+                            );
+                          })}
+                        </div>
+
+                        {/* Quiz Feedback explanation */}
+                        {selectedQuizAnswer !== null && (
+                          <div className="p-3 bg-black/40 border border-[#3c3934]/60 rounded-xl space-y-2">
+                            <p className={`text-[10px] font-black uppercase ${
+                              isAlreadyAnswered 
+                                ? 'text-emerald-400' 
+                                : quizFeedback === 'correct' 
+                                  ? 'text-emerald-400' 
+                                  : 'text-red-400'
+                            }`}>
+                              {isAlreadyAnswered 
+                                ? (isEng ? ' Challenge Completed (+20 Event Points Claimed)' : ' Tantangan Selesai (+20 Poin Event Diklaim)')
+                                : quizFeedback === 'correct' 
+                                  ? (isEng ? 'Correct!' : 'Benar sekali!') 
+                                  : (isEng ? 'Incorrect!' : 'Salah!')}
+                            </p>
+                            {/* Only show explanation and Next button if correct or already answered */}
+                            {(isAlreadyAnswered || quizFeedback === 'correct') ? (
+                              <>
+                                <p className="text-[10px] font-bold text-slate-400 leading-relaxed">
+                                  {currentQuiz.explanation}
+                                </p>
+                                <button
+                                  onClick={nextQuizItem}
+                                  className="mt-2 w-full py-2 bg-gradient-to-r from-emerald-600 to-green-600 hover:from-emerald-500 hover:to-green-500 text-[10px] font-black uppercase text-white rounded-lg transition-all border border-emerald-500/30 cursor-pointer shadow-md"
+                                >
+                                  {isEng ? 'Next Challenge' : 'Tantangan Berikutnya'}
+                                </button>
+                              </>
+                            ) : (
+                              <div className="space-y-2">
+                                <p className="text-[10px] text-slate-400 font-semibold leading-relaxed">
+                                  {isEng ? 'That is not quite right. Try again!' : 'Jawaban kurang tepat. Silakan coba lagi!'}
+                                </p>
+                                <button
+                                  onClick={() => {
+                                    setSelectedQuizAnswer(null);
+                                    setQuizFeedback(null);
+                                  }}
+                                  className="mt-1 w-full py-2 bg-[#2a2826] hover:bg-[#343230] text-[10px] font-black uppercase text-amber-500 rounded-lg transition-all border border-amber-500/20 cursor-pointer shadow-sm"
+                                >
+                                  {isEng ? 'Try Again' : 'Coba Lagi'}
+                                </button>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })() : (
                     <div className="p-6 text-center text-slate-400 text-xs font-bold">
                       {isEng ? 'All quizzes completed!' : 'Kuis telah diselesaikan semua!'}
                     </div>
@@ -2836,7 +3057,7 @@ export const Features51to60: React.FC<Features51to60Props> = ({
                             ${(username || 'PLAYER').toUpperCase()}
                           </text>
                           <text x="30" y="62" font-family="sans-serif" font-size="11" font-weight="900" fill="#81b64c">
-                            ★ ${titleVal.toUpperCase()}
+                             ${titleVal.toUpperCase()}
                           </text>
                           ${membershipStatus === 'premium' ? `
                             <rect x="290" y="28" width="80" height="18" rx="4" fill="#f59e0b" fill-opacity="0.1" stroke="#f59e0b" stroke-width="1"/>

@@ -1,0 +1,32 @@
+{
+  "nopal ganteng bgt": {
+    "id": "nopal ganteng bgt",
+    "name": "nopal ganteng bgt",
+    "tag": "Kompetitif",
+    "leader": "nopal",
+    "ownerUsername": "nopal",
+    "level": 6,
+    "totalElo": 2702,
+    "membersCount": 1,
+    "maxMembers": 30,
+    "motto": "Markas para ksatria papan hitam putih taktis Indonesia!",
+    "logo": "perisai",
+    "treasury": 7250,
+    "updatedAt": "2026-08-02T11:18:26.382Z"
+  },
+  "memek": {
+    "id": "memek",
+    "name": "memek",
+    "tag": "Kompetitif",
+    "leader": "titit",
+    "ownerUsername": "titit",
+    "level": 1,
+    "totalElo": 400,
+    "membersCount": 1,
+    "maxMembers": 30,
+    "motto": "Markas para ksatria papan hitam putih taktis Indonesia!",
+    "logo": "perisai",
+    "treasury": 250,
+    "updatedAt": "2026-07-30T10:41:03.088Z"
+  }
+}

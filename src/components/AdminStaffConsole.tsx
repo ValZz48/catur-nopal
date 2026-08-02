@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { 
   Shield, Calendar, Megaphone, UserPlus, FileText, AlertTriangle, 
-  Trash2, Plus, Clock, Award, Star, Lock, Eye, AlertCircle, Sparkles
+  Trash2, Plus, Clock, Award, Star, Lock, Eye, AlertCircle, Sparkles,
+  Search, RefreshCw, Coins, Gem
 } from 'lucide-react';
 
 interface AdminStaffConsoleProps {
@@ -24,7 +25,136 @@ export function AdminStaffConsole({
   showLocalToast,
   askConfirmation
 }: AdminStaffConsoleProps) {
-  const [activeTab, setActiveTab] = useState<'reports' | 'events' | 'staff'>('reports');
+  const [activeTab, setActiveTab] = useState<'reports' | 'events' | 'staff' | 'tickets' | 'elo'>('reports');
+
+  // Account Restoration state
+  const [eloTargetUsername, setEloTargetUsername] = useState('');
+  const [eloRestoreValue, setEloRestoreValue] = useState<number>(400);
+  const [coinsRestoreValue, setCoinsRestoreValue] = useState<number>(500);
+  const [diamondsRestoreValue, setDiamondsRestoreValue] = useState<number>(20);
+  const [xpRestoreValue, setXpRestoreValue] = useState<number>(0);
+  const [searchedEloUser, setSearchedEloUser] = useState<any | null>(null);
+  const [isSearchingEloUser, setIsSearchingEloUser] = useState(false);
+  const [isRestoringState, setIsRestoringState] = useState(false);
+  const [eloRestoreReason, setEloRestoreReason] = useState('Pemulihan kegagalan sinkronisasi data akun (koin, diamond, ELO, XP)');
+
+  const handleSearchEloUser = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!eloTargetUsername.trim()) {
+      showLocalToast("Ketikkan username terlebih dahulu!", "error");
+      return;
+    }
+    setIsSearchingEloUser(true);
+    setSearchedEloUser(null);
+    try {
+      const res = await fetch(`/api/admin/user/lookup?username=${encodeURIComponent(eloTargetUsername)}`);
+      const data = await res.json();
+      if (data.success) {
+        setSearchedEloUser(data.user);
+        setEloRestoreValue(data.user.elo || 400);
+        setCoinsRestoreValue(data.user.coins !== undefined ? data.user.coins : 500);
+        setDiamondsRestoreValue(data.user.diamonds !== undefined ? data.user.diamonds : 20);
+        setXpRestoreValue(data.user.xp || 0);
+        showLocalToast(`User @${data.user.username} ditemukan!`, "success");
+      } else {
+        showLocalToast(data.error || "User tidak ditemukan!", "error");
+      }
+    } catch (err) {
+      showLocalToast("Koneksi server gagal", "error");
+    } finally {
+      setIsSearchingEloUser(false);
+    }
+  };
+
+  const handleRestoreAccountState = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const target = searchedEloUser ? searchedEloUser.username : eloTargetUsername;
+    if (!target.trim()) {
+      showLocalToast("Username sasaran wajib diisi!", "error");
+      return;
+    }
+    if (eloRestoreValue === undefined || isNaN(eloRestoreValue) || eloRestoreValue < 0) {
+      showLocalToast("Nilai ELO tidak valid!", "error");
+      return;
+    }
+    if (coinsRestoreValue === undefined || isNaN(coinsRestoreValue) || coinsRestoreValue < 0) {
+      showLocalToast("Nilai koin tidak valid!", "error");
+      return;
+    }
+    if (diamondsRestoreValue === undefined || isNaN(diamondsRestoreValue) || diamondsRestoreValue < 0) {
+      showLocalToast("Nilai diamond tidak valid!", "error");
+      return;
+    }
+    if (xpRestoreValue === undefined || isNaN(xpRestoreValue) || xpRestoreValue < 0) {
+      showLocalToast("Nilai XP tidak valid!", "error");
+      return;
+    }
+    
+    confirmAction(
+      'Pulihkan Data Akun Pengguna?',
+      `Apakah Anda yakin ingin memulihkan status akun @${target}? ELO: ${eloRestoreValue}, Koin: ${coinsRestoreValue}, Diamond: ${diamondsRestoreValue}, XP: ${xpRestoreValue}`,
+      async () => {
+        setIsRestoringState(true);
+        try {
+          const res = await fetch('/api/admin/user/restore-account-state', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username: target,
+              elo: eloRestoreValue,
+              coins: coinsRestoreValue,
+              diamonds: diamondsRestoreValue,
+              xp: xpRestoreValue,
+              moderator: user?.username,
+              reason: eloRestoreReason
+            })
+          });
+          const data = await res.json();
+          if (data.success) {
+            triggerAudio('win');
+            showLocalToast(data.message || "Status akun berhasil dipulihkan!", "success");
+            
+            const targetScope = target.trim().toLowerCase();
+            localStorage.setItem(`onlineRating:${targetScope}`, String(eloRestoreValue));
+            localStorage.setItem(`coins:${targetScope}`, String(coinsRestoreValue));
+            localStorage.setItem(`diamonds:${targetScope}`, String(diamondsRestoreValue));
+            localStorage.setItem(`xp:${targetScope}`, String(xpRestoreValue));
+
+            // Dispatch a sync event if we adjusted the logged-in user's stats
+            if (targetScope === user?.username.trim().toLowerCase()) {
+              window.dispatchEvent(new CustomEvent('sync_active_user'));
+            }
+
+            // Update searched user's displayed stats
+            if (searchedEloUser) {
+              setSearchedEloUser({
+                ...searchedEloUser,
+                elo: eloRestoreValue,
+                coins: coinsRestoreValue,
+                diamonds: diamondsRestoreValue,
+                xp: xpRestoreValue
+              });
+            } else {
+              setEloTargetUsername('');
+            }
+          } else {
+            showLocalToast(data.error || "Gagal memulihkan status akun", "error");
+          }
+        } catch (err) {
+          showLocalToast("Gagal menghubungi server", "error");
+        } finally {
+          setIsRestoringState(false);
+        }
+      }
+    );
+  };
+
+  // Support Tickets state
+  const [tickets, setTickets] = useState<any[]>([]);
+  const [isLoadingTickets, setIsLoadingTickets] = useState(false);
+  const [selectedTicket, setSelectedTicket] = useState<any | null>(null);
+  const [adminReplyText, setAdminReplyText] = useState('');
+  const [isSendingReply, setIsSendingReply] = useState(false);
 
   const confirmAction = (title: string, message: string, onConfirm: () => void) => {
     if (askConfirmation) {
@@ -101,12 +231,83 @@ export function AdminStaffConsole({
   const isAdmin = user?.isAdmin || usernameLower === 'nopal' || usernameLower === 'almaira';
   const isStaff = user?.isStaff || usernameLower === 'nopal' || usernameLower === 'almaira';
 
+  const fetchTickets = async () => {
+    setIsLoadingTickets(true);
+    try {
+      const res = await fetch('/api/support/tickets/list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user?.username })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setTickets(data.tickets || []);
+        if (selectedTicket) {
+          const updated = (data.tickets || []).find((t: any) => t.id === selectedTicket.id);
+          if (updated) setSelectedTicket(updated);
+        }
+      }
+    } catch (e) {
+      showLocalToast("Gagal mengambil tiket dukungan", "error");
+    } finally {
+      setIsLoadingTickets(false);
+    }
+  };
+
+  const handleSendAdminReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!adminReplyText.trim() || !selectedTicket) return;
+    setIsSendingReply(true);
+    try {
+      const res = await fetch('/api/support/tickets/reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: user?.username,
+          ticketId: selectedTicket.id,
+          text: adminReplyText
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showLocalToast("Balasan dikirim!", "success");
+        setAdminReplyText('');
+        fetchTickets();
+      }
+    } catch (err) {
+      showLocalToast("Gagal mengirim balasan", "error");
+    } finally {
+      setIsSendingReply(false);
+    }
+  };
+
+  const handleResolveTicket = async (ticketId: string) => {
+    try {
+      const res = await fetch('/api/support/tickets/resolve', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: user?.username,
+          ticketId
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        showLocalToast("Tiket ditandai selesai!", "success");
+        fetchTickets();
+      }
+    } catch (err) {
+      showLocalToast("Gagal menyelesaikan tiket", "error");
+    }
+  };
+
   useEffect(() => {
     if (isAdmin || isStaff) {
       fetchReports();
       fetchEvents();
+      fetchTickets();
     }
-  }, [user]);
+  }, [user, activeTab]);
 
   const fetchReports = async () => {
     setIsLoadingReports(true);
@@ -340,10 +541,12 @@ export function AdminStaffConsole({
       </div>
 
       {/* DASH BOARD SWITCH TABS */}
-      <div className="flex bg-[#1e1c1a] p-1 rounded-xl border border-[#3c3934] mb-6">
+      <div className="flex bg-[#1e1c1a] p-1 rounded-xl border border-[#3c3934] mb-6 overflow-x-auto">
         {[
           { id: 'reports', label: 'Laporan Pengguna', icon: FileText },
           { id: 'events', label: 'Jadwalkan Event', icon: Calendar },
+          { id: 'tickets', label: 'Dukungan Tiket', icon: Shield },
+          { id: 'elo', label: 'Pemulihan ELO', icon: Award },
           isAdmin && { id: 'staff', label: 'Rekrut Staff Baru', icon: UserPlus }
         ].filter(Boolean).map((tb: any) => (
           <button
@@ -904,6 +1107,398 @@ export function AdminStaffConsole({
               {isRegisteringStaff ? 'Mendaftarkan...' : 'Daftarkan & Amankan Hak Staff'}
             </button>
           </form>
+        </div>
+      )}
+
+      {activeTab === 'tickets' && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div>
+              <h4 className="text-sm font-black text-[#81b64c] uppercase tracking-wider flex items-center gap-1.5">
+                <Shield className="w-4 h-4" /> Manajemen Tiket Dukungan & Laporan Bug
+              </h4>
+              <p className="text-[10px] text-slate-400 font-extrabold uppercase mt-1">
+                Tanggapi keluhan keuangan, bug mekanis, atau masukan dari member Pal Mate
+              </p>
+            </div>
+            <button
+              onClick={() => {
+                fetchTickets();
+                triggerAudio('move');
+              }}
+              className="px-4 py-2 bg-[#262421] border border-[#3c3934] hover:bg-[#312e2b] text-white text-[10px] font-black uppercase rounded-xl tracking-wider shrink-0 transition-all cursor-pointer"
+            >
+              Segarkan List
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Tickets List - 5 Columns */}
+            <div className="lg:col-span-5 bg-[#1e1c1a]/50 border border-[#3c3934] p-4.5 rounded-2xl space-y-4">
+              <h5 className="text-[11px] font-black text-white uppercase tracking-wider">Semua Tiket Masuk</h5>
+              {isLoadingTickets && tickets.length === 0 ? (
+                <div className="py-12 text-center text-slate-400 text-xs font-bold uppercase animate-pulse">
+                  Memuat Tiket...
+                </div>
+              ) : tickets.length === 0 ? (
+                <div className="py-12 text-center text-slate-500 text-xs font-bold uppercase">
+                  Tidak ada tiket masuk
+                </div>
+              ) : (
+                <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
+                  {tickets.map((t) => {
+                    const isSelected = selectedTicket?.id === t.id;
+                    const isResolved = t.status === 'resolved';
+                    const isPending = t.status === 'pending';
+                    return (
+                      <div
+                        key={t.id}
+                        onClick={() => {
+                          setSelectedTicket(t);
+                          triggerAudio('move');
+                        }}
+                        className={`p-3.5 rounded-xl border cursor-pointer transition-all ${
+                          isSelected 
+                            ? 'bg-[#374e2a] border-[#5d8a32]/60 shadow-lg' 
+                            : 'bg-[#262421]/90 border-[#3c3934] hover:bg-[#312e2b]'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="text-[9px] font-black text-slate-400 tracking-wider">#{t.id}</span>
+                          <span className={`text-[7px] font-black px-1.5 py-0.5 rounded uppercase border ${
+                            isResolved 
+                              ? 'bg-emerald-950/40 text-[#85cb48] border-emerald-500/30' 
+                              : isPending 
+                                ? 'bg-amber-950/40 text-amber-400 border-amber-500/30' 
+                                : 'bg-red-950/40 text-red-400 border-red-500/30'
+                          }`}>
+                            {t.status === 'resolved' ? 'Selesai' : t.status === 'pending' ? 'Pending' : 'Open'}
+                          </span>
+                        </div>
+                        <h6 className="text-[11px] font-black text-white uppercase tracking-tight mt-1 truncate">
+                          {t.title}
+                        </h6>
+                        <div className="flex items-center justify-between text-[8.5px] font-bold text-slate-400 mt-2">
+                          <span className="truncate">Oleh: @{t.username}</span>
+                          <span className="shrink-0">{new Date(t.createdAt).toLocaleDateString()}</span>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Ticket Details & Chat - 7 Columns */}
+            <div className="lg:col-span-7 bg-[#1e1c1a]/50 border border-[#3c3934] p-5 rounded-2xl flex flex-col min-h-[400px]">
+              {selectedTicket ? (
+                <div className="flex flex-col h-full flex-1 justify-between gap-4">
+                  <div className="space-y-4">
+                    {/* Header detail */}
+                    <div className="border-b border-[#3c3934] pb-3 flex items-start justify-between gap-4">
+                      <div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] font-black text-[#81b64c] tracking-wider uppercase bg-emerald-500/10 px-2 py-0.5 rounded">
+                            {selectedTicket.category}
+                          </span>
+                          <span className="text-[10px] font-black text-slate-400">#{selectedTicket.id}</span>
+                        </div>
+                        <h5 className="text-sm font-black text-white mt-1.5 uppercase leading-tight">{selectedTicket.title}</h5>
+                        <p className="text-[9px] text-slate-400 font-bold mt-1 uppercase">Oleh: @{selectedTicket.username} | {new Date(selectedTicket.createdAt).toLocaleString()}</p>
+                      </div>
+                      {selectedTicket.status !== 'resolved' && (
+                        <button
+                          onClick={() => {
+                            handleResolveTicket(selectedTicket.id);
+                            triggerAudio('win');
+                          }}
+                          className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-[8px] font-black uppercase rounded-lg tracking-wider transition-all cursor-pointer"
+                        >
+                          Selesaikan
+                        </button>
+                      )}
+                    </div>
+
+                    {/* Original Complaint Description */}
+                    <div className="bg-[#262421] p-3.5 rounded-xl border border-stone-800">
+                      <p className="text-[10px] text-slate-400 uppercase font-black tracking-widest text-[8px] mb-1">Deskripsi Masalah:</p>
+                      <p className="text-slate-200 text-xs leading-relaxed font-semibold">{selectedTicket.description}</p>
+                    </div>
+
+                    {/* Replies Timeline */}
+                    <div className="space-y-3 max-h-[220px] overflow-y-auto pr-1">
+                      <p className="text-[10px] text-slate-500 font-black uppercase tracking-wider">Linimasa Balasan</p>
+                      {selectedTicket.replies.length === 0 ? (
+                        <p className="text-[10px] text-slate-500 font-semibold italic">Belum ada tanggapan untuk tiket ini.</p>
+                      ) : (
+                        selectedTicket.replies.map((rep: any, idx: number) => (
+                          <div 
+                            key={idx} 
+                            className={`p-3 rounded-xl border ${
+                              rep.isAdmin 
+                                ? 'bg-purple-950/20 border-purple-500/30 ml-4' 
+                                : 'bg-[#262421]/60 border-[#3c3934] mr-4'
+                            }`}
+                          >
+                            <div className="flex items-center justify-between gap-2 text-[8px] font-black uppercase mb-1">
+                              <span className={rep.isAdmin ? "text-purple-400" : "text-slate-400"}>
+                                {rep.isAdmin ? "STAFF SUPPORT (@" + rep.sender + ")" : "@" + rep.sender}
+                              </span>
+                              <span className="text-slate-500">{new Date(rep.createdAt).toLocaleTimeString()}</span>
+                            </div>
+                            <p className="text-slate-200 text-xs leading-relaxed font-semibold">{rep.text}</p>
+                          </div>
+                        ))
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Form input reply */}
+                  <div className="border-t border-[#3c3934] pt-4 mt-auto">
+                    {selectedTicket.status === 'resolved' ? (
+                      <div className="bg-[#23271d] border border-emerald-900/50 p-3 rounded-xl text-center text-emerald-500 text-[10px] font-black uppercase">
+                        Tiket ini telah diselesaikan dan ditutup untuk tanggapan.
+                      </div>
+                    ) : (
+                      <form onSubmit={handleSendAdminReply} className="flex gap-2">
+                        <input
+                          type="text"
+                          required
+                          placeholder="Tanggapi laporan member ini..."
+                          value={adminReplyText}
+                          onChange={(e) => setAdminReplyText(e.target.value)}
+                          className="flex-1 bg-[#262421] border border-[#3c3934] px-3.5 py-2.5 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-[#81b64c]"
+                        />
+                        <button
+                          type="submit"
+                          disabled={isSendingReply}
+                          className="px-5 py-2.5 bg-purple-700 hover:bg-purple-600 text-white font-extrabold text-xs uppercase rounded-xl tracking-wider shrink-0 transition-all cursor-pointer"
+                        >
+                          {isSendingReply ? 'Kirim...' : 'Kirim Balasan'}
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                </div>
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-slate-500">
+                  <Shield className="w-10 h-10 stroke-slate-600 mb-2.5" />
+                  <p className="text-[11px] font-black uppercase tracking-wider">Pilih salah satu tiket untuk meninjau riwayat bantuan</p>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'elo' && (
+        <div className="space-y-6">
+          <div className="border-b border-[#3c3934]/60 pb-3">
+            <h4 className="text-sm font-black text-[#81b64c] uppercase tracking-widest flex items-center gap-1.5">
+              <Award className="w-5 h-5 text-[#81b64c]" /> Pemulihan Skor ELO Manual (ELO Restoration)
+            </h4>
+            <p className="text-[10px] text-slate-400 font-extrabold uppercase mt-1">
+              Pulihkan skor ELO pengguna yang terhapus atau kembali ke nilai awal (400) akibat kegagalan sinkronisasi siklus masuk/keluar.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            {/* Left Column: Form Controls (5 cols) */}
+            <div className="lg:col-span-5 bg-[#1e1c1a]/50 border border-[#3c3934] p-5 rounded-2xl space-y-4">
+              <form onSubmit={handleSearchEloUser} className="space-y-3">
+                <h5 className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <Search className="w-4 h-4 text-[#81b64c]" /> Cari Akun Pengguna
+                </h5>
+                <p className="text-[9.5px] text-slate-400 font-semibold leading-normal">
+                  Masukkan username pengguna (contoh: <span className="text-[#81b64c]">almaira</span> atau <span className="text-[#81b64c]">@nopal</span>) untuk meninjau status terkininya sebelum melakukan pemulihan.
+                </p>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ketikkan username..."
+                    value={eloTargetUsername}
+                    onChange={(e) => setEloTargetUsername(e.target.value)}
+                    className="flex-1 bg-[#262421] border border-[#3c3934] px-3.5 py-2.5 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-[#81b64c]"
+                  />
+                  <button
+                    type="submit"
+                    disabled={isSearchingEloUser}
+                    className="px-4 py-2.5 bg-[#81b64c] hover:bg-[#81b64c]/90 text-white font-extrabold text-xs uppercase rounded-xl tracking-wider transition-all disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+                  >
+                    {isSearchingEloUser ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Search className="w-3.5 h-3.5" />}
+                    <span>Cari</span>
+                  </button>
+                </div>
+              </form>
+
+              {searchedEloUser ? (
+                <form onSubmit={handleRestoreAccountState} className="space-y-4 pt-3 border-t border-[#3c3934]">
+                  <h5 className="text-[11px] font-black text-white uppercase tracking-wider flex items-center gap-1.5 text-yellow-500">
+                    <Award className="w-4 h-4" /> Form Pemulihan Status Akun
+                  </h5>
+
+                  {/* Grid for values */}
+                  <div className="grid grid-cols-2 gap-3">
+                    <div>
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">ELO Rating Baru</label>
+                      <input
+                        type="number"
+                        required
+                        min={0}
+                        max={4000}
+                        value={eloRestoreValue}
+                        onChange={(e) => setEloRestoreValue(Number(e.target.value))}
+                        className="w-full bg-[#262421] border border-[#3c3934] px-3 py-2 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-[#81b64c]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1">Total XP Baru</label>
+                      <input
+                        type="number"
+                        required
+                        min={0}
+                        max={1000000}
+                        value={xpRestoreValue}
+                        onChange={(e) => setXpRestoreValue(Number(e.target.value))}
+                        className="w-full bg-[#262421] border border-[#3c3934] px-3 py-2 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-[#81b64c]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1 flex items-center gap-1">
+                        <Coins className="w-3 h-3 text-amber-500" /> Koin Baru
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min={0}
+                        max={1000000}
+                        value={coinsRestoreValue}
+                        onChange={(e) => setCoinsRestoreValue(Number(e.target.value))}
+                        className="w-full bg-[#262421] border border-[#3c3934] px-3 py-2 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-[#81b64c]"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="text-[9px] font-black text-slate-400 uppercase tracking-wider block mb-1 flex items-center gap-1">
+                        <Gem className="w-3 h-3 text-cyan-400" /> Diamond Baru
+                      </label>
+                      <input
+                        type="number"
+                        required
+                        min={0}
+                        max={100000}
+                        value={diamondsRestoreValue}
+                        onChange={(e) => setDiamondsRestoreValue(Number(e.target.value))}
+                        className="w-full bg-[#262421] border border-[#3c3934] px-3 py-2 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-[#81b64c]"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[9.5px] font-black text-slate-400 uppercase tracking-wider block mb-1">Alasan Pemulihan (Untuk Log Audit & Kotak Masuk)</label>
+                    <textarea
+                      required
+                      rows={2}
+                      value={eloRestoreReason}
+                      onChange={(e) => setEloRestoreReason(e.target.value)}
+                      className="w-full bg-[#262421] border border-[#3c3934] px-3.5 py-2.5 rounded-xl text-xs font-bold text-white focus:outline-none focus:border-[#81b64c]"
+                      placeholder="Masukkan alasan pemulihan data akun..."
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isRestoringState}
+                    className="w-full py-3 bg-yellow-600 hover:bg-yellow-500 text-white font-extrabold text-xs uppercase rounded-xl tracking-wider shadow-md transition-all disabled:opacity-50 flex items-center justify-center gap-1.5 cursor-pointer"
+                  >
+                    {isRestoringState ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Award className="w-4 h-4" />}
+                    <span>Simpan & Pulihkan Data Akun</span>
+                  </button>
+                </form>
+              ) : (
+                <div className="pt-4 border-t border-[#3c3934]/60 text-center py-8 text-slate-500 text-[10px] font-black uppercase leading-relaxed">
+                  Silakan cari pengguna terlebih dahulu untuk menampilkan form pemulihan data akun.
+                </div>
+              )}
+            </div>
+
+            {/* Right Column: User Card Details (7 cols) */}
+            <div className="lg:col-span-7 bg-[#1e1c1a]/50 border border-[#3c3934] p-5 rounded-2xl flex flex-col justify-center min-h-[300px]">
+              {searchedEloUser ? (
+                <div className="space-y-4 text-center">
+                  <div className="relative inline-block mx-auto">
+                    <img
+                      src={searchedEloUser.profileAvatar || "/src/assets/images/avatar_martin_1779709510230.png"}
+                      alt={searchedEloUser.username}
+                      className="w-24 h-24 rounded-full object-cover border-4 border-[#81b64c] shadow-lg mx-auto"
+                      referrerPolicy="no-referrer"
+                    />
+                    <span className="absolute bottom-1 right-1 bg-amber-500 text-black font-mono font-black text-[9px] px-1.5 py-0.5 rounded border border-[#1e1c1a] uppercase">
+                      Lv. {Math.floor(Math.sqrt(searchedEloUser.xp / 100)) + 1}
+                    </span>
+                  </div>
+
+                  <div>
+                    <h5 className="text-base font-black text-white flex items-center justify-center gap-1">
+                      @{searchedEloUser.username}
+                    </h5>
+                    <p className="text-[10px] text-slate-400 font-extrabold uppercase mt-0.5 tracking-wider">
+                      Profil Pengguna Terpilih
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3 max-w-sm mx-auto">
+                    <div className="bg-[#262421]/90 border border-[#3c3934] p-2.5 rounded-xl text-center">
+                      <div className="text-[9px] text-slate-400 font-black uppercase tracking-wider">ELO Rating</div>
+                      <div className="text-sm font-black text-[#81b64c] font-mono mt-0.5">
+                        {searchedEloUser.elo || 400} ELO
+                      </div>
+                    </div>
+                    <div className="bg-[#262421]/90 border border-[#3c3934] p-2.5 rounded-xl text-center">
+                      <div className="text-[9px] text-slate-400 font-black uppercase tracking-wider">Tanding</div>
+                      <div className="text-sm font-black text-white font-mono mt-0.5">
+                        {searchedEloUser.matchesPlayed || 0}x
+                      </div>
+                    </div>
+                    <div className="bg-[#262421]/90 border border-[#3c3934] p-2.5 rounded-xl text-center">
+                      <div className="text-[9px] text-slate-400 font-black uppercase tracking-wider">Total XP</div>
+                      <div className="text-sm font-black text-yellow-500 font-mono mt-0.5">
+                        {searchedEloUser.xp || 0}
+                      </div>
+                    </div>
+                    <div className="bg-[#262421]/90 border border-[#3c3934] p-2.5 rounded-xl text-center flex justify-around items-center">
+                      <div>
+                        <div className="text-[8px] text-slate-400 font-black uppercase">Koin</div>
+                        <div className="text-xs font-black text-amber-500 font-mono">{searchedEloUser.coins !== undefined ? searchedEloUser.coins : 500}</div>
+                      </div>
+                      <div className="border-l border-[#3c3934] h-6"></div>
+                      <div>
+                        <div className="text-[8px] text-slate-400 font-black uppercase">Diamond</div>
+                        <div className="text-xs font-black text-cyan-400 font-mono">{searchedEloUser.diamonds !== undefined ? searchedEloUser.diamonds : 20}</div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-[#262421]/45 border border-[#3c3934]/60 p-3 rounded-xl max-w-sm mx-auto text-left space-y-1">
+                    <div className="text-[9px] font-black text-[#81b64c] uppercase tracking-wider flex items-center gap-1">
+                      <AlertCircle className="w-3.5 h-3.5 text-[#81b64c]" /> Status Verifikasi Sinkronisasi:
+                    </div>
+                    <p className="text-[9.5px] text-slate-400 font-semibold leading-normal">
+                      Gunakan panel ini untuk mengoreksi / memulihkan koin, diamond, XP, dan ELO rating pengguna yang terkena dampak bug reset atau kegagalan sinkronisasi saat pergantian hari/akun.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center text-slate-500">
+                  <Award className="w-12 h-12 text-slate-600 mx-auto stroke-1.5 mb-2.5 animate-pulse" />
+                  <p className="text-[11px] font-black uppercase tracking-wider">Detail akun akan ditampilkan di sini setelah dicari</p>
+                </div>
+              )}
+            </div>
+          </div>
         </div>
       )}
 

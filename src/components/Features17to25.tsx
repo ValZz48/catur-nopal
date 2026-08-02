@@ -185,7 +185,30 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
     return [];
   });
 
-  const seasonTimer = "14 Hari, 5 Jam";
+  const [seasonTimer, setSeasonTimer] = useState<string>('');
+
+  useEffect(() => {
+    let targetTs = Number(localStorage.getItem('season_end_timestamp') || '0');
+    if (!targetTs || targetTs <= Date.now()) {
+      targetTs = Date.now() + 14 * 24 * 60 * 60 * 1000;
+      localStorage.setItem('season_end_timestamp', String(targetTs));
+    }
+    const updateTimer = () => {
+      const diff = targetTs - Date.now();
+      if (diff <= 0) {
+        setSeasonTimer('0 Hari, 0 Jam');
+        return;
+      }
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const secs = Math.floor((diff % (1000 * 60)) / 1000);
+      setSeasonTimer(`${days} Hari, ${hours} Jam, ${mins} Mnt, ${secs} Det`);
+    };
+    updateTimer();
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, []);
 
   // Replay Autoplay loop
   useEffect(() => {
@@ -206,10 +229,10 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
     return () => clearInterval(timer);
   }, [isPlayingAuto, activeReplay]);
 
-  // Spectator simulation movements loop
+  // Spectator simulation movements loop (ONLY runs when watching live games, NEVER in offline DM mode)
   useEffect(() => {
     let specTimer: any = null;
-    if (activeSpectating) {
+    if (activeSpectating && activeSpectating.status !== 'offline') {
       specTimer = setInterval(() => {
         setBoardAnimMovesCount(prev => prev + 1);
         const remarks = [
@@ -459,13 +482,36 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
 
     const rObj = type === 'free' ? matchedReward.freeReward : matchedReward.premiumReward;
 
-    setClaimedPassRewards(prev => [...prev, rewardId]);
+    setClaimedPassRewards(prev => {
+      const next = [...prev, rewardId];
+      const userScope = (user?.username || localStorage.getItem('username') || '').trim().toLowerCase();
+      if (userScope) {
+        localStorage.setItem(`claimedPassRewards:${userScope}`, JSON.stringify(next));
+      }
+      localStorage.setItem('claimedPassRewards', JSON.stringify(next));
+      return next;
+    });
+
     if (rObj.type === 'coins') {
-      setCoins(prev => prev + rObj.amount);
-      localStorage.setItem('coins', String(coins + rObj.amount));
+      setCoins(prev => {
+        const next = prev + rObj.amount;
+        localStorage.setItem('coins', String(next));
+        const userScope = (user?.username || localStorage.getItem('username') || '').trim().toLowerCase();
+        if (userScope) {
+          localStorage.setItem(`coins:${userScope}`, String(next));
+        }
+        return next;
+      });
     } else if (rObj.type === 'diamonds') {
-      setDiamonds(prev => prev + rObj.amount, true);
-      localStorage.setItem('diamonds', String(diamonds + rObj.amount));
+      setDiamonds(prev => {
+        const next = prev + rObj.amount;
+        localStorage.setItem('diamonds', String(next));
+        const userScope = (user?.username || localStorage.getItem('username') || '').trim().toLowerCase();
+        if (userScope) {
+          localStorage.setItem(`diamonds:${userScope}`, String(next));
+        }
+        return next;
+      }, true);
     }
 
     triggerReward(0, `Hadiah berhasil diperoleh: ${rObj.name}`, "success_no_xp");
@@ -473,24 +519,77 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
 
   const claimAllEligiblePassRewards = () => {
     let count = 0;
+    let coinsGained = 0;
+    let diamondsGained = 0;
+    const newClaimedIds: string[] = [];
+
     SEASON_PASS_REWARDS.forEach(reward => {
       if (passLevel >= reward.level) {
         const freeId = `${reward.level}_free`;
-        if (!claimedPassRewards.includes(freeId)) {
-          handleClaimPassReward(reward.level, 'free');
+        if (!claimedPassRewards.includes(freeId) && !newClaimedIds.includes(freeId)) {
+          newClaimedIds.push(freeId);
+          const rObj = reward.freeReward;
+          if (rObj.type === 'coins') coinsGained += rObj.amount;
+          else if (rObj.type === 'diamonds') diamondsGained += rObj.amount;
           count++;
         }
         if (passStatus !== 'free') {
           const premId = `${reward.level}_premium`;
-          if (!claimedPassRewards.includes(premId)) {
-            handleClaimPassReward(reward.level, 'premium');
+          if (!claimedPassRewards.includes(premId) && !newClaimedIds.includes(premId)) {
+            newClaimedIds.push(premId);
+            const rObj = reward.premiumReward;
+            if (rObj.type === 'coins') coinsGained += rObj.amount;
+            else if (rObj.type === 'diamonds') diamondsGained += rObj.amount;
             count++;
           }
         }
       }
     });
+
     if (count > 0) {
-      triggerReward(0, `Berhasil mengambil semua ${count} hadiah Season Pass sekaligus.`, 'success_no_xp');
+      setClaimedPassRewards(prev => {
+        const next = [...prev, ...newClaimedIds];
+        const userScope = (user?.username || localStorage.getItem('username') || '').trim().toLowerCase();
+        if (userScope) {
+          localStorage.setItem(`claimedPassRewards:${userScope}`, JSON.stringify(next));
+        }
+        localStorage.setItem('claimedPassRewards', JSON.stringify(next));
+        return next;
+      });
+
+      if (coinsGained > 0) {
+        setCoins(prev => {
+          const next = prev + coinsGained;
+          localStorage.setItem('coins', String(next));
+          const userScope = (user?.username || localStorage.getItem('username') || '').trim().toLowerCase();
+          if (userScope) {
+            localStorage.setItem(`coins:${userScope}`, String(next));
+          }
+          return next;
+        });
+      }
+
+      if (diamondsGained > 0) {
+        setDiamonds(prev => {
+          const next = prev + diamondsGained;
+          localStorage.setItem('diamonds', String(next));
+          const userScope = (user?.username || localStorage.getItem('username') || '').trim().toLowerCase();
+          if (userScope) {
+            localStorage.setItem(`diamonds:${userScope}`, String(next));
+          }
+          return next;
+        }, true);
+      }
+
+      let msg = `Berhasil mengambil ${count} hadiah Season Pass sekaligus!`;
+      if (coinsGained > 0 && diamondsGained > 0) {
+        msg += ` (+${coinsGained} Koin, +${diamondsGained} Diamond)`;
+      } else if (coinsGained > 0) {
+        msg += ` (+${coinsGained} Koin)`;
+      } else if (diamondsGained > 0) {
+        msg += ` (+${diamondsGained} Diamond)`;
+      }
+      triggerReward(0, msg, 'success_no_xp');
     } else {
       triggerReward(0, `Belum ada hadiah baru yang bisa diambil saat ini.`, 'info');
     }
@@ -537,6 +636,15 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
     setDiamondSavings(0);
     setPassLevel(1);
     setPassXp(0);
+    
+    // Clear claimed pass rewards to prevent newly unlocked levels from appearing already claimed
+    setClaimedPassRewards([]);
+    const userScope = (user?.username || localStorage.getItem('username') || '').trim().toLowerCase();
+    if (userScope) {
+      localStorage.setItem(`claimedPassRewards:${userScope}`, JSON.stringify([]));
+    }
+    localStorage.setItem('claimedPassRewards', JSON.stringify([]));
+
     triggerReward(0, `Simulasi Season Baru Berhasil! 100% isi tabungan sebanyak +${totalClaimValue} Berlian dicairkan penuh, level pass diatur ulang ke 1.`, 'level_up');
   };
 
@@ -951,27 +1059,6 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
                       Kirim
                     </button>
                   </div>
-
-                  {/* Affinity interactive gift chest */}
-                  <div className="p-2.5 bg-black/15 border border-[#3c3934] rounded-xl space-y-2">
-                    <span className="text-[9.5px] font-black text-slate-400 uppercase tracking-widest block">Kirim Bingkisan Afinitas Hubungan</span>
-                    <p className="text-[10px] text-slate-400 leading-normal font-semibold">Berikan bingkisan spesial untuk menaikkan point status afinitas mabar Anda kepada kawan.</p>
-                    
-                    <div className="grid grid-cols-2 gap-1.5 pt-1">
-                      <button
-                        onClick={() => handleSendGift({ name: 'Strategi Pemuka', cost: 120, type: 'coins', affinityXp: 40 })}
-                        className="py-1.5 bg-[#312e2b] hover:bg-[#3c3934] border border-[#3c3934] rounded-lg text-2xs font-extrabold text-slate-300 uppercase tracking-tight text-center"
-                      >
-                        E-Book Catur (120 Koin)
-                      </button>
-                      <button
-                        onClick={() => handleSendGift({ name: 'Kunci Sukses', cost: 10, type: 'diamonds', affinityXp: 120 })}
-                        className="py-1.5 bg-[#312e2b] hover:bg-[#3c3934] border border-[#3c3934] rounded-lg text-2xs font-extrabold text-slate-300 uppercase tracking-tight text-center"
-                      >
-                        Piala Elite (10 Berlian)
-                      </button>
-                    </div>
-                  </div>
                 </div>
               </div>
             </div>
@@ -1066,45 +1153,6 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
                   </div>
                 )}
               </div>
-
-              {/* Received gifts bag cashing out */}
-              <div className="p-5 bg-[#262421] rounded-2xl border border-[#3c3934] flex flex-col gap-4">
-                <div>
-                  <span className="text-[11px] font-black text-slate-200 uppercase tracking-widest flex items-center gap-1.5">
-                    <Gift className="w-4 h-4 text-yellow-500 animate-bounce" /> Kantong Bingkisan Masuk dari Teman Anda
-                  </span>
-                  <p className="text-[10px] text-[#bab9b8] leading-relaxed font-semibold mt-1">Cairkan kiriman kado kawan sparring berlisensi Anda untuk mendulang Koin/Berlian!</p>
-                </div>
-                
-                {(!friendsList || friendsList.length === 0 || receivedGifts.filter(rg => friendsList.some(f => f.username.toLowerCase() === rg.sender.toLowerCase())).length === 0) ? (
-                  <div className="py-6 text-center text-slate-500 italic text-[11px] border border-dashed border-[#3c3934] rounded-xl">
-                    Kantong kado kosong. Belum ada kiriman dari teman aktif Anda.
-                  </div>
-                ) : (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {receivedGifts.filter(rg => friendsList && friendsList.some(f => f.username.toLowerCase() === rg.sender.toLowerCase())).map((rg) => (
-                      <div key={rg.id} className="p-3 bg-[#1c1a19] border border-[#3c3934] rounded-xl flex items-center justify-between gap-4 text-2xs transition-all hover:border-[#81b64c]/40">
-                        <div className="min-w-0 flex-1">
-                          <span className="text-[8px] text-[#81b64c] font-black uppercase block tracking-wider font-mono">DARI @{rg.sender}</span>
-                          <h4 className="font-extrabold text-slate-200 mt-0.5 truncate">{rg.giftName}</h4>
-                          <p className="text-[9.5px] text-slate-400 font-semibold mt-0.5">Nilai cair: <span className="font-black text-yellow-500">+{rg.worthAmount} {rg.worth === 'coins' ? 'Koin' : 'Berlian'}</span></p>
-                        </div>
-
-                        {rg.claimed ? (
-                          <span className="text-[9.5px] font-black text-slate-500 uppercase px-1.5 select-none shrink-0">Sudah Dicairkan</span>
-                        ) : (
-                          <button
-                            onClick={() => handleClaimGiftCell(rg.id)}
-                            className="px-3.5 py-1.5 bg-yellow-500 hover:bg-yellow-400 text-slate-950 font-black rounded-lg text-[9px] uppercase tracking-wider shrink-0 shadow-sm active:translate-y-0.5 transition-all cursor-pointer"
-                          >
-                            Cairkan
-                          </button>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
             </div>
           )}
         </div>
@@ -1120,12 +1168,6 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
               </h3>
               <p className="text-[10px] text-slate-400 mt-0.5">Selesaikan permainan, naikkan nilai ELO di pertandingan online arena, dapatkan pangkat terkuat, dan menangkan peti hadiah season catur.</p>
             </div>
-            <button
-              onClick={simulateSeasonReset}
-              className="px-3 py-1.5 text-[9.5px] bg-red-600/10 hover:bg-red-600/20 border border-red-500/25 text-red-400 font-extrabold uppercase rounded-lg cursor-pointer transition-colors"
-            >
-              Simulasi Reset Season Baru
-            </button>
           </div>
 
           <div className="p-4 bg-[#262421] rounded-2xl border border-yellow-500/15 flex flex-col md:flex-row items-center justify-between gap-4">
@@ -1225,23 +1267,6 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
               </h3>
               <p className="text-[10px] text-slate-400 mt-0.5">Naikkan tingkatan level Battle Pass melalui duel catur taktis, buka lintasan eksklusif, dan cairkan Diamond hasil menabung.</p>
             </div>
-            
-            <div className="flex items-center gap-1.5">
-              <button
-                onClick={simulateAddPassXp}
-                className="px-2.5 py-1.5 text-[9px] bg-sky-600/10 hover:bg-sky-600/20 border border-sky-500/25 text-sky-400 font-extrabold uppercase rounded-lg cursor-pointer transition-colors"
-                title="Menambahkan 50 Pass XP secara lokal untuk simulasi naik level"
-              >
-                Kirim +50 Pass XP
-              </button>
-              <button
-                onClick={simulateAccreteSavings}
-                className="px-2.5 py-1.5 text-[9px] bg-emerald-600/10 hover:bg-emerald-600/20 border border-emerald-500/25 text-emerald-400 font-extrabold uppercase rounded-lg cursor-pointer transition-colors"
-                title="Simulasi memenangkan pertandingan catur dan mendapatkan saldo berlian"
-              >
-                Simulasi Main Arena (+Bonus Berlian)
-              </button>
-            </div>
           </div>
 
           {/* THREE-COLUMN BATTLE PASS & TABUNGAN DIAMOND HYBRID ENGINE */}
@@ -1273,13 +1298,6 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
                 >
                   Tarik 20% Harian (+{dailyClaimAmount20})
                 </button>
-                <button
-                  type="button"
-                  onClick={handleSimulateSeasonCairkan100}
-                  className="w-full py-1 bg-stone-900 border border-stone-800 hover:bg-[#81b64c] hover:text-slate-950 text-slate-400 font-black text-[8px] uppercase rounded-md transition-all cursor-pointer"
-                >
-                  Cairkan 100% (Simulasi Season Baru)
-                </button>
               </div>
             </div>
 
@@ -1310,20 +1328,6 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
                 </div>
               </div>
 
-              <div className="flex gap-1.5 pt-2 border-t border-stone-800/60">
-                <button
-                  onClick={simulateAddPassXp}
-                  className="flex-1 py-1 text-[8.5px] bg-[#3c3934] hover:bg-stone-800 text-slate-300 font-black uppercase rounded-md transition-colors"
-                >
-                  +50 XP Mabar
-                </button>
-                <button
-                  onClick={simulateAccreteSavings}
-                  className="flex-1 py-1 text-[8.5px] bg-[#3c3934] hover:bg-stone-800 text-slate-300 font-black uppercase rounded-md transition-colors"
-                >
-                  Main Arena
-                </button>
-              </div>
             </div>
 
             {/* CARD 3: UPGRADE LINTASAN / KLAIM HADIAH */}

@@ -1,3 +1,59 @@
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getFirestore, doc, runTransaction } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import firebaseConfig from '../firebase-applet-config.json';
+
+const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
+const db = getFirestore(app, firebaseConfig.firestoreDatabaseId);
+
+export enum OperationType {
+  CREATE = 'create',
+  UPDATE = 'update',
+  DELETE = 'delete',
+  LIST = 'list',
+  GET = 'get',
+  WRITE = 'write',
+}
+
+export interface FirestoreErrorInfo {
+  error: string;
+  operationType: OperationType;
+  path: string | null;
+  authInfo: {
+    userId?: string | null;
+    email?: string | null;
+    emailVerified?: boolean | null;
+    isAnonymous?: boolean | null;
+    tenantId?: string | null;
+    providerInfo?: {
+      providerId?: string | null;
+      email?: string | null;
+    }[];
+  }
+}
+
+export function handleFirestoreError(error: unknown, operationType: OperationType, path: string | null) {
+  const auth = getAuth();
+  const errInfo: FirestoreErrorInfo = {
+    error: error instanceof Error ? error.message : String(error),
+    authInfo: {
+      userId: auth.currentUser?.uid,
+      email: auth.currentUser?.email,
+      emailVerified: auth.currentUser?.emailVerified,
+      isAnonymous: auth.currentUser?.isAnonymous,
+      tenantId: auth.currentUser?.tenantId,
+      providerInfo: auth.currentUser?.providerData?.map(provider => ({
+        providerId: provider.providerId,
+        email: provider.email,
+      })) || []
+    },
+    operationType,
+    path
+  };
+  console.error('Firestore Error: ', JSON.stringify(errInfo));
+  throw new Error(JSON.stringify(errInfo));
+}
+
 // Web Audio API Synthesized dopamine sound effects for Duolingo style catur
 export function playSound(type: 'move' | 'capture' | 'check' | 'win' | 'lose' | 'error') {
   try {
@@ -17,7 +73,21 @@ export function playSound(type: 'move' | 'capture' | 'check' | 'win' | 'lose' | 
     
     switch (type) {
       case 'move':
-        if (selectedSkin === 'wood') {
+        if (activeSfx === 'sfx_robotic') {
+          // metallic sweep robot beep
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.setValueAtTime(880, now + 0.05);
+          gain.gain.setValueAtTime(0.06, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        } else if (activeSfx === 'sfx_laser') {
+          // laser pew pew downward sweep
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(1200, now);
+          osc.frequency.exponentialRampToValueAtTime(300, now + 0.12);
+          gain.gain.setValueAtTime(0.08, now);
+          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
+        } else if (selectedSkin === 'wood') {
           // classic deep wooden thonk
           osc.type = 'triangle';
           osc.frequency.setValueAtTime(140, now);
@@ -51,20 +121,6 @@ export function playSound(type: 'move' | 'capture' | 'check' | 'win' | 'lose' | 
           osc.frequency.setValueAtTime(1500, now);
           osc.frequency.setValueAtTime(1350, now + 0.05);
           gain.gain.setValueAtTime(0.15, now);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
-        } else if (activeSfx === 'sfx_robotic') {
-          // metallic sweep robot beep
-          osc.type = 'sawtooth';
-          osc.frequency.setValueAtTime(440, now);
-          osc.frequency.setValueAtTime(880, now + 0.05);
-          gain.gain.setValueAtTime(0.06, now);
-          gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
-        } else if (activeSfx === 'sfx_laser') {
-          // laser pew pew downward sweep
-          osc.type = 'sine';
-          osc.frequency.setValueAtTime(1200, now);
-          osc.frequency.exponentialRampToValueAtTime(300, now + 0.12);
-          gain.gain.setValueAtTime(0.08, now);
           gain.gain.exponentialRampToValueAtTime(0.01, now + 0.12);
         } else {
           osc.type = 'triangle';
@@ -420,5 +476,141 @@ export function getLevelProgress(xp: number) {
     percentage
   };
 }
+
+/**
+ * Atomic client-side wrapper to validate quiz answers, submit correct ones to the backend,
+ * run atomic Firestore updates on the client via runTransaction, and update local states and storage with race-condition guards.
+ */
+export async function handleQuizSubmission(params: {
+  username: string;
+  quizId: string;
+  optionIdx: number;
+  correctAnswerIdx: number;
+  pointsAwarded: number;
+  isLoggedIn: boolean;
+  currentScore: number;
+  currentQuizzes: string[];
+  setAnsweredQuizIds: (quizzes: string[]) => void;
+  setEventScore: (score: number) => void;
+  setXp?: (xp: number | ((prev: number) => number)) => void;
+  triggerReward: (xp: number, msg: string, type: 'reward' | 'info') => void;
+  isEng: boolean;
+  syncUserStats?: (...args: any[]) => Promise<void>;
+}) {
+  const {
+    username,
+    quizId,
+    optionIdx,
+    correctAnswerIdx,
+    pointsAwarded,
+    isLoggedIn,
+    currentScore,
+    currentQuizzes,
+    setAnsweredQuizIds,
+    setEventScore,
+    setXp,
+    triggerReward,
+    isEng,
+    syncUserStats
+  } = params;
+
+  const timestamp = new Date().toISOString();
+  console.log(`[handleQuizSubmission - ${timestamp}] Memulai validasi kuis: ID=${quizId}, Pilihan=${optionIdx}, Kunci=${correctAnswerIdx}`);
+
+  // 1. Check if option index is correct
+  if (optionIdx !== correctAnswerIdx) {
+    console.warn(`[handleQuizSubmission - ${timestamp}] Jawaban salah. Tidak ada poin yang disimpan.`);
+    return { success: false, reason: 'incorrect_answer' };
+  }
+
+  // 2. Prevent duplicate submission locally
+  if (currentQuizzes.includes(quizId)) {
+    console.warn(`[handleQuizSubmission - ${timestamp}] Kuis ini sudah dijawab sebelumnya. Mencegah submit duplikat.`);
+    return { success: false, reason: 'already_completed' };
+  }
+
+  try {
+    if (isLoggedIn && username) {
+      console.log(`[handleQuizSubmission - ${timestamp}] Submitting quiz completion to backend server...`);
+      const response = await fetch('/api/seasonal/complete-quiz', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username,
+          quizId,
+          pointsAwarded
+        })
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to submit quiz to backend. Status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      if (!data || !data.success) {
+        throw new Error(data.error || "Gagal menyimpan kuis di backend");
+      }
+
+      console.log(`[handleQuizSubmission - ${timestamp}] Quiz submission accepted by backend:`, data);
+
+      const nextQuizzes = data.seasonal_answered_quizzes;
+      const nextScore = data.seasonal_event_score;
+
+      const milestones: string[] = [];
+      if (nextScore >= 40) milestones.push("Milestone I");
+      if (nextScore >= 120) milestones.push("Target");
+
+      // Update local storage
+      localStorage.setItem('seasonal_answered_quizzes', JSON.stringify(nextQuizzes));
+      localStorage.setItem('seasonal_event_score', String(nextScore));
+      localStorage.setItem('seasonal_completed_milestones', JSON.stringify(milestones));
+
+      // Update React states
+      setAnsweredQuizIds(nextQuizzes);
+      setEventScore(nextScore);
+
+      if (setXp) {
+        setXp(data.xp);
+      }
+
+      if (syncUserStats) {
+        console.log(`[handleQuizSubmission - ${timestamp}] Triggering global user stats sync to local server cache...`);
+        await syncUserStats(undefined, data.xp).catch((e: any) => console.error("Error in syncUserStats:", e));
+      }
+
+      triggerReward(10, isEng ? "Correct Event Quiz! +20 Event Points" : "Kuis Event Benar! +20 Poin Event", "reward");
+      return { success: true };
+    } else {
+      // Guest / Offline fallback
+      console.log(`[handleQuizSubmission - ${timestamp}] Mode Tamu / Offline. Menyimpan secara lokal.`);
+      const nextQuizzes = [...currentQuizzes, quizId];
+      const nextScore = currentScore + pointsAwarded;
+
+      const milestones: string[] = [];
+      if (nextScore >= 40) milestones.push("Milestone I");
+      if (nextScore >= 120) milestones.push("Target");
+
+      localStorage.setItem('seasonal_answered_quizzes', JSON.stringify(nextQuizzes));
+      localStorage.setItem('seasonal_event_score', String(nextScore));
+      localStorage.setItem('seasonal_completed_milestones', JSON.stringify(milestones));
+
+      setAnsweredQuizIds(nextQuizzes);
+      setEventScore(nextScore);
+
+      if (setXp) {
+        setXp(prev => prev + 10);
+      }
+
+      triggerReward(10, isEng ? "Correct Event Quiz! +20 Event Points" : "Kuis Event Benar! +20 Poin Event", "reward");
+      console.log(`[handleQuizSubmission - ${timestamp}] SUCCESS: Poin lokal disimpan.`);
+      return { success: true };
+    }
+  } catch (err: any) {
+    console.error(`[handleQuizSubmission - ${timestamp}] FATAL: Gagal menyimpan kuis:`, err);
+    triggerReward(0, isEng ? "Failed to save points" : "Gagal menyimpan poin event", "info");
+    return { success: false, error: err };
+  }
+}
+
 
 

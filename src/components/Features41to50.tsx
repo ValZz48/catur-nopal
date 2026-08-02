@@ -8,6 +8,12 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { ChessPiece } from './ChessPieces';
 import { AvatarWithFrame } from './AvatarWithFrame';
+import { DuolingoMascotHeader } from './DuolingoMascotHeader';
+import { AnimatedMascot } from './AnimatedMascot';
+import martinAvatar from '../assets/images/avatar_martin_1779709510230.png';
+import { GameRatingModal } from './GameRatingModal';
+import { TreasureModal } from './TreasureModal';
+import { LaporanPembelajaranModal } from './LaporanPembelajaranModal';
 
 // =========================================================================
 // TYPES & PROPS
@@ -20,6 +26,11 @@ interface Features41to50Props {
   setDiamonds: React.Dispatch<React.SetStateAction<number>>;
   xp: number;
   setXp: React.Dispatch<React.SetStateAction<number>>;
+  streak?: number;
+  guestMatchesPlayed?: number;
+  guestMatchesWon?: number;
+  hearts?: number;
+  setHearts?: React.Dispatch<React.SetStateAction<number>>;
   membershipStatus: 'free' | 'premium';
   triggerAudio: (type: string) => void;
   triggerReward: (xpAmount: number, customMessage: string, type?: 'success' | 'success_no_xp' | 'level_up' | 'info' | 'premium' | 'error') => void;
@@ -49,6 +60,7 @@ interface Features41to50Props {
   syncUserStats?: any;
   user?: any;
   starterPackClaimed?: boolean;
+  onPuzzleCompleted?: () => void;
 }
 
 // =========================================================================
@@ -116,6 +128,41 @@ const CATUR_QUIZ_QUESTIONS: Record<string, QuizQuestion[]> = {
       options: ['Menyerang Raja lawan dengan skak jika kemungkinan atau menggerakkan perwira paling bernilai sambil menciptakan ancaman balik', 'Mengaku kalah langsung', 'Menggerakkan pion terdepan', 'Melakukan rokade darurat'],
       correctIdx: 0,
       explanation: 'Menyelamatkan perwira penting dengan membuat tempo skak atau melakukan serangan balik setara adalah pertahanan taktis aktif terbaik.'
+    },
+    {
+      id: 'q1_6',
+      question: 'Taktik Garpu Kuda yang menyerang sekaligus Raja dan Menteri lawan dinamakan...',
+      options: ['Royal Fork (Garpu Kerajaan)', 'Koridor Mate', 'Stalemate', 'Oposisi Ganda'],
+      correctIdx: 0,
+      explanation: 'Royal Fork menyerang sasaran tertinggi lawan (Raja & Menteri), memaksa lawan menyelamatkan Raja dan merelakan Menteri lenyap.'
+    },
+    {
+      id: 'q1_7',
+      question: 'Apakah Pion dapat melakukan taktik Garpu (Pawn Fork)?',
+      options: ['Bisa, saat pion maju menyerang dua perwira musuh di diagonal kiri dan kanan sekaligus', 'Tidak bisa sama sekali', 'Hanya jika pion sudah promosi', 'Hanya di langkah pertama'],
+      correctIdx: 0,
+      explanation: 'Pion yang maju ke petak tengah sering memotong dua perwira perwira musuh (seperti Gajah & Kuda) secara bersamaan.'
+    },
+    {
+      id: 'q1_8',
+      question: 'Kombinasi Garpu Gajah (Bishop Fork) biasanya menyerang dua perwira musuh yang terletak di...',
+      options: ['Diagonal dengan warna petak yang sama', 'Barisan horizontal belakang', 'Satu lajur lurus vertikal', 'Petak beda warna'],
+      correctIdx: 0,
+      explanation: 'Gajah bergerak secara diagonal pada satu warna petak, sehingga garpu Gajah hanya dapat mengeksekusi dua target berwarna petak sama.'
+    },
+    {
+      id: 'q1_9',
+      question: 'Jika Kuda melancarkan garpu ke Raja dan Benteng lawan, mengapa lawan WAJIB menyelamatkan Raja terlebih dahulu?',
+      options: ['Karena skak adalah ancaman ilegal yang wajib diatasi saat itu juga menurut aturan catur', 'Karena Benteng lebih mahal dari Raja', 'Karena Kuda tidak bisa makan Benteng', 'Aturan dari wasit'],
+      correctIdx: 0,
+      explanation: 'Raja yang terkena skak menuntut prioritas penyelamatan mutlak, sehingga Benteng terpaksa dilepaskan.'
+    },
+    {
+      id: 'q1_10',
+      question: 'Taktik membujuk Raja musuh ke petak e6 agar dapat digarpu Kuda di c7 dinamakan...',
+      options: ['Pengumpanan / Deflection Fork Set-Up', 'Rokade Ganda', 'Pion Gantung', 'Zugzwang'],
+      correctIdx: 0,
+      explanation: 'Deflection memancing Raja ke petak sasaran buruk yang menciptakan posisi garpu Kuda fatal.'
     }
   ],
   lv2: [
@@ -150,15 +197,50 @@ const CATUR_QUIZ_QUESTIONS: Record<string, QuizQuestion[]> = {
     {
       id: 'q2_5',
       question: 'Bagaimana cara mematahkan kuncian (unpinning) yang paling umum dilakukan?',
-      options: ['Menaruh perwira pelindung di antara perwira yang mengunci and yang dikunci, atau menyerang balik perwira yang melakukan pin', 'Membuang perwira sendiri', 'Segera menyerah', 'Mengalihkan perhatian dengan pion samping'],
+      options: ['Menaruh perwira pelindung di antara perwira yang mengunci dan yang dikunci, atau menyerang balik perwira yang melakukan pin', 'Membuang perwira sendiri', 'Segera menyerah', 'Mengalihkan perhatian dengan pion samping'],
       correctIdx: 0,
       explanation: 'Menyisipkan perwira pelindung penetral atau mengusir perwira penyerang dengan pion pendukung adalah taktik unpin paling efektif.'
+    },
+    {
+      id: 'q2_6',
+      question: 'Apa perbedaan utama antara Kuncian (Pin) dan Tusukan Sate (Skewer)?',
+      options: ['Skewer menyerang perwira bernilai tinggi di depan, memaksa bergerak dan mengorbankan perwira di belakangnya', 'Pin hanya untuk Kuda', 'Skewer hanya bisa dilakukan Raja', 'Keduanya sama persis'],
+      correctIdx: 0,
+      explanation: 'Skewer kebalikan dari Pin: perwira lebih mahal berdiri di depan perwira kurang mahal. Saat perwira depan lari, perwira belakang disapu.'
+    },
+    {
+      id: 'q2_7',
+      question: 'Manakah perwira yang sanggup meluncurkan serangan Skewer (Tusukan Sate)?',
+      options: ['Gajah, Benteng, dan Menteri', 'Kuda dan Pion', 'Raja dan Kuda', 'Pion saja'],
+      correctIdx: 0,
+      explanation: 'Perwira linier jarak jauh (Gajah, Benteng, Menteri) dapat menusuk sate garis lurus atau diagonal.'
+    },
+    {
+      id: 'q2_8',
+      question: 'Jika Benteng putih di e1 menskak Raja hitam di e8, lalu di belakang Raja ada Menteri di e5, ini adalah taktik...',
+      options: ['Tusukan Sate (Skewer)', 'Garpu Kuda', 'Stalemate', 'Oposisi Vertikal'],
+      correctIdx: 0,
+      explanation: 'Raja wajib lari dari skak e1, membiarkan Menteri e5 di belakangnya dimakan Benteng.'
+    },
+    {
+      id: 'q2_9',
+      question: 'Mengapa Kuda dan Pion TIDAK DAPAT membuat serangan Pin atau Skewer?',
+      options: ['Karena pergerakan keduanya terbatas dan tidak lurus linier sepanjang garis papan', 'Karena aturan lama', 'Sebab perwira ini terlalu lemah', 'Sebab Kuda tidak punya senjata'],
+      correctIdx: 0,
+      explanation: 'Pin dan Skewer membutuhkan daya tebas garis lurus/diagonal tanpa batas jarak.'
+    },
+    {
+      id: 'q2_10',
+      question: 'Jika perwira yang terkena Relative Pin melangkah dan memberikan skakmat langsung ke Raja lawan, apakah langkah itu legal?',
+      options: ['Legal dan langsung memenangkan pertandingan!', 'Ilegal karena terkena pin', 'Bisa dibatalkan', 'Harus bayar denda'],
+      correctIdx: 0,
+      explanation: 'Relative Pin tidak melarang langkah secara fisik. Jika langkah itu memberikan skakmat langsung, laga langsung selesai!'
     }
   ],
   lv3: [
     {
       id: 'q3_1',
-      question: 'Apa arti dari taktik Skak Ster Membuka (Discovered Check)?',
+      question: 'Apa arti dari taktik Skak Membuka (Discovered Check)?',
       options: ['Menyerang Menteri musuh dengan meloncat', 'Melangkah satu perwira yang membuka jalur serangan perwira lain untuk menskak Raja lawan', 'Melindungi Menteri sendiri', 'Menukar bidak secara acak'],
       correctIdx: 1,
       explanation: 'Discovered check terjadi ketika kita melangkahkan satu perwira, lalu secara otomatis membuka jalur serangan perwira lain di belakangnya untuk memberi skak.'
@@ -190,6 +272,41 @@ const CATUR_QUIZ_QUESTIONS: Record<string, QuizQuestion[]> = {
       options: ['Menghindari meluruskan posisi Raja di garis yang sama dengan perwira penembak jarak jauh musuh', 'Menumpuk pion samping', 'Mencuri perwira lawan', 'Mengubah posisi papan'],
       correctIdx: 0,
       explanation: 'Mencegah Raja berada sejalur (lurus/diagonal) dengan Gajah, Benteng, atau Menteri lawan adalah disiplin pertahanan mencegah taktik discovered check.'
+    },
+    {
+      id: 'q3_6',
+      question: 'Dalam Serangan Membuka (Discovered Attack), perwira yang melangkah maju dinamakan...',
+      options: ['Perwira Pengganggu / Uncovering Piece', 'Perwira Mati', 'Bidak Pengorbanan', 'Raja Pendamping'],
+      correctIdx: 0,
+      explanation: 'Perwira pengganggu melompat keluar jalur untuk membebaskan tembakan perwira jarak jauh di belakangnya.'
+    },
+    {
+      id: 'q3_7',
+      question: 'Jika Kuda bergerak menskak Raja sambil membuka serangan Benteng di belakangnya ke Menteri lawan, ini adalah contoh...',
+      options: ['Discovered Check dengan Serangan Ganda', 'Taktik Zugzwang', 'Stalemate', 'Koridor Mate'],
+      correctIdx: 0,
+      explanation: 'Skak Kuda memaksa respons Raja, sementara Benteng bebas merampas Menteri lawan di langkah berikutnya.'
+    },
+    {
+      id: 'q3_8',
+      question: 'Apakah Skak Ganda (Double Check) bisa diatasi dengan menutup garis skak (interposition)?',
+      options: ['Tidak bisa, karena ada dua garis skak dari sudut berbeda sekaligus', 'Bisa dengan pion', 'Bisa dengan Benteng', 'Bisa dengan Menteri'],
+      correctIdx: 0,
+      explanation: 'Menutup satu garis skak masih menyisakan garis skak kedua, sehingga menutup skak tidak mempan.'
+    },
+    {
+      id: 'q3_9',
+      question: 'Taktik "Windmill" (Kincir Angin) yang terkenal memanfaatkan kombinasi berulang dari...',
+      options: ['Skak Membuka berulang antara Gajah dan Benteng', 'Dua Kuda melompat', 'Promosi empat pion', 'Rokade ganda'],
+      correctIdx: 0,
+      explanation: 'Windmill secara beruntun menskak Raja dan menyapu bersih perwira musuh satu per satu.'
+    },
+    {
+      id: 'q3_10',
+      question: 'Mengapa perwira jarak jauh di garis belakang sangat perkasa dalam Skak Membuka?',
+      options: ['Sebab daya gempurnya tersembunyi hingga jalur penghalang mendadak dibuka', 'Sebab bernilai paling mahal', 'Sebab tidak bisa dimakan', 'Sebab gerakannya cepat'],
+      correctIdx: 0,
+      explanation: 'Ancaman tersembunyi menciptakan elemen kejutan taktis yang melumpuhkan kalkulasi pertahanan musuh.'
     }
   ],
   lv4: [
@@ -227,6 +344,41 @@ const CATUR_QUIZ_QUESTIONS: Record<string, QuizQuestion[]> = {
       options: ['Menempatkan perwira lain sebagai perisai penahan di baris belakang, mengharapkan kompensasi langkah', 'Membalikkan bidak', 'Duduk diam menunggu waktu habis', 'Melompat keluar lapangan'],
       correctIdx: 0,
       explanation: 'Menaruh pertahanan interposisi di baris belakang dapat memperlambat serangan dan memberi waktu bagi perwira lain untuk menolong.'
+    },
+    {
+      id: 'q4_6',
+      question: 'Kotak h3 atau h6 yang dibuka untuk rute pelarian Raja dinamakan...',
+      options: ['Luft / Jendela Udara', 'Petak Mati', 'Benteng Rokade', 'Zonasi Merah'],
+      correctIdx: 0,
+      explanation: 'Luft menyediakan celah ventilasi pelarian bagi Raja yang terancam di barisan belakang.'
+    },
+    {
+      id: 'q4_7',
+      question: 'Pengorbanan Menteri di f8 atau e8 untuk memancing Benteng penjaga baris belakang dinamakan...',
+      options: ['Back-Rank Sacrifice (Pengorbanan Baris Belakang)', 'Oposisi Ganda', 'Pion Promosi', 'Draw Otomatis'],
+      correctIdx: 0,
+      explanation: 'Mengorbankan Menteri merusak pertahanan tunggal baris belakang, membuka jalan bagi Benteng pengeksekusi.'
+    },
+    {
+      id: 'q4_8',
+      question: 'Apakah Raja yang telah melakukan rokade aman dari Skakmat Koridor jika belum membuat Luft?',
+      options: ['Tidak aman, justru sangat rawan karena terperangkap dinding pionnya sendiri', 'Sangat aman selamanya', 'Otomatis kebal', 'Hanya aman dari Gajah'],
+      correctIdx: 0,
+      explanation: 'Rokade menaruh Raja di pojok. Tanpa Luft, tiga pion pelindung justru menjebak Raja sendiri.'
+    },
+    {
+      id: 'q4_9',
+      question: 'Jika Raja memiliki kotak larian bebas di g2, apakah Skakmat Koridor masih bisa mengeksekusinya di baris 1?',
+      options: ['Tidak bisa, Raja akan lolos melangkah ke g2', 'Masih bisa', 'Raja otomatis gugur', 'Papan harus direset'],
+      correctIdx: 0,
+      explanation: 'Adanya petak g2 menggagalkan terperangkapnya Raja, menetralkan ancaman koridor mate.'
+    },
+    {
+      id: 'q4_10',
+      question: 'Taktik memancing Benteng penjaga baris belakang keluar dari tugas pertahanannya dinamakan...',
+      options: ['Deflection of the Back-Rank Guard', 'Zugzwang', 'Stalemate', 'Oposisi Vertikal'],
+      correctIdx: 0,
+      explanation: 'Mengalihkan pelindung utama membuat baris belakang telanjang tanpa penjagaan.'
     }
   ],
   lv5: [
@@ -264,6 +416,41 @@ const CATUR_QUIZ_QUESTIONS: Record<string, QuizQuestion[]> = {
       options: ['Menghitung paksaan respons lawan murni (Forced Moves) hingga akhir skenario kelanjutan', 'Warna seragam musuh', 'Jumlah penonton pertandingan', 'Nama pembuat papan catur'],
       correctIdx: 0,
       explanation: 'Pengorbanan tanpa kalkulasi langkah paksa (forced lines) murni hanyalah blunder spekulatif keliru yang merugikan posisi sendiri.'
+    },
+    {
+      id: 'q5_6',
+      question: 'Taktik "Clearance Sacrifice" (Pengorbanan Celah) bertujuan untuk...',
+      options: ['Mengosongkan petak atau jalur kritis agar perwira lain yang lebih kuat dapat menyusup', 'Mengulur waktu berpikir', 'Membuat papan rapi', 'Menghadiahkan poin ke musuh'],
+      correctIdx: 0,
+      explanation: 'Clearance Sacrifice mengorbankan bidak penghalang agar perwira utama memiliki jalur tembak terbuka.'
+    },
+    {
+      id: 'q5_7',
+      question: 'Taktik "Decoy" (Pengumpanan) memancing perwira atau Raja musuh ke...',
+      options: ['Petak buruk tempat ia dapat diskakmat atau digarpu', 'Petak aman', 'Pojok papan untuk tidur', 'Area luar catur'],
+      correctIdx: 0,
+      explanation: 'Decoy memberi umpan beracun yang menarik musuh ke jaring jebakan kematian.'
+    },
+    {
+      id: 'q5_8',
+      question: 'Mengapa pengorbanan Benteng di g7 sering melumpuhkan pertahanan rokade Raja?',
+      options: ['Sebab menghancurkan benteng pertahanan pion g7/h7 dan melucuti pelindung Raja', 'Sebab Benteng murah', 'Sebab Raja takut pada Benteng', 'Hanya untuk gaya'],
+      correctIdx: 0,
+      explanation: 'Membongkar struktur pion g7 mengekspos Raja telanjang terhadap gempuran Menteri.'
+    },
+    {
+      id: 'q5_9',
+      question: 'Pengorbanan perwira yang dilancarkan untuk merusak struktur pion pelindung Raja disebut...',
+      options: ['Destruction Sacrifice (Pengorbanan Penghancuran)', 'Rokade Lambat', 'Stalemate', 'Oposisi'],
+      correctIdx: 0,
+      explanation: 'Destruction Sacrifice meruntuhkan tembok pelindung utama tempat Raja bersembunyi.'
+    },
+    {
+      id: 'q5_10',
+      question: 'Jika pengorbanan perwira Anda tidak menghasilkan skakmat atau kompensasi posisi setara, maka itu adalah...',
+      options: ['Blunder / Pengorbanan Meleset', 'Kemenangan moral', 'Langkah terbaik', 'Taktik rahasia'],
+      correctIdx: 0,
+      explanation: 'Pengorbanan meleset yang kehilangan materiil tanpa kompensasi nyata adalah blunder berat.'
     }
   ],
   lv6: [
@@ -277,7 +464,7 @@ const CATUR_QUIZ_QUESTIONS: Record<string, QuizQuestion[]> = {
     {
       id: 'q6_2',
       question: 'Apa arti dari istilah jerman Zugzwang dalam babak akhir catur?',
-      options: ['Situasi di mana pemain terpaksa melangkah, namun setiap langkah legal yang tersedia justru memeperburuk posisi mereka', 'Langkah skak maut', 'Promosi ganda pion', 'Hasil pertandingan remis otomatis'],
+      options: ['Situasi di mana pemain terpaksa melangkah, namun setiap langkah legal yang tersedia justru memperburuk posisi mereka', 'Langkah skak maut', 'Promosi ganda pion', 'Hasil pertandingan remis otomatis'],
       correctIdx: 0,
       explanation: 'Zugzwang adalah kewajiban melangkah yang merugikan. Jika diizinkan "pass", posisi mereka aman; namun aturan wajib melangkah runtuh.'
     },
@@ -301,6 +488,41 @@ const CATUR_QUIZ_QUESTIONS: Record<string, QuizQuestion[]> = {
       options: ['Raja bertahan dapat mengejar dan menangkap pion bebas musuh sebelum sempat promosi', 'Papan catur berbentuk kotak sempurna', 'Kuda bisa meloncat melingkar', 'Gajah putih berpindah ke petak hitam'],
       correctIdx: 0,
       explanation: 'Dengan membuat kotak imajiner diagonal dari pion bebas, kita tahu pasti apakah Raja bertahan bisa masuk ke dalam kotak dan menetralisir pion tanpa kalkulasi manual yang melelahkan.'
+    },
+    {
+      id: 'q6_6',
+      question: 'Promosi Pion (Pawn Promotion) mengizinkan pion yang menyentuh barisan paling ujung untuk berubah menjadi...',
+      options: ['Menteri, Benteng, Gajah, atau Kuda', 'Raja kedua', 'Dua pion', 'Gajah warna lain saja'],
+      correctIdx: 0,
+      explanation: 'Pion yang mencapai baris 8 (atau 1) bebas memilih promosi ke perwira apapun selain Raja atau Pion.'
+    },
+    {
+      id: 'q6_7',
+      question: 'Kondisi "Stalemate" (Patis) terjadi apabila...',
+      options: ['Pemain yang giliran melangkah tidak memiliki langkah legal dan Raja TIDAK dalam keadaan skak', 'Raja terkena skak mat', 'Menteri hilang', 'Waktu berpikir habis'],
+      correctIdx: 0,
+      explanation: 'Stalemate menghadiahkan hasil remis (draw) meskipun salah satu pemain unggul materi berlimpah.'
+    },
+    {
+      id: 'q6_8',
+      question: 'Dalam endgame Raja + Benteng vs Raja tunggal, metode mendorong Raja musuh ke pinggir dinamakan...',
+      options: ['Teknik Kotak Menciut / Box Technique', 'Garpu Kuda', 'Oposisi Ganda', 'Greek Gift'],
+      correctIdx: 0,
+      explanation: 'Box Technique menggunakan Benteng dan Raja untuk mempersempit wilayah jelajah Raja lawan hingga terpojok.'
+    },
+    {
+      id: 'q6_9',
+      question: 'Mengapa Raja HARUS aktif maju ke tengah papan dalam babak akhir (Endgame)?',
+      options: ['Sebab bahaya skakmat berkurang dan Raja menjadi perwira penyerang / pendukung pion yang sangat kuat', 'Sebab Raja ingin berjalan-jalan', 'Sebab aturan memaksa Raja bergerak', 'Sebab perwira lain sudah habis'],
+      correctIdx: 0,
+      explanation: 'Di endgame, Raja berubah dari perwira yang dilindungi menjadi perwira tempur aktif berdaya jelajah tinggi.'
+    },
+    {
+      id: 'q6_10',
+      question: 'Kombinasi babak akhir Gajah beda warna petak (Opposite-Colored Bishops) sangat sering berakhir dengan...',
+      options: ['Hasil Remis (Draw)', 'Kemenangan mutlak Putih', 'Skakmat 3 langkah', 'Poin ganda'],
+      correctIdx: 0,
+      explanation: 'Gajah beda warna tidak bisa saling menyerang atau memblokir pion satu sama lain, menciptakan kecenderungan remis yang sangat tinggi.'
     }
   ],
   lv7: [
@@ -327,6 +549,62 @@ const CATUR_QUIZ_QUESTIONS: Record<string, QuizQuestion[]> = {
       ],
       correctIdx: 0,
       explanation: 'Dengan menyerang salah satu area perlindungan, perwira pelindung yang overloading terpaksa berpindah atau lumpuh, melepaskan kawalan di titik kritis kedua.'
+    },
+    {
+      id: 'q7_3',
+      question: 'Taktik "Removing the Guard" (Menghilangkan Pelindung) dilakukan dengan cara...',
+      options: ['Memukul, mengusir, atau memaku perwira pelindung utama musuh', 'Menunggu musuh melangkah salah', 'Menutup mata', 'Menukar Raja'],
+      correctIdx: 0,
+      explanation: 'Menghancurkan atau melumpuhkan penjaga pintu pertahanan membuat sasaran utama tak berdaya disergap.'
+    },
+    {
+      id: 'q7_4',
+      question: 'Jika Kuda f6 menjaga Menteri d5 dan sekaligus mengawal petak e8 dari Skakmat Koridor, maka Kuda f6 mengalami...',
+      options: ['Overloading / Beban Berlebih', 'Oposisi', 'Zugzwang', 'Pins Mutlak'],
+      correctIdx: 0,
+      explanation: 'Kuda f6 tidak bisa menjalankan dua tugas pertahanan vital di lokasi berbeda secara bersamaan.'
+    },
+    {
+      id: 'q7_5',
+      question: 'Cara paling efektif mengusir perwira pelindung yang bertengger kokoh adalah...',
+      options: ['Menyerangnya dengan pion berharga murah', 'Menawarkan remis', 'Mengorbankan Raja', 'Berbisik ke musuh'],
+      correctIdx: 0,
+      explanation: 'Ancaman pion murah memaksa perwira mahal pelindung untuk hengkang dari posisinya.'
+    },
+    {
+      id: 'q7_6',
+      question: 'Taktik pengalihan yang memaksa Menteri pelindung meninggalkan baris belakang dinamakan...',
+      options: ['Deflection of the Queen', 'Stalemate', 'Luft', 'Box Technique'],
+      correctIdx: 0,
+      explanation: 'Mengalihkan Menteri pelindung melucuti benteng pertahanan terakhir baris belakang.'
+    },
+    {
+      id: 'q7_7',
+      question: 'Jika pelindung utama dipaku (pin) oleh Gajah kita, status pelindung tersebut menjadi...',
+      options: ['Pelindung Semu (Illusory Defender)', 'Pelindung Abadi', 'Perwira Kebal', 'Raja Kedua'],
+      correctIdx: 0,
+      explanation: 'Pelindung yang terkunci (pin) tidak bisa menjalankan fungsi perlindungan secara nyata.'
+    },
+    {
+      id: 'q7_8',
+      question: 'Kuda e4 menjaga Gajah c5 dan Benteng g5. Jika kita memukul Benteng g5 dengan Menteri, respons Kuda akan...',
+      options: ['Melepaskan perlindungan pada Gajah c5 jika memukul Menteri kita', 'Otomatis skakmat', 'Mencegah rokade', 'Menghidupkan pion'],
+      correctIdx: 0,
+      explanation: 'Memukul ke g5 menarik Kuda keluar, membiarkan Gajah c5 tanpa pengawalan.'
+    },
+    {
+      id: 'q7_9',
+      question: 'Mengapa perwira yang overloading sangat rentan terhadap pengorbanan perwira lawan?',
+      options: ['Sebab ia tak sanggup merespons dua krisis beruntun di lokasi terpisah', 'Sebab nilainya murah', 'Sebab Kuda melompat', 'Aturan internasional'],
+      correctIdx: 0,
+      explanation: 'Beban ganda melumpuhkan fleksibilitas perwira untuk merespons dua ancaman simultan.'
+    },
+    {
+      id: 'q7_10',
+      question: 'Disiplin menjaga perwira sendiri agar tidak dibebani perlindungan ganda berlebih dinamakan...',
+      options: ['Harmoni & Distribusi Pertahanan', 'Taktik Gelap', 'Sistem Robot', 'Rokade Cepat'],
+      correctIdx: 0,
+      explanation: 'Membagi tugas pertahanan secara merata mencegah lahirnya titik lemah overloading.'
     }
   ],
   lv8: [
@@ -353,6 +631,62 @@ const CATUR_QUIZ_QUESTIONS: Record<string, QuizQuestion[]> = {
       ],
       correctIdx: 0,
       explanation: 'Arabian Mate adalah pola kuno nan indah di mana Kuda di f6 meluncurkan pertahanan aktif melindungi Benteng di h7 sekaligus mengunci petak g8 dari pelarian Raja h8.'
+    },
+    {
+      id: 'q8_3',
+      question: 'Pola skakmat "Boden\'s Mate" menggunakan dua perwira apa yang saling bersilangan?',
+      options: ['Dua Gajah di garis diagonal bersilangan', 'Dua Kuda', 'Dua Benteng lurus', 'Dua Pion'],
+      correctIdx: 0,
+      explanation: 'Boden’s Mate mengunci Raja di tengah/sayap dengan tebasan diagonal dua Gajah bersilangan.'
+    },
+    {
+      id: 'q8_4',
+      question: 'Skakmat "Smothered Mate" (Skakmat Tercekik) terjadi saat Raja dikelilingi oleh...',
+      options: ['Perwiranya sendiri dan diskakmat oleh Kuda', 'Tiga Menteri', 'Musuh di semua sisi', 'Pion bebas'],
+      correctIdx: 0,
+      explanation: 'Raja tercekik oleh pagar perwiranya sendiri, sementara melompatnya Kuda memberikan skakmat tanpa ampun.'
+    },
+    {
+      id: 'q8_5',
+      question: 'Dalam Smothered Mate, perwira tunggal manakah yang mengeksekusi skakmat akhir?',
+      options: ['Kuda', 'Benteng', 'Menteri', 'Pion'],
+      correctIdx: 0,
+      explanation: 'Hanya Kuda yang sanggup melompati benteng perwira pelindung yang mengepung Raja.'
+    },
+    {
+      id: 'q8_6',
+      question: 'Skakmat "Blackburne\'s Mate" memanfaatkan kombinasi dua Gajah dan perwira apa?',
+      options: ['Kuda', 'Benteng', 'Pion', 'Menteri'],
+      correctIdx: 0,
+      explanation: 'Kuda dan dua Gajah bekerja harmonis mengepung Raja di baris belakang.'
+    },
+    {
+      id: 'q8_7',
+      question: 'Dalam Anastasia Mate, Kuda berada di e7 mengunci petak pelarian Raja yaitu...',
+      options: ['g6 dan g8', 'a1 dan a2', 'd4 dan e4', 'f1 dan f2'],
+      correctIdx: 0,
+      explanation: 'Kuda e7 memotong rute pelarian g6 & g8, menyisakan lajur h bagi hunjaman Benteng.'
+    },
+    {
+      id: 'q8_8',
+      question: 'Pola "Hook Mate" melibatkan kerja sama harmonis antara...',
+      options: ['Benteng, Kuda, dan Pion', 'Tiga Gajah', 'Dua Menteri', 'Raja dan Pion saja'],
+      correctIdx: 0,
+      explanation: 'Hook Mate mengunci Raja menggunakan Kuda yang dilindungi Pion, dengan Benteng memberi skak fatal.'
+    },
+    {
+      id: 'q8_9',
+      question: 'Mengapa "Arabian Mate" disebut sebagai salah satu pola skakmat tertua dalam sejarah catur?',
+      options: ['Sebab sudah tercatat dalam manuskrip Shatranj sejak abad ke-8', 'Sebab ditemukan oleh robot', 'Sebab dibuat kemarin', 'Sebab dicetuskan di Yunani'],
+      correctIdx: 0,
+      explanation: 'Pola Kuda + Benteng ini diwariskan dari permainan Shatranj Persia/Arab kuno.'
+    },
+    {
+      id: 'q8_10',
+      question: 'Kunci utama mengeksekusi Smothered Mate di pojok papan adalah pengorbanan Menteri di g8/g1 untuk...',
+      options: ['Memaksa Benteng musuh memakan dan menyumbat total ruang Raja', 'Menyerahkan laga', 'Membuat remis', 'Promosi pion'],
+      correctIdx: 0,
+      explanation: 'Pengorbanan Menteri memancing Benteng memblokir rute udara terakhir sang Raja.'
     }
   ],
   lv9: [
@@ -379,6 +713,62 @@ const CATUR_QUIZ_QUESTIONS: Record<string, QuizQuestion[]> = {
       ],
       correctIdx: 0,
       explanation: 'Menumpuk benteng (Battery) menaikkan daya gempur linier berkali-kali lipat di lajur terbuka.'
+    },
+    {
+      id: 'q9_3',
+      question: 'Baris manakah yang menjadi sasaran empuk infiltrasi Benteng (The Pig on the 7th Rank)?',
+      options: ['Baris ke-7 (untuk Putih) / Baris ke-2 (untuk Hitam)', 'Baris ke-4', 'Baris ke-1', 'Baris ke-5'],
+      correctIdx: 0,
+      explanation: 'Baris ke-7 dipenuhi pion-pion dasar musuh yang belum maju, menjadi ladang pembantaian bagi Benteng.'
+    },
+    {
+      id: 'q9_4',
+      question: 'Apa yang dimaksud dengan "Lajur Setengah Terbuka" (Semi-Open File)?',
+      options: ['Lajur tanpa pion sendiri, namun masih memiliki pion musuh', 'Lajur tanpa perwira sama sekali', 'Lajur yang diblokir dua raja', 'Lajur pinggir h'],
+      correctIdx: 0,
+      explanation: 'Lajur setengah terbuka memberi Benteng target tembak langsung ke pion musuh di lajur tersebut.'
+    },
+    {
+      id: 'q9_5',
+      question: 'Bagaimana cara merebut atau menetralkan lajur terbuka yang dikuasai Benteng musuh?',
+      options: ['Menumpuk Benteng sendiri di lajur sama atau menyumbat jalur dengan Kuda/Gajah', 'Menarik semua pion mundur', 'Menyerahkan lajur', 'Melakukan rokade ganda'],
+      correctIdx: 0,
+      explanation: 'Tandem Benteng penantang atau blokade perwira kokoh menetralkan keunggulan lajur musuh.'
+    },
+    {
+      id: 'q9_6',
+      question: 'Taktik "Outpost" (Pos Terdepan) Kuda di dekat lajur terbuka biasanya bertengger di petak yang...',
+      options: ['Tidak dapat diusir oleh pion musuh', 'Di pojok papan', 'Di baris sendiri', 'Di petak promosi'],
+      correctIdx: 0,
+      explanation: 'Outpost memberikan Kuda pakan jangkar permanen untuk mendominasi wilayah musuh.'
+    },
+    {
+      id: 'q9_7',
+      question: 'Jika dua Benteng berhasil bersanding di baris ke-7 musuh, julukan terkenal untuk taktik ini adalah...',
+      options: ['Blind Swine Mate (Babi Buta Baris 7)', 'Kuda Terbang', 'Oposisi Ganda', 'Greek Gift'],
+      correctIdx: 0,
+      explanation: 'Dua Benteng di baris 7 menyapu bersih seluruh barisan bak babi kelaparan.'
+    },
+    {
+      id: 'q9_8',
+      question: 'Mengorbankan Kualitas Benteng demi menghancurkan pion penyumbat lajur dinamakan...',
+      options: ['Exchange Sacrifice on Open File', 'Stalemate', 'Draw Otomatis', 'Pion Promosi'],
+      correctIdx: 0,
+      explanation: 'Exchange Sacrifice menukar Benteng demi Perwira Ringan guna membuka jalur tol serangan.'
+    },
+    {
+      id: 'q9_9',
+      question: 'Mengapa Menteri disarankan berada di BELAKANG Benteng saat membangun Battery lajur terbuka?',
+      options: ['Agar Benteng berharga lebih murah memimpin infiltrasi garis depan', 'Agar Menteri tidak kotor', 'Aturan baku', 'Supaya gajah bisa lewat'],
+      correctIdx: 0,
+      explanation: 'Benteng di depan melindungi Menteri dari penukaran tidak menguntungkan di garis depan.'
+    },
+    {
+      id: 'q9_10',
+      question: 'Lajur mana yang paling sering menjadi lajur terbuka pertama di awal laga pertengahan?',
+      options: ['Lajur d dan lajur e (Lajur Tengah)', 'Lajur a dan h', 'Lajur b dan g', 'Lajur f saja'],
+      correctIdx: 0,
+      explanation: 'Pertukaran pion tengah d & e paling cepat membuka jalur tol utama bagi Benteng.'
     }
   ],
   lv10: [
@@ -405,6 +795,62 @@ const CATUR_QUIZ_QUESTIONS: Record<string, QuizQuestion[]> = {
       ],
       correctIdx: 0,
       explanation: 'Zwischenzug menghancurkan asumsi linear lawan tentang pemukulan otomatis, menjadikannya senjata kejut paling efektif di level menengah-keatas.'
+    },
+    {
+      id: 'q10_3',
+      question: 'Jenis Zwischenzug yang paling umum dan mematikan disisipkan di tengah transaksi adalah...',
+      options: ['Langkah Skak ke Raja lawan', 'Mendorong pion samping h3', 'Mundurkan Raja', 'Menawar remis'],
+      correctIdx: 0,
+      explanation: 'Skak memaksa jawaban instan lawan, memberi kita keuntungan posisi sebelum melanjutkan transaksi pemukulan.'
+    },
+    {
+      id: 'q10_4',
+      question: 'Jika lawan memukul Gajah Anda, dan Anda menyisipkan skak Kuda di c7 sebelum memukul balik menterinya, langkah Kuda c7 adalah...',
+      options: ['Zwischenzug (Langkah Selipan)', 'Blunder Berat', 'Oposisi', 'Stalemate'],
+      correctIdx: 0,
+      explanation: 'Skak Kuda c7 merebut tempo bernilai sebelum kita menyelesaikan pertukaran perwira.'
+    },
+    {
+      id: 'q10_5',
+      question: 'Apa risiko utama apabila kalkulasi Zwischenzug Anda meleset?',
+      options: ['Lawan memiliki counter-Zwischenzug yang lebih menghancurkan', 'Papan catur patah', 'Raja otomatis mati', 'Waktu bertambah'],
+      correctIdx: 0,
+      explanation: 'Counter-Zwischenzug balik menyerang krisis kita dengan ancaman yang lebih fatal.'
+    },
+    {
+      id: 'q10_6',
+      question: 'Istilah bahasa Perancis untuk taktik Zwischenzug yang berarti "Langkah Perantara" adalah...',
+      options: ['Intermezzo', 'En Passant', 'Touchant', 'Gambit'],
+      correctIdx: 0,
+      explanation: 'Intermezzo adalah istilah internasional paralel untuk langkah selipan perantara.'
+    },
+    {
+      id: 'q10_7',
+      question: 'Dalam pertukaran Menteri, Zwischenzug berupa ancaman Skakmat langsung akan...',
+      options: ['Memaksa lawan mempertahankan Raja dan kehilangan Menterinya gratis', 'Membuat laga remis', 'Membatalkan skak', 'Promosi pion'],
+      correctIdx: 0,
+      explanation: 'Ancaman mat mengungguli ancaman Menteri, memaksa musuh mengalah kehilangan Menteri.'
+    },
+    {
+      id: 'q10_8',
+      question: 'Mengapa pemain pemula sering menjadi korban taktik Zwischenzug?',
+      options: ['Sebab kebiasaan refleks memukul balik tanpa memeriksa ancaman lain di papan', 'Sebab tidak membawa kalkulator', 'Sebab pion lambat', 'Sebab papan terlalu luas'],
+      correctIdx: 0,
+      explanation: 'Refleks otomatis memukul balik menutupi mata dari ancaman taktis perantara.'
+    },
+    {
+      id: 'q10_9',
+      question: 'Apakah Zwischenzug HANYA terbatas pada langkah skak?',
+      options: ['Tidak, bisa berupa ancaman mat, ancaman menteri, atau penyerangan perwira lain', 'Ya, wajib skak saja', 'Hanya untuk pion', 'Hanya di langkah ke-10'],
+      correctIdx: 0,
+      explanation: 'Setiap ancaman paksa berdaya destruktif tinggi dapat menjadi langkah selipan Zwischenzug.'
+    },
+    {
+      id: 'q10_10',
+      question: 'Kunci utama mendeteksi potensi Zwischenzug giliran lawan adalah...',
+      options: ['Selalu memeriksa SEMUA langkah paksa (skak, ancaman mat, tangkapan) sebelum melangkah', 'Berdoa', 'Melihat jam', 'Memindah papan'],
+      correctIdx: 0,
+      explanation: 'Analisis menyeluruh terhadap forced moves mencegah jebakan langkah selipan tersembunyi.'
     }
   ],
   lv11: [
@@ -431,6 +877,62 @@ const CATUR_QUIZ_QUESTIONS: Record<string, QuizQuestion[]> = {
       ],
       correctIdx: 0,
       explanation: 'Scholar’s Mate menargetkan f7/f2 karena petak ini adalah petak terlemah di awal laga yang tidak dilindungi oleh perwira lain selain Raja.'
+    },
+    {
+      id: 'q11_3',
+      question: 'Jebakan "Elephant Trap" dalam Pembukaan Gambit Menteri Ditolak (QGD) menjebak Putih yang serakah memakan pion d5 dengan kehilangan...',
+      options: ['Perwira Gajah / Menteri di d1', 'Raja', 'Pion a2', 'Benteng h1'],
+      correctIdx: 0,
+      explanation: 'Elephant Trap memanfaatkan kuncian semu di d5 untuk menjebak perwira Putih yang tergiur pion gratis.'
+    },
+    {
+      id: 'q11_4',
+      question: 'Jebakan "Fishing Pole Trap" dalam Pembukaan Ruy Lopez mengorbankan Kuda di g4 untuk membuka lajur...',
+      options: ['Lajur h bagi serangan Benteng dan Menteri', 'Lajur a', 'Lajur d', 'Lajur c'],
+      correctIdx: 0,
+      explanation: 'Fishing Pole mengorbankan Kuda g4 agar lajur h terbuka bagi gempuran Benteng & Menteri.'
+    },
+    {
+      id: 'q11_5',
+      question: 'Jebakan "Blackburne Shilling Gambit" mengorbankan pion e4 untuk melancarkan serangan cepat yang berakhir dengan...',
+      options: ['Smothered Mate (Skakmat Tercekik) di f2/c2', 'Draw cepat', 'Rokade ganda', 'Stalemate'],
+      correctIdx: 0,
+      explanation: 'Blackburne Shilling menjebak Putih yang serakah memakan pion e4 dengan serangan Smothered Mate kilat.'
+    },
+    {
+      id: 'q11_6',
+      question: 'Jebakan "Mortimer Trap" terjadi dalam variasi Ruy Lopez di mana Hitam pura-pura melakukan blunder Kuda di...',
+      options: ['e5', 'a6', 'h6', 'f3'],
+      correctIdx: 0,
+      explanation: 'Mortimer Trap memasang umpan Kuda e5 yang jika dimakan Putih akan berujung pada jebakan kuncian Menteri.'
+    },
+    {
+      id: 'q11_7',
+      question: 'Apa kunci pertahanan utama mencegah Scholar\'s Mate di langkah awal?',
+      options: ['Mengembangkan Kuda ke f6/c6 atau memajukan pion g6', 'Menyerahkan Menteri', 'Memajukan pion h6', 'Mundur ke baris 8'],
+      correctIdx: 0,
+      explanation: 'Kuda f6 atau pion g6 menutup akses tembak Menteri lawan ke petak rawan f7.'
+    },
+    {
+      id: 'q11_8',
+      question: 'Mengapa mengeluarkan Menteri terlalu awal di pembukaan catur dianggap sebagai pelanggaran prinsip?',
+      options: ['Sebab Menteri akan terus diserang oleh perwira musuh yang sedang berkembang, membuang tempo', 'Sebab Menteri takut', 'Aturan baku', 'Sebab Menteri tidak bisa melangkah'],
+      correctIdx: 0,
+      explanation: 'Menerjunkan Menteri terlalu dini memberi musuh tempo gratis untuk mengembangkan perwira sambil mengincar Menteri.'
+    },
+    {
+      id: 'q11_9',
+      question: 'Dalam Pembukaan Italia, memajukan Gajah ke c4 menargetkan petak rawan yaitu...',
+      options: ['f7', 'b7', 'h7', 'd7'],
+      correctIdx: 0,
+      explanation: 'Gajah c4 langsung membidik petak f7 yang hanya dijaga oleh Raja Hitam.'
+    },
+    {
+      id: 'q11_10',
+      question: 'Prinsip emas utama pembukaan catur adalah...',
+      options: ['Kuasai pusat, kembangkan perwira aktif, amankan Raja dengan rokade', 'Serang dengan Menteri saja', 'Jalan pion samping h4', 'Tetap diam'],
+      correctIdx: 0,
+      explanation: 'Kontrol pusat, mobilisasi cepat, dan keamanan Raja adalah fondasi kemenangan catur sejati.'
     }
   ]
 };
@@ -495,6 +997,11 @@ export const Features41to50: React.FC<Features41to50Props> = ({
   setDiamonds,
   xp,
   setXp,
+  streak,
+  guestMatchesPlayed,
+  guestMatchesWon,
+  hearts = 5,
+  setHearts,
   membershipStatus,
   triggerAudio,
   triggerReward,
@@ -523,7 +1030,8 @@ export const Features41to50: React.FC<Features41to50Props> = ({
   onTriggerRestartTutorial,
   syncUserStats,
   user,
-  starterPackClaimed
+  starterPackClaimed,
+  onPuzzleCompleted
 }) => {
   // Active Navigation inside features
   const [activeSubTab, setActiveSubTab] = useState<'quiz' | 'ritual' | 'settings' | 'medals' | 'pokedex' | 'block-report' | 'notif'>(forceTab || 'quiz');
@@ -542,9 +1050,124 @@ export const Features41to50: React.FC<Features41to50Props> = ({
   });
 
   const [blockedUsers, setBlockedUsers] = useState<string[]>(() => {
-    const saved = localStorage.getItem('blocked_users');
-    return saved ? JSON.parse(saved) : ['PecaturToxic69', 'BotsSpammer2024'];
+    const activeUser = (localStorage.getItem('username') || 'guest').trim().toLowerCase();
+    const saved = localStorage.getItem(`blocked_users:${activeUser}`) || localStorage.getItem('blocked_users');
+    return saved ? JSON.parse(saved) : [];
   });
+
+  const MEDAL_LEVEL_TARGETS: Record<string, number[]> = {
+    m1: [10, 20, 35, 50, 80],
+    m2: [5, 12, 20, 30, 50],
+    m3: [15, 25, 40, 60, 100],
+    m4: [1, 3, 5, 8, 15],
+    m5: [1200, 1500, 1800, 2000, 2300],
+    m6: [1, 2, 3, 4, 5],
+  };
+
+  const [userMedals, setUserMedals] = useState<any[]>(() => {
+    const activeUser = (username || 'guest').trim().toLowerCase();
+    const saved = localStorage.getItem(`medals_progress:${activeUser}`);
+    let parsed: any[] = [];
+    if (saved) {
+      try {
+        parsed = JSON.parse(saved);
+      } catch (_) {}
+    }
+
+    const isCleanUser = activeUser === 'guest' || activeUser.startsWith('pecatur_');
+
+    if (parsed && parsed.length > 0) {
+      return parsed.map(m => {
+        const unlocked = isCleanUser ? false : (m.unlocked || false);
+        const lvl = unlocked ? (m.level || 1) : 1;
+        const targets = MEDAL_LEVEL_TARGETS[m.id] || [10, 20, 35, 50, 80];
+        const currentTarget = targets[lvl - 1] || targets[targets.length - 1];
+        if (m.id === 'm5') {
+          const isM5Unlocked = onlineRating >= currentTarget;
+          return {
+            ...m,
+            level: lvl,
+            progress: onlineRating,
+            unlocked: isM5Unlocked,
+            target: currentTarget,
+            desc: `Capai peringkat Master ELO melampaui ${currentTarget}`
+          };
+        }
+        return {
+          ...m,
+          level: lvl,
+          unlocked,
+          target: currentTarget
+        };
+      });
+    }
+
+    return STATS_MEDALS.map(m => {
+      const unlocked = isCleanUser ? false : (m.unlocked || false);
+      const lvl = unlocked ? (m.level || 1) : 1;
+      const progress = isCleanUser ? 0 : (m.progress || 0);
+      const targets = MEDAL_LEVEL_TARGETS[m.id] || [10, 20, 35, 50, 80];
+      const currentTarget = targets[lvl - 1] || targets[targets.length - 1];
+      if (m.id === 'm5') {
+        const isM5Unlocked = onlineRating >= currentTarget;
+        return {
+          ...m,
+          progress: onlineRating,
+          unlocked: isM5Unlocked,
+          level: lvl,
+          target: currentTarget,
+          desc: `Capai peringkat Master ELO melampaui ${currentTarget}`
+        };
+      }
+      return {
+        ...m,
+        progress,
+        unlocked,
+        level: lvl,
+        target: currentTarget
+      };
+    });
+  });
+
+  useEffect(() => {
+    setUserMedals(prev => {
+      let changed = false;
+      const next = prev.map(m => {
+        if (m.id === 'm5') {
+          const lvl = m.level || 1;
+          const target = MEDAL_LEVEL_TARGETS.m5[lvl - 1] || 1200;
+          const unlocked = onlineRating >= target;
+          const desc = `Capai peringkat Master ELO melampaui ${target}`;
+          if (m.progress !== onlineRating || m.unlocked !== unlocked || m.target !== target || m.desc !== desc) {
+            changed = true;
+            return {
+              ...m,
+              progress: onlineRating,
+              unlocked: unlocked,
+              target: target,
+              desc: desc
+            };
+          }
+        } else {
+          if (!m.unlocked && m.level > 1) {
+            changed = true;
+            return {
+              ...m,
+              level: 1,
+              target: MEDAL_LEVEL_TARGETS[m.id]?.[0] || m.target
+            };
+          }
+        }
+        return m;
+      });
+      if (changed) {
+        const activeUser = (username || 'guest').trim().toLowerCase();
+        localStorage.setItem(`medals_progress:${activeUser}`, JSON.stringify(next));
+        return next;
+      }
+      return prev;
+    });
+  }, [onlineRating, username]);
 
   const unlockedInventory = useMemo(() => {
     const skinsArr = unlockedSkins || [];
@@ -587,7 +1210,7 @@ export const Features41to50: React.FC<Features41to50Props> = ({
       return t;
     });
 
-    const unlockedMedalIds = STATS_MEDALS.filter(m => m.unlocked || m.progress >= m.target).map(m => m.id);
+    const unlockedMedalIds = userMedals.filter(m => m.unlocked || m.progress >= m.target).map(m => m.id);
 
     try {
       const saved = localStorage.getItem('unlocked_pokedex_inv');
@@ -615,11 +1238,12 @@ export const Features41to50: React.FC<Features41to50Props> = ({
         ...unlockedMedalIds
       ])).sort();
     }
-  }, [unlockedSkins, unlockedThemes, unlockedFrames, unlockedTitles]);
+  }, [unlockedSkins, unlockedThemes, unlockedFrames, unlockedTitles, userMedals]);
 
   const [pinnedMedals, setPinnedMedals] = useState<string[]>(() => {
-    const saved = localStorage.getItem('pinned_medals_ids');
-    return saved ? JSON.parse(saved) : ['m3', 'm4'];
+    const activeUser = (localStorage.getItem('username') || 'guest').trim().toLowerCase();
+    const saved = localStorage.getItem(`pinned_medals_ids:${activeUser}`);
+    return saved ? JSON.parse(saved) : [];
   });
 
   const [notificationLog, setNotificationLog] = useState<any[]>(() => {
@@ -633,10 +1257,46 @@ export const Features41to50: React.FC<Features41to50Props> = ({
 
   // Local state temporary
   const [activeQuizNode, setActiveQuizNode] = useState<any>(null);
+  const [shuffledQuizQuestions, setShuffledQuizQuestions] = useState<QuizQuestion[]>([]);
   const [currentQuizIdx, setCurrentQuizIdx] = useState(0);
   const [selectedOptIdx, setSelectedOptIdx] = useState<number | null>(null);
+  const [isAnswerSubmitted, setIsAnswerSubmitted] = useState<boolean>(false);
+  const [quizFeedback, setQuizFeedback] = useState<'correct' | 'wrong' | null>(null);
   const [quizFinished, setQuizFinished] = useState(false);
   const [quizScore, setQuizScore] = useState(0);
+  const [quizStartTime, setQuizStartTime] = useState<number>(0);
+  const [quizElapsedSeconds, setQuizElapsedSeconds] = useState<number>(0);
+  const [quizCombo, setQuizCombo] = useState<number>(0);
+  const [quizMaxCombo, setQuizMaxCombo] = useState<number>(0);
+  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+  const [isTreasureModalOpen, setIsTreasureModalOpen] = useState(false);
+  const [isLearningReportOpen, setIsLearningReportOpen] = useState(false);
+
+  // Daily & Monthly Mission State (scoped per account)
+  const [quizCompletedCount, setQuizCompletedCount] = useState<number>(() => {
+    const activeKey = (username || 'guest').trim().toLowerCase();
+    const saved = localStorage.getItem(`quiz_completed_count:${activeKey}`);
+    return saved !== null ? Number(saved) : 0;
+  });
+  const [quizSessionCount, setQuizSessionCount] = useState<number>(() => {
+    const activeKey = (username || 'guest').trim().toLowerCase();
+    const saved = localStorage.getItem(`quiz_session_count:${activeKey}`);
+    return saved !== null ? Number(saved) : 0;
+  });
+  const [claimedQuestIds, setClaimedQuestIds] = useState<string[]>(() => {
+    const activeKey = (username || 'guest').trim().toLowerCase();
+    const saved = localStorage.getItem(`claimed_quest_ids:${activeKey}`);
+    return saved ? JSON.parse(saved) : [];
+  });
+  const [monthlyMissionsCompleted, setMonthlyMissionsCompleted] = useState<number>(() => {
+    const activeKey = (username || 'guest').trim().toLowerCase();
+    const saved = localStorage.getItem(`monthly_missions_completed:${activeKey}`);
+    return saved !== null ? Number(saved) : 0;
+  });
+  const [monthlyRewardClaimed, setMonthlyRewardClaimed] = useState<boolean>(() => {
+    const activeKey = (username || 'guest').trim().toLowerCase();
+    return localStorage.getItem(`monthly_reward_claimed:${activeKey}`) === 'true';
+  });
 
   // Chest Buka state
   const [activeChestNode, setActiveChestNode] = useState<any>(null);
@@ -694,22 +1354,136 @@ export const Features41to50: React.FC<Features41to50Props> = ({
   }, [solvedNodes]);
 
   useEffect(() => {
-    localStorage.setItem('blocked_users', JSON.stringify(blockedUsers));
-  }, [blockedUsers]);
-
-  useEffect(() => {
     localStorage.setItem('unlocked_pokedex_inv', JSON.stringify(unlockedInventory));
   }, [unlockedInventory]);
-
-
-
-  useEffect(() => {
-    localStorage.setItem('pinned_medals_ids', JSON.stringify(pinnedMedals));
-  }, [pinnedMedals]);
 
   useEffect(() => {
     localStorage.setItem('social_noti_log', JSON.stringify(notificationLog));
   }, [notificationLog]);
+
+  // Check daily & monthly mission reset & reload per active account
+  useEffect(() => {
+    const activeKey = (username || 'guest').trim().toLowerCase();
+    const now = new Date();
+    const todayDate = now.toISOString().slice(0, 10); // YYYY-MM-DD
+    const todayMonth = now.toISOString().slice(0, 7); // YYYY-MM
+
+    const lastResetDate = localStorage.getItem(`last_mission_reset_date:${activeKey}`);
+    const lastResetMonth = localStorage.getItem(`last_mission_reset_month:${activeKey}`);
+
+    let qComp = 0;
+    let qSess = 0;
+    let claimed: string[] = [];
+
+    if (lastResetDate !== todayDate) {
+      // New day for this account - reset daily missions
+      localStorage.setItem(`quiz_completed_count:${activeKey}`, '0');
+      localStorage.setItem(`quiz_session_count:${activeKey}`, '0');
+      localStorage.setItem(`claimed_quest_ids:${activeKey}`, JSON.stringify([]));
+      localStorage.setItem(`last_mission_reset_date:${activeKey}`, todayDate);
+    } else {
+      const savedQComp = localStorage.getItem(`quiz_completed_count:${activeKey}`);
+      if (savedQComp !== null) qComp = Number(savedQComp);
+      const savedQSess = localStorage.getItem(`quiz_session_count:${activeKey}`);
+      if (savedQSess !== null) qSess = Number(savedQSess);
+      const savedClaimed = localStorage.getItem(`claimed_quest_ids:${activeKey}`);
+      if (savedClaimed) claimed = JSON.parse(savedClaimed);
+    }
+
+    setQuizCompletedCount(qComp);
+    setQuizSessionCount(qSess);
+    setClaimedQuestIds(claimed);
+
+    let mMissions = 0;
+    let mClaimed = false;
+
+    if (lastResetMonth !== todayMonth) {
+      // New month for this account - reset monthly missions
+      localStorage.setItem(`monthly_missions_completed:${activeKey}`, '0');
+      localStorage.setItem(`monthly_reward_claimed:${activeKey}`, 'false');
+      localStorage.setItem(`last_mission_reset_month:${activeKey}`, todayMonth);
+    } else {
+      const savedM = localStorage.getItem(`monthly_missions_completed:${activeKey}`);
+      if (savedM !== null) mMissions = Number(savedM);
+      mClaimed = localStorage.getItem(`monthly_reward_claimed:${activeKey}`) === 'true';
+    }
+
+    setMonthlyMissionsCompleted(mMissions);
+    setMonthlyRewardClaimed(mClaimed);
+  }, [username]);
+
+  useEffect(() => {
+    const activeKey = (username || 'guest').trim().toLowerCase();
+    localStorage.setItem(`monthly_missions_completed:${activeKey}`, String(monthlyMissionsCompleted));
+  }, [monthlyMissionsCompleted, username]);
+
+  useEffect(() => {
+    const activeKey = (username || 'guest').trim().toLowerCase();
+    localStorage.setItem(`monthly_reward_claimed:${activeKey}`, String(monthlyRewardClaimed));
+  }, [monthlyRewardClaimed, username]);
+
+  useEffect(() => {
+    const activeUser = username.trim().toLowerCase();
+    const savedBlocked = localStorage.getItem(`blocked_users:${activeUser}`);
+    if (savedBlocked !== null) {
+      setBlockedUsers(JSON.parse(savedBlocked));
+    } else {
+      setBlockedUsers([]);
+    }
+
+    const savedMedals = localStorage.getItem(`pinned_medals_ids:${activeUser}`);
+    if (savedMedals !== null) {
+      setPinnedMedals(JSON.parse(savedMedals));
+    } else {
+      setPinnedMedals([]);
+    }
+
+    // Refresh userMedals state on username change
+    const savedMedalsProgressStr = localStorage.getItem(`medals_progress:${activeUser}`);
+    const MEDAL_LEVEL_TARGETS: Record<string, number[]> = {
+      m1: [10, 20, 35, 50, 80],
+      m2: [5, 12, 20, 30, 50],
+      m3: [15, 25, 40, 60, 100],
+      m4: [1, 3, 5, 8, 15],
+      m5: [1200, 1500, 1800, 2000, 2300],
+      m6: [1, 2, 3, 4, 5],
+    };
+    const isCleanUser = activeUser === 'guest' || activeUser.startsWith('pecatur_');
+
+    if (savedMedalsProgressStr) {
+      try {
+        const parsed = JSON.parse(savedMedalsProgressStr);
+        if (parsed && parsed.length > 0) {
+          const loaded = parsed.map((m: any) => {
+            const lvl = m.level || 1;
+            const targets = MEDAL_LEVEL_TARGETS[m.id] || [10, 20, 35, 50, 80];
+            return {
+              ...m,
+              level: lvl,
+              target: targets[lvl - 1] || targets[targets.length - 1]
+            };
+          });
+          setUserMedals(loaded);
+          return;
+        }
+      } catch (_) {}
+    }
+
+    const initial = STATS_MEDALS.map(m => {
+      const lvl = isCleanUser ? 1 : (m.level || 1);
+      const unlocked = isCleanUser ? false : (m.unlocked || false);
+      const progress = isCleanUser ? 0 : (m.progress || 0);
+      const targets = MEDAL_LEVEL_TARGETS[m.id] || [10, 20, 35, 50, 80];
+      return {
+        ...m,
+        progress,
+        unlocked,
+        level: lvl,
+        target: targets[lvl - 1] || targets[targets.length - 1]
+      };
+    });
+    setUserMedals(initial);
+  }, [username]);
 
   useEffect(() => {
     localStorage.setItem('gacha_pity_legend', String(gachaPityLegendary));
@@ -755,55 +1529,116 @@ export const Features41to50: React.FC<Features41to50Props> = ({
   // 1. QUIZ DUOLINGO STYLE FUNCTIONS
   // -------------------------------------------------------------------------
   const startQuizForNode = (node: any) => {
+    if (hearts <= 0) {
+      triggerAudio('error');
+      spawnToast('Nyawa Habis!', 'Nyawa kamu 0/5. Isi ulang nyawa di Toko / Navbar untuk melanjutkan kuis!', 'error');
+      return;
+    }
     triggerAudio('move');
-    const questions = CATUR_QUIZ_QUESTIONS[node.id];
+    const questions = CATUR_QUIZ_QUESTIONS[node.id] || [];
     if (questions && questions.length > 0) {
+      // Randomly shuffle options for every question so correct answers are distributed across A, B, C, D
+      const shuffled = questions.map(q => {
+        const indexed = q.options.map((opt, i) => ({ opt, isCorrect: i === q.correctIdx }));
+        for (let i = indexed.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1));
+          [indexed[i], indexed[j]] = [indexed[j], indexed[i]];
+        }
+        return {
+          ...q,
+          options: indexed.map(x => x.opt),
+          correctIdx: indexed.findIndex(x => x.isCorrect)
+        };
+      });
+
+      setShuffledQuizQuestions(shuffled);
       setActiveQuizNode(node);
       setCurrentQuizIdx(0);
       setSelectedOptIdx(null);
+      setIsAnswerSubmitted(false);
+      setQuizFeedback(null);
       setQuizFinished(false);
       setQuizScore(0);
+      setQuizCombo(0);
+      setQuizMaxCombo(0);
+      setQuizStartTime(Date.now());
     } else {
       spawnToast('Info Kuis', 'Pertanyaan untuk level ini sedang dikomposisi oleh kakek catur!', 'info');
     }
   };
 
   const handleSelectQuizOption = (optIdx: number) => {
+    if (isAnswerSubmitted) return;
     triggerAudio('move');
     setSelectedOptIdx(optIdx);
   };
 
   const submitQuizAnswer = () => {
-    const questions = CATUR_QUIZ_QUESTIONS[activeQuizNode.id];
-    const currentQ = questions[currentQuizIdx];
-    
-    if (selectedOptIdx === null) return;
+    if (selectedOptIdx === null || isAnswerSubmitted) return;
 
-    if (selectedOptIdx === currentQ.correctIdx) {
+    const questions = shuffledQuizQuestions.length > 0 ? shuffledQuizQuestions : (CATUR_QUIZ_QUESTIONS[activeQuizNode?.id] || []);
+    const currentQ = questions[currentQuizIdx];
+    if (!currentQ) return;
+
+    setIsAnswerSubmitted(true);
+    const isCorrect = selectedOptIdx === currentQ.correctIdx;
+
+    if (isCorrect) {
       triggerAudio('win');
       setQuizScore(prev => prev + 1);
+      const nextCombo = quizCombo + 1;
+      setQuizCombo(nextCombo);
+      setQuizMaxCombo(prev => Math.max(prev, nextCombo));
+      setQuizFeedback('correct');
     } else {
       triggerAudio('error');
+      setQuizCombo(0);
+      setQuizFeedback('wrong');
+      if (setHearts) {
+        setHearts(prev => Math.max(0, prev - 1));
+      }
     }
+  };
 
+  const advanceToNextQuestion = () => {
+    const questions = shuffledQuizQuestions.length > 0 ? shuffledQuizQuestions : (CATUR_QUIZ_QUESTIONS[activeQuizNode?.id] || []);
     if (currentQuizIdx + 1 < questions.length) {
-      setTimeout(() => {
-        setCurrentQuizIdx(prev => prev + 1);
-        setSelectedOptIdx(null);
-      }, 1500);
+      setCurrentQuizIdx(prev => prev + 1);
+      setSelectedOptIdx(null);
+      setIsAnswerSubmitted(false);
+      setQuizFeedback(null);
     } else {
-      // Finished
+      const finishTime = Date.now();
+      const elapsed = Math.max(5, Math.floor((finishTime - (quizStartTime || finishTime)) / 1000));
+      setQuizElapsedSeconds(elapsed);
       setQuizFinished(true);
-      const isSuccess = quizScore + (selectedOptIdx === currentQ.correctIdx ? 1 : 0) >= questions.length;
-      if (isSuccess) {
+      if (onPuzzleCompleted) {
+        onPuzzleCompleted();
+      }
+      setQuizCompletedCount(prev => {
+        const next = prev + 1;
+        const activeKey = (username || 'guest').trim().toLowerCase();
+        localStorage.setItem(`quiz_completed_count:${activeKey}`, String(next));
+        return next;
+      });
+      setQuizSessionCount(prev => {
+        const next = prev + 1;
+        const activeKey = (username || 'guest').trim().toLowerCase();
+        localStorage.setItem(`quiz_session_count:${activeKey}`, String(next));
+        return next;
+      });
+
+      const isSuccess = quizScore >= Math.ceil(questions.length * 0.5);
+      if (isSuccess && activeQuizNode) {
         if (!solvedNodes.includes(activeQuizNode.id)) {
           setSolvedNodes(prev => [...prev, activeQuizNode.id]);
-          // Award XP & Coins
-          setXp(p => p + 65);
-          setCoins(p => p + 120);
-          triggerReward(65, 'Selamat! Anda menyelesaikan level kuis taktis ini dengan cemerlang! Poin XP +65, Koin +120!', 'success');
         }
       }
+
+      // Automatically open Learning Report Modal after completing the quiz!
+      setTimeout(() => {
+        setIsLearningReportOpen(true);
+      }, 500);
     }
   };
 
@@ -931,17 +1766,134 @@ export const Features41to50: React.FC<Features41to50Props> = ({
   // -------------------------------------------------------------------------
   const togglePinMedalToProfile = (medalId: string) => {
     triggerAudio('move');
+    let newList = [...pinnedMedals];
     if (pinnedMedals.includes(medalId)) {
-      setPinnedMedals(prev => prev.filter(m => m !== medalId));
+      newList = pinnedMedals.filter(m => m !== medalId);
+      setPinnedMedals(newList);
       spawnToast('Medal Dicopot', 'Medali kehormatan dilepaskan dari pameran profil Anda.', 'info');
     } else {
       if (pinnedMedals.length >= 3) {
         spawnToast('Slot Penuh', 'Maksimal memamerkan 3 medali sekaligus di galeri profil catur!', 'error');
         return;
       }
-      setPinnedMedals(prev => [...prev, medalId]);
+      newList = [...pinnedMedals, medalId];
+      setPinnedMedals(newList);
       spawnToast('Medal Terpasang', 'Medali resmi terpajang anggun di kartu profil catur publik Anda!', 'success');
     }
+    const activeUser = (username || 'guest').trim().toLowerCase();
+    localStorage.setItem(`pinned_medals_ids:${activeUser}`, JSON.stringify(newList));
+    localStorage.setItem('pinned_medals_ids', JSON.stringify(newList));
+    window.dispatchEvent(new Event('pinned_medals_update'));
+  };
+
+  const handleSimulateMedalProgress = (medalId: string) => {
+    triggerAudio('move');
+    if (medalId === 'm5') {
+      const nextElo = onlineRating + 150;
+      const activeUser = (username || 'guest').trim().toLowerCase();
+      localStorage.setItem(`user_elo:${activeUser}`, String(nextElo));
+      localStorage.setItem('user_elo', String(nextElo));
+      if (syncUserStats) {
+        syncUserStats(nextElo);
+      }
+      spawnToast('ELO Meningkat (+150)', `ELO Anda naik menjadi ${nextElo}! Misi Mahkota Kaisar Agung diperbarui.`, 'success');
+      return;
+    }
+
+    const MEDAL_LEVEL_TARGETS: Record<string, number[]> = {
+      m1: [10, 20, 35, 50, 80],
+      m2: [5, 12, 20, 30, 50],
+      m3: [15, 25, 40, 60, 100],
+      m4: [1, 3, 5, 8, 15],
+      m5: [1200, 1500, 1800, 2000, 2300],
+      m6: [1, 2, 3, 4, 5],
+    };
+
+    const updated = userMedals.map(m => {
+      if (m.id === medalId) {
+        const lvl = m.level || 1;
+        const targets = MEDAL_LEVEL_TARGETS[m.id] || [10, 20, 35, 50, 80];
+        const currentTarget = targets[lvl - 1] || targets[targets.length - 1];
+
+        const increment = 5;
+        let nextProgress = m.progress + increment;
+        let isUnlocked = m.unlocked;
+
+        if (nextProgress >= currentTarget) {
+          nextProgress = currentTarget;
+          if (!isUnlocked) {
+            isUnlocked = true;
+            spawnToast('Medali Diperoleh!', `Selamat! Anda berhasil membuka medali "${m.name}"!`, 'success');
+            triggerAudio('win');
+          }
+        }
+        return {
+          ...m,
+          progress: nextProgress,
+          unlocked: isUnlocked,
+          target: currentTarget
+        };
+      }
+      return m;
+    });
+
+    setUserMedals(updated);
+    const activeUser = (username || 'guest').trim().toLowerCase();
+    localStorage.setItem(`medals_progress:${activeUser}`, JSON.stringify(updated));
+    window.dispatchEvent(new Event('medals_progress_update'));
+  };
+
+  const handleLevelUpMedal = (medalId: string) => {
+    const MEDAL_LEVEL_TARGETS: Record<string, number[]> = {
+      m1: [10, 20, 35, 50, 80],
+      m2: [5, 12, 20, 30, 50],
+      m3: [15, 25, 40, 60, 100],
+      m4: [1, 3, 5, 8, 15],
+      m5: [1200, 1500, 1800, 2000, 2300],
+      m6: [1, 2, 3, 4, 5],
+    };
+
+    let upgradedMedalName = '';
+    let nextLvl = 1;
+
+    const updated = userMedals.map(m => {
+      if (m.id === medalId) {
+        const currentLvl = m.level || 1;
+        if (currentLvl >= 5) {
+          return m;
+        }
+        nextLvl = currentLvl + 1;
+        const targets = MEDAL_LEVEL_TARGETS[m.id];
+        const nextTarget = targets[nextLvl - 1] || targets[targets.length - 1];
+        upgradedMedalName = m.name;
+
+        if (m.id === 'm5') {
+          return {
+            ...m,
+            level: nextLvl,
+            progress: onlineRating,
+            unlocked: onlineRating >= nextTarget,
+            target: nextTarget,
+            desc: `Capai peringkat Master ELO melampaui ${nextTarget}`
+          };
+        }
+
+        return {
+          ...m,
+          level: nextLvl,
+          progress: 0,
+          target: nextTarget
+        };
+      }
+      return m;
+    });
+
+    setUserMedals(updated);
+    triggerAudio('win');
+    const activeUser = (username || 'guest').trim().toLowerCase();
+    localStorage.setItem(`medals_progress:${activeUser}`, JSON.stringify(updated));
+    window.dispatchEvent(new Event('medals_progress_update'));
+    spawnToast('Naik Tingkat Medali!', `Luar biasa! Medali "${upgradedMedalName}" Anda resmi naik ke Level ${nextLvl}! Kesulitan baru telah diaktifkan.`, 'success');
   };
 
   // -------------------------------------------------------------------------
@@ -1139,14 +2091,24 @@ export const Features41to50: React.FC<Features41to50Props> = ({
       return;
     }
     triggerAudio('error');
-    setBlockedUsers(p => [...p, target]);
+    const newList = [...blockedUsers, target];
+    setBlockedUsers(newList);
+    const activeUser = (username || 'guest').trim().toLowerCase();
+    localStorage.setItem(`blocked_users:${activeUser}`, JSON.stringify(newList));
+    localStorage.setItem('blocked_users', JSON.stringify(newList));
+    window.dispatchEvent(new Event('blocked_users_update'));
     spawnToast('Daftar Hitam Terbentuk', `Pemain toxic "${target}" resmi diblokir dari semua interaksi klan & guild!`, 'success');
     setUserToBlock('');
   };
 
   const handleUnblockUser = (name: string) => {
     triggerAudio('move');
-    setBlockedUsers(p => p.filter(u => u !== name));
+    const newList = blockedUsers.filter(u => u !== name);
+    setBlockedUsers(newList);
+    const activeUser = (username || 'guest').trim().toLowerCase();
+    localStorage.setItem(`blocked_users:${activeUser}`, JSON.stringify(newList));
+    localStorage.setItem('blocked_users', JSON.stringify(newList));
+    window.dispatchEvent(new Event('blocked_users_update'));
     spawnToast('Blokir Dibuka', `Akses komunikasi untuk pemain "${name}" resmi diaktifkan kembali.`, 'info');
   };
 
@@ -1290,85 +2252,126 @@ export const Features41to50: React.FC<Features41to50Props> = ({
               /* FULL-SCREEN TAKEOVER VIEW FOR INDIVIDUAL GAME PLAY */
               <div className="min-h-[550px] bg-[#1e1c1b] border border-[#3c3934]/70 p-6 md:p-12 rounded-3xl flex flex-col justify-between relative shadow-2xl animate-fade-in">
                 
-                {/* Back Button to close takeover and go back to map */}
-                <button 
-                  onClick={() => {
-                    setActiveQuizNode(null);
-                    setActiveChestNode(null);
-                    setQuizFinished(false);
-                    triggerAudio('move');
-                  }} 
-                  className="absolute top-6 right-6 p-2 rounded-full bg-[#262421] hover:bg-[#312e2b] border border-[#3c3934] text-slate-400 hover:text-white transition-all cursor-pointer z-10"
-                  title="Kembali ke Peta"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-
                 {/* 1. Interactive Question Sub-State */}
-                {activeQuizNode && !quizFinished && (
-                  <div className="max-w-2xl mx-auto w-full my-auto space-y-8 py-6">
-                    <div className="space-y-2">
-                      <span className="text-[10px] font-black tracking-widest text-[#81b64c] uppercase font-mono block">MODUL MATERI: {activeQuizNode.name}</span>
-                      <h3 className="text-xl md:text-2xl font-black text-white uppercase tracking-tight">
-                        Ujian Teori Catur Taktis
-                      </h3>
-                    </div>
+                {activeQuizNode && !quizFinished && (() => {
+                  const questionsList = shuffledQuizQuestions.length > 0 
+                    ? shuffledQuizQuestions 
+                    : (CATUR_QUIZ_QUESTIONS[activeQuizNode.id] || []);
+                  const currentQ = questionsList[currentQuizIdx] || questionsList[0];
+                  if (!currentQ) return null;
 
-                    {/* Progress tracker */}
-                    <div className="space-y-2">
-                      <div className="flex justify-between items-center text-[10px] font-mono font-bold text-amber-500 uppercase tracking-wider">
-                        <span>Langkah Pertanyaan</span>
-                        <span>{currentQuizIdx + 1} S/D {CATUR_QUIZ_QUESTIONS[activeQuizNode.id].length}</span>
+                  return (
+                    <div className="max-w-3xl mx-auto w-full my-auto space-y-6 py-4">
+                      {/* DUOLINGO STYLE ANIMATED MASCOT HEADER & SPEECH BUBBLE */}
+                      <DuolingoMascotHeader
+                        badgeText={`MODUL MATERI: ${activeQuizNode.name}`}
+                        titleText="Ujian Teori Catur Taktis"
+                        speechBubbleText={currentQ.question}
+                        mascotType="cat"
+                        mascotState={
+                          isAnswerSubmitted 
+                            ? (quizFeedback === 'correct' ? 'correct' : 'wrong') 
+                            : (selectedOptIdx !== null ? 'idle' : 'idle')
+                        }
+                        progressPercent={((currentQuizIdx + 1) / questionsList.length) * 100}
+                        energyCount={hearts}
+                        energyType="heart"
+                        onClose={() => {
+                          setActiveQuizNode(null);
+                          setActiveChestNode(null);
+                          setQuizFinished(false);
+                          triggerAudio('move');
+                        }}
+                      />
+
+                      {/* Option Selections (Duolingo Style Buttons) */}
+                      <div className="grid grid-cols-1 gap-3">
+                        {currentQ.options.map((opt, oIdx) => {
+                          const isSelected = selectedOptIdx === oIdx;
+                          const isCorrect = oIdx === currentQ.correctIdx;
+                          let btnStyle = "bg-[#233340] border-[#2c4354] text-slate-200 hover:text-white hover:bg-[#2c4050] hover:border-[#81b64c]/60";
+
+                          if (isAnswerSubmitted) {
+                            if (isCorrect) {
+                              btnStyle = "bg-emerald-950/70 border-emerald-500 text-emerald-300 font-black ring-2 ring-emerald-500/40";
+                            } else if (isSelected) {
+                              btnStyle = "bg-rose-950/70 border-rose-500 text-rose-300 font-black ring-2 ring-rose-500/40";
+                            } else {
+                              btnStyle = "bg-[#18232c]/50 border-transparent text-slate-500 pointer-events-none";
+                            }
+                          } else if (isSelected) {
+                            btnStyle = "bg-[#81b64c]/20 border-[#81b64c] text-[#81b64c] ring-2 ring-[#81b64c]/30 scale-[1.01]";
+                          }
+
+                          return (
+                            <button
+                              key={oIdx}
+                              disabled={isAnswerSubmitted}
+                              onClick={() => handleSelectQuizOption(oIdx)}
+                              className={`w-full text-left p-4 rounded-2xl border text-xs md:text-sm font-black transition-all flex items-center justify-between shadow-md ${
+                                isAnswerSubmitted ? 'cursor-default' : 'cursor-pointer'
+                              } ${btnStyle}`}
+                            >
+                              <div className="flex items-center">
+                                <span className="inline-flex w-8 h-8 rounded-xl bg-[#17232d] border border-[#2d4252] items-center justify-center text-xs font-black mr-3 text-slate-300 shrink-0 font-mono">
+                                  {String.fromCharCode(65 + oIdx)}
+                                </span>
+                                <span className="leading-snug">{opt}</span>
+                              </div>
+                              {isAnswerSubmitted && isCorrect && <Check className="w-5 h-5 text-emerald-400 shrink-0 ml-2" />}
+                              {isAnswerSubmitted && isSelected && !isCorrect && <X className="w-5 h-5 text-rose-400 shrink-0 ml-2" />}
+                            </button>
+                          );
+                        })}
                       </div>
-                      <div className="w-full bg-[#262421] h-3 rounded-full overflow-hidden border border-[#3c3934] p-[1px]">
-                        <div 
-                          className="bg-[#81b64c] h-full rounded-full transition-all duration-300" 
-                          style={{ width: `${((currentQuizIdx) / CATUR_QUIZ_QUESTIONS[activeQuizNode.id].length) * 100}%` }} 
-                        />
-                      </div>
-                    </div>
 
-                    {/* Question Card */}
-                    <div className="bg-[#262421] border border-cyan-500/10 p-6 rounded-2xl shadow-xl">
-                      <p className="text-sm md:text-base font-bold text-slate-200 leading-relaxed font-sans">
-                        {CATUR_QUIZ_QUESTIONS[activeQuizNode.id][currentQuizIdx].question}
-                      </p>
-                    </div>
+                      {/* Explanation Feedback Card or Submit Answer Button */}
+                      {isAnswerSubmitted ? (
+                        <div className="p-5 bg-[#14202a] border-2 border-[#233544] rounded-2xl space-y-4 animate-fade-in shadow-xl">
+                          <div className="flex items-center justify-between">
+                            {quizFeedback === 'correct' ? (
+                              <div className="flex items-center gap-2 text-emerald-400 font-black text-sm uppercase tracking-wider font-mono">
+                                <Check className="w-5 h-5" />
+                                <span>Benar Sekali! Jawaban Tepat</span>
+                              </div>
+                            ) : (
+                              <div className="flex items-center gap-2 text-rose-400 font-black text-sm uppercase tracking-wider font-mono">
+                                <X className="w-5 h-5" />
+                                <span>Kurang Tepat</span>
+                              </div>
+                            )}
+                            <span className="text-xs font-mono font-bold text-slate-400">
+                              Soal {currentQuizIdx + 1} / {questionsList.length}
+                            </span>
+                          </div>
 
-                    {/* Option Selections */}
-                    <div className="grid grid-cols-1 gap-3">
-                      {CATUR_QUIZ_QUESTIONS[activeQuizNode.id][currentQuizIdx].options.map((opt, oIdx) => (
+                          <p className="text-xs md:text-sm font-bold text-slate-200 leading-relaxed bg-[#1a2936] p-3 rounded-xl border border-[#263b4d]">
+                            {currentQ.explanation}
+                          </p>
+
+                          <button
+                            onClick={advanceToNextQuestion}
+                            className="w-full py-4 bg-[#58cc02] hover:bg-[#46a302] text-white font-black text-xs md:text-sm uppercase tracking-widest rounded-2xl transition-all cursor-pointer shadow-[0_5px_0_0_#3d8c02] active:translate-y-1 active:shadow-none"
+                          >
+                            {currentQuizIdx + 1 < questionsList.length ? 'Lanjut Soal Berikutnya →' : 'Selesaikan Kuis & Lihat Laporan'}
+                          </button>
+                        </div>
+                      ) : (
                         <button
-                          key={oIdx}
-                          onClick={() => handleSelectQuizOption(oIdx)}
-                          className={`w-full text-left p-4 rounded-xl border text-xs md:text-sm font-extrabold transition-all cursor-pointer flex items-center ${
-                            selectedOptIdx === oIdx
-                              ? 'bg-[#81b64c]/10 border-[#81b64c] text-[#81b64c] ring-2 ring-[#81b64c]/20'
-                              : 'bg-[#262421] border-[#3c3934] text-slate-350 hover:text-white hover:bg-[#312e2b]'
+                          onClick={submitQuizAnswer}
+                          disabled={selectedOptIdx === null}
+                          className={`w-full py-4 rounded-2xl font-black text-xs uppercase tracking-widest transition-all cursor-pointer shadow-[0_5px_0_0_#46a302] ${
+                            selectedOptIdx !== null
+                              ? 'bg-[#58cc02] hover:bg-[#46a302] text-white active:translate-y-1 active:shadow-none'
+                              : 'bg-[#283946] text-slate-500 cursor-not-allowed border border-[#304454] shadow-none'
                           }`}
                         >
-                          <span className="inline-flex w-7 h-7 rounded-lg bg-[#1e1c1b] border border-[#302c29] items-center justify-center text-[10px] font-black mr-3 text-slate-400 font-mono">
-                            {String.fromCharCode(65 + oIdx)}
-                          </span>
-                          {opt}
+                          Kirim Jawaban Anda
                         </button>
-                      ))}
+                      )}
                     </div>
-
-                    {/* Submit Answer */}
-                    <button
-                      onClick={submitQuizAnswer}
-                      disabled={selectedOptIdx === null}
-                      className={`w-full py-4 rounded-xl font-black text-xs uppercase tracking-widest transition-all cursor-pointer ${
-                        selectedOptIdx !== null
-                          ? 'bg-[#81b64c] text-slate-900 hover:scale-[1.01] active:scale-95 shadow-lg font-black'
-                          : 'bg-[#2d2a27] text-slate-500 cursor-not-allowed border border-[#302c29]'
-                      }`}
-                    >
-                      Kirim Jawaban Anda
-                    </button>
-                  </div>
-                )}
+                  );
+                })()}
 
                 {/* 2. Completion Sub-State */}
                 {quizFinished && (
@@ -1392,7 +2395,10 @@ export const Features41to50: React.FC<Features41to50Props> = ({
                     >
                       Buka Peta Kembali
                     </button>
-                   {/* 3. Chest Play Interactive Sub-State */}
+                  </div>
+                )}
+
+                {/* 3. Chest Play Interactive Sub-State */}
                 {activeChestNode && (
                   <div className="max-w-md mx-auto w-full my-auto text-center space-y-6 py-6 animate-fade-in">
                     {isChestFinishedOpen ? (
@@ -1493,135 +2499,99 @@ export const Features41to50: React.FC<Features41to50Props> = ({
                       </>
                     )}
                   </div>
-                )}                  </div>
                 )}
               </div>
             ) : (
-              /* REGULAR JALUR MAP ROADMAP VIEW STAGE */
-              <>
-                <div className="bg-[#262421] p-4 rounded-2xl border border-[#3c3934] flex flex-col md:flex-row items-center gap-4">
-                  <div className="w-12 h-12 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center font-mono shrink-0">
-                    <BookOpen className="w-5 h-5 text-[#81b64c]" />
-                  </div>
-                  <div>
-                    <h4 className="text-sm font-black text-[#81b64c] uppercase tracking-wide">Peta Jalur Kuis Bertema Catur</h4>
-                    <p className="text-xs text-[#9babaf] mt-1 leading-relaxed font-semibold">
-                      Lompat dari petak trivia ke petak berikutnya untuk mengasah pemahaman taktik serta memenangkan peti keberuntungan berisi Diamond instan! KETUK SALAH SATU BULATAN JALUR ATAU PETI UNTUK MEMULAI (FULL SCREEN).
-                    </p>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-                  
-                  {/* THE VERTICAL MAP PATH */}
-                  <div className="lg:col-span-8 bg-[#262421]/40 border border-[#3c3934]/70 p-4 rounded-2xl relative min-h-[500px] overflow-hidden flex flex-col justify-between">
-                    
-                    {/* SVG Connecting Path Line */}
-                    <svg className="absolute inset-0 pointer-events-none w-full h-full" xmlns="http://www.w3.org/2000/svg">
-                      <path
-                        d="M 170 700 Q 210 660 200 620 T 140 530 T 70 440 T 160 350 T 240 260 T 110 170 T 180 80"
-                        fill="none"
-                        stroke="#34312e"
-                        strokeWidth="12"
-                        strokeLinecap="round"
-                      />
-                      <path
-                        d="M 170 700 Q 210 660 200 620 T 140 530 T 70 440 T 160 350 T 240 260 T 110 170 T 180 80"
-                        fill="none"
-                        stroke="#81b64c"
-                        strokeWidth="4"
-                        strokeLinecap="round"
-                        strokeDasharray="14 14"
-                        className="animate-[dash_25s_linear_infinite]"
-                      />
-                    </svg>
-
-                    {/* Real-time interactive nodes */}
-                    <div className="relative w-full h-[760px] select-none">
-                      
-                      {/* Mascot Speech Bubble standing along the track (EMOJI-FREE) */}
-                      <div className="absolute top-[450px] left-[130px] sm:left-[170px] z-10 w-48 flex items-center gap-2.5 bg-[#262421] border border-[#3c3934] p-2.5 rounded-xl shadow-lg hover:scale-105 duration-200">
-                        <img 
-                          src="/src/assets/images/nopal_mascot_1781082233948.png" 
-                          alt="Nopal Mascot" 
-                          className="w-12 h-12 rounded-lg object-cover border border-[#81b64c]/20 shadow"
-                          referrerPolicy="no-referrer"
-                        />
-                        <div className="min-w-0">
-                          <span className="text-[9px] font-black text-[#81b64c] block uppercase leading-none">Nopal Mascot</span>
-                          <p className="text-[8px] text-[#9babaf] font-bold leading-tight mt-1">"Rook kokoh pantang menyerah sebelum skakmat!"</p>
-                        </div>
-                      </div>
-
-                      {CATUR_QUIZNODES.map((node, idx) => {
-                        const isSolved = solvedNodes.includes(node.id);
-                        const isCurrentActive = !isSolved && (solvedNodes.length === idx || idx === 0);
-
-                        return (
-                          <div
-                            key={node.id}
-                            style={{ left: `${node.x}px`, top: `${node.y}px` }}
-                            className="absolute -translate-x-1/2 -translate-y-1/2 z-20"
-                          >
-                            {node.type === 'chest' ? (
-                              <button
-                                onClick={() => interactWithChestNode(node)}
-                                className={`w-14 h-14 rounded-2xl flex flex-col items-center justify-center transition-all cursor-pointer border ${
-                                  isSolved 
-                                    ? 'bg-[#312e2b] border-dashed border-[#3c3934] text-slate-500 opacity-60' 
-                                    : 'bg-gradient-to-br from-[#1e1c1b] to-stone-900 border-amber-500/55 text-amber-400 font-extrabold hover:scale-110 shadow-lg text-lg animate-pulse'
-                                }`}
-                                title={node.name}
-                              >
-                                {isSolved ? (
-                                  <Check className="w-4 h-4 text-[#81b64c]" />
-                                ) : (
-                                  <Gem className="w-5 h-5 text-amber-400 shrink-0" />
-                                )}
-                                <span className="text-[8px] uppercase tracking-wider font-bold mt-1 select-none leading-none">Peti</span>
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => startQuizForNode(node)}
-                                className={`w-11 h-11 rounded-full flex items-center justify-center font-bold text-xs transition-all relative cursor-pointer ${
-                                  isSolved
-                                    ? 'bg-[#81b64c] border-2 border-[#81b64c]/20 text-[#1e1c1b] hover:scale-105 font-black'
-                                    : isCurrentActive
-                                    ? 'bg-cyan-500 border-4 border-cyan-400 text-slate-900 font-extrabold hover:scale-115 shadow-cyan-500/20 shadow-md scale-105'
-                                    : 'bg-[#312e2b] border border-[#3c3934]/65 text-slate-350 hover:border-slate-300'
-                                }`}
-                                title={node.name}
-                              >
-                                {isSolved ? (
-                                  <Check className="w-4 h-4 stroke-[3]" />
-                                ) : (
-                                  <Play className="w-3.5 h-3.5 fill-current" />
-                                )}
-                                
-                                {/* Node name badge */}
-                                <span className="absolute left-1/2 -translate-x-1/2 -top-6 whitespace-nowrap text-[8px] font-black tracking-wider uppercase bg-[#262421] p-1 px-1.5 rounded-md border border-[#3c3934] text-slate-300 pointer-events-none">
-                                  {node.name}
-                                </span>
-                              </button>
-                            )}
-                          </div>
-                        );
-                      })}
+              /* CATEGORY CARDS GRID VIEW FOR QUIZ QUESTIONS (NO ROADMAP MAP) */
+              <div className="space-y-6">
+                {/* TOP HEADER ACTION BAR */}
+                <div className="bg-[#262421] p-5 rounded-2xl border border-[#3c3934] flex flex-col lg:flex-row items-center justify-between gap-4 shadow-xl">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-2xl bg-[#81b64c]/10 border border-[#81b64c]/30 flex items-center justify-center font-mono shrink-0">
+                      <BookOpen className="w-6 h-6 text-[#81b64c]" />
                     </div>
-                  </div>
-
-                  {/* Right side helper info column */}
-                  <div className="lg:col-span-4 flex flex-col justify-start">
-                    <div className="bg-[#262421] border border-[#3c3934]/70 p-5 rounded-2xl text-center space-y-4 shadow-xl">
-                      <HelpCircle className="w-10 h-10 text-[#81b64c] mx-auto" strokeWidth={1.5} />
-                      <h5 className="text-xs font-black text-white uppercase tracking-wider">Silakan Pilih Level Kuis</h5>
-                      <p className="text-[11px] text-[#9babaf] leading-relaxed font-semibold">
-                        Gunakan tombol bulatan bersinar atau peti keberuntungan di peta sebelah kiri untuk memulai ujian di halaman baru secara penuh (full screen).
+                    <div>
+                      <h4 className="text-base font-black text-white uppercase tracking-wide">Kuis & Ujian Teori Catur Taktis</h4>
+                      <p className="text-xs text-[#9babaf] mt-0.5 leading-relaxed font-semibold">
+                        Pilih modul teori di bawah ini untuk menguji pemahaman taktik catur Anda secara interaktif.
                       </p>
                     </div>
                   </div>
+
+                  {/* Buttons removed per request */}
                 </div>
-              </>
+
+                {/* TOPIC CARDS GRID */}
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                  {CATUR_QUIZNODES.filter(node => node.type === 'quiz').map((node, idx) => {
+                    const isSolved = solvedNodes.includes(node.id);
+                    const questionCount = CATUR_QUIZ_QUESTIONS[node.id]?.length || 10;
+
+                    return (
+                      <div
+                        key={node.id}
+                        className={`group bg-[#1e1c1b] border-2 rounded-2xl p-5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-1 shadow-xl relative overflow-hidden ${
+                          isSolved
+                            ? 'border-[#81b64c]/50 bg-gradient-to-br from-[#1e1c1b] via-[#232f1f]/30 to-[#1e1c1b]'
+                            : 'border-[#3c3934] hover:border-[#81b64c]/80'
+                        }`}
+                      >
+                        {/* Card Header */}
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] font-mono font-black uppercase tracking-widest text-[#81b64c] bg-[#81b64c]/10 px-2.5 py-1 rounded-lg border border-[#81b64c]/20">
+                              MODUL {idx + 1 < 10 ? `0${idx + 1}` : idx + 1}
+                            </span>
+                            {isSolved ? (
+                              <span className="inline-flex items-center gap-1 text-[10px] font-black uppercase text-[#81b64c] bg-[#81b64c]/20 px-2.5 py-1 rounded-full border border-[#81b64c]/40">
+                                <Check className="w-3 h-3 stroke-[3]" /> BERHASIL
+                              </span>
+                            ) : (
+                              <span className="text-[10px] font-extrabold uppercase text-amber-400 bg-amber-400/10 px-2.5 py-1 rounded-full border border-amber-400/20">
+                                TERSEDIA
+                              </span>
+                            )}
+                          </div>
+
+                          <h3 className="text-base font-extrabold text-white group-hover:text-[#81b64c] transition-colors leading-snug">
+                            {node.name}
+                          </h3>
+
+                          <p className="text-xs text-[#9babaf] font-medium leading-relaxed">
+                            Kuasai pola taktis & pembacaan posisi melalui {questionCount} pertanyaan pilihan ganda yang disertai penjelasan akademis.
+                          </p>
+                        </div>
+
+                        {/* Card Details & Start Button */}
+                        <div className="pt-5 space-y-3 border-t border-[#3c3934]/60 mt-4">
+                          <div className="flex items-center justify-between text-[11px] font-bold text-slate-400">
+                            <span className="flex items-center gap-1">
+                              <HelpCircle className="w-3.5 h-3.5 text-sky-400" />
+                              {questionCount} Pertanyaan
+                            </span>
+                            <span className="flex items-center gap-1 text-amber-400">
+                              <Zap className="w-3.5 h-3.5 text-amber-400 fill-amber-400" />
+                              +65 XP • +120 Koin
+                            </span>
+                          </div>
+
+                          <button
+                            onClick={() => startQuizForNode(node)}
+                            className={`w-full py-3 rounded-xl font-black text-xs uppercase tracking-widest transition-all cursor-pointer flex items-center justify-center gap-2 shadow-md ${
+                              isSolved
+                                ? 'bg-[#283823] hover:bg-[#81b64c] text-[#81b64c] hover:text-[#1e1c1b] border border-[#81b64c]/40'
+                                : 'bg-[#81b64c] hover:bg-[#96ce5c] text-[#1e1c1b] active:scale-95 shadow-[0_4px_0_0_#588532]'
+                            }`}
+                          >
+                            <Play className="w-4 h-4 fill-current" />
+                            <span>{isSolved ? 'Ulangi Kuis Pertanyaan' : 'Mulai Kuis Pertanyaan'}</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             )}
           </div>
         )}
@@ -2068,28 +3038,97 @@ export const Features41to50: React.FC<Features41to50Props> = ({
         {/* =========================================================================
             FEATURE 44: DUOLINGO MEDALS & ACHIEVEMENTS UPGRADE
            ========================================================================= */}
-        {activeSubTab === 'medals' && (
-          <div className="space-y-6">
+        {activeSubTab === 'medals' && (() => {
+          const actUserKey = (user?.username || username || localStorage.getItem('username') || 'guest').trim().toLowerCase();
+          
+          const matchesPlayed = user ? (user.matchesPlayed || 0) : (guestMatchesPlayed || 0);
+          const matchesWon = user ? (user.matchesWon || 0) : (guestMatchesWon || 0);
+          const winRate = matchesPlayed > 0 ? Math.round((matchesWon / matchesPlayed) * 100) : 0;
+          const currentStreak = streak !== undefined ? streak : (user?.streak !== undefined ? user.streak : 0);
+          const currentElo = onlineRating || user?.elo || 400;
+
+          const peakXpVal = Math.max(Math.floor(xp || 0), user?.peakXp || 0, Number(localStorage.getItem(`peak_xp:${actUserKey}`) || localStorage.getItem('peak_xp') || 0));
+          const winStreakVal = Math.max(user?.winStreak || 0, Number(localStorage.getItem(`win_streak:${actUserKey}`) || localStorage.getItem('win_streak') || 0));
+          const longestDefenseVal = Math.max(user?.longestDefense || 0, Number(localStorage.getItem(`longest_defense:${actUserKey}`) || localStorage.getItem('longest_defense') || 0));
+
+          return (
+            <div className="space-y-6">
             
-            {/* PERSONAL TOP STATS BOX */}
-            <div className="bg-[#262421]/45 p-4 rounded-2xl border border-[#3c3934] space-y-3">
-              <span className="text-[9px] font-black tracking-widest text-[#81b64c] uppercase block">Rekor Catur Personal Anda</span>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-1">
+            {/* PERSONAL TOP STATS BOX - FULLY SYNCHRONIZED WITH ARENA CAREER STATS */}
+            <div className="bg-[#262421]/45 p-4 md:p-5 rounded-2xl border border-[#3c3934] space-y-3.5 shadow-md">
+              <div className="flex items-center justify-between gap-2 border-b border-[#3c3934]/60 pb-2.5">
+                <span className="text-[10px] font-black tracking-widest text-[#81b64c] uppercase block flex items-center gap-1.5 font-mono">
+                  <Award className="w-3.5 h-3.5 text-[#81b64c]" /> {settingsLang === 'en' ? 'Your Personal Chess Records & Stats' : 'Rekor Catur Personal Anda'}
+                </span>
+                <span className="text-[9px] font-mono text-slate-400 font-bold uppercase bg-[#1e1c1b] px-2 py-0.5 rounded border border-[#3c3934]">
+                  {settingsLang === 'en' ? 'Live Synchronized' : 'Tersinkronisasi Otomatis'}
+                </span>
+              </div>
+
+              {/* PRIMARY ARENA CAREER STATS GRID */}
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-6 gap-2.5 sm:gap-3 pt-1">
+                {/* ELO */}
                 <div className="bg-[#1e1c1b] p-3 rounded-xl border border-[#3c3934] text-center">
-                  <span className="text-[8px] font-black text-[#9babaf] block uppercase">Puncak XP Sehari</span>
-                  <div className="text-sm font-black text-white mt-1">2,450 XP</div>
+                  <span className="text-[8px] font-extrabold text-[#9babaf] block uppercase tracking-wider">{settingsLang === 'en' ? 'Rating ELO' : 'Rating ELO'}</span>
+                  <div className="text-sm font-black text-white mt-1 font-mono flex items-center justify-center gap-1">
+                    <Swords className="w-3.5 h-3.5 text-yellow-500 shrink-0" /> {currentElo} PTS
+                  </div>
                 </div>
+
+                {/* TOTAL MATCHES */}
                 <div className="bg-[#1e1c1b] p-3 rounded-xl border border-[#3c3934] text-center">
-                  <span className="text-[8px] font-black text-[#9babaf] block uppercase">{settingsLang === 'en' ? 'Streak Days' : 'Streak Beruntun'}</span>
-                  <div className="text-sm font-black text-amber-400 mt-1">{settingsLang === 'en' ? '14 Days' : '14 Hari'}</div>
+                  <span className="text-[8px] font-extrabold text-[#9babaf] block uppercase tracking-wider">{settingsLang === 'en' ? 'Total Matches' : 'Total Tanding'}</span>
+                  <div className="text-sm font-black text-slate-200 mt-1 font-mono flex items-center justify-center gap-1">
+                    <Swords className="w-3.5 h-3.5 text-slate-400 shrink-0" /> {matchesPlayed} GAME
+                  </div>
                 </div>
+
+                {/* VICTORIES */}
                 <div className="bg-[#1e1c1b] p-3 rounded-xl border border-[#3c3934] text-center">
-                  <span className="text-[8px] font-black text-[#9babaf] block uppercase">{settingsLang === 'en' ? 'Match Win Streak' : 'Menang Beruntun'}</span>
-                  <div className="text-sm font-black text-emerald-400 mt-1">{settingsLang === 'en' ? '9 Matches' : '9 Match'}</div>
+                  <span className="text-[8px] font-extrabold text-[#9babaf] block uppercase tracking-wider">{settingsLang === 'en' ? 'Victories' : 'Kemenangan'}</span>
+                  <div className="text-sm font-black text-[#81b64c] mt-1 font-mono flex items-center justify-center gap-1">
+                    <Crown className="w-3.5 h-3.5 text-yellow-500 fill-yellow-500/10 shrink-0" /> {matchesWon} MENANG
+                  </div>
                 </div>
+
+                {/* WIN RATE */}
                 <div className="bg-[#1e1c1b] p-3 rounded-xl border border-[#3c3934] text-center">
-                  <span className="text-[8px] font-black text-[#9babaf] block uppercase">Pertahanan Terlama</span>
-                  <div className="text-sm font-black text-cyan-400 mt-1">82 Langkah</div>
+                  <span className="text-[8px] font-extrabold text-[#9babaf] block uppercase tracking-wider">Win Rate</span>
+                  <div className="text-sm font-black text-cyan-400 mt-1 font-mono flex items-center justify-center gap-1">
+                    <Trophy className="w-3.5 h-3.5 text-cyan-400 shrink-0" /> {winRate}%
+                  </div>
+                </div>
+
+                {/* TOTAL XP */}
+                <div className="bg-[#1e1c1b] p-3 rounded-xl border border-[#3c3934] text-center">
+                  <span className="text-[8px] font-extrabold text-[#9babaf] block uppercase tracking-wider">{settingsLang === 'en' ? 'Total XP' : 'Total XP'}</span>
+                  <div className="text-sm font-black text-[#FFC800] mt-1 font-mono flex items-center justify-center gap-1">
+                    <Sparkles className="w-3.5 h-3.5 text-yellow-400 shrink-0" /> {Math.floor(xp).toLocaleString()} XP
+                  </div>
+                </div>
+
+                {/* STREAK */}
+                <div className="bg-[#1e1c1b] p-3 rounded-xl border border-[#3c3934] text-center">
+                  <span className="text-[8px] font-extrabold text-[#9babaf] block uppercase tracking-wider">{settingsLang === 'en' ? 'Streak Days' : 'Streak Beruntun'}</span>
+                  <div className="text-sm font-black text-amber-400 mt-1 font-mono flex items-center justify-center gap-1">
+                    <Flame className="w-3.5 h-3.5 text-orange-500 fill-orange-500/10 shrink-0" /> {currentStreak} {settingsLang === 'en' ? 'Days' : 'Hari'}
+                  </div>
+                </div>
+              </div>
+
+              {/* SECONDARY BEST RECORDS GRID */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 sm:gap-3 pt-1 border-t border-[#3c3934]/40 mt-2">
+                <div className="bg-[#1e1c1b]/70 p-2.5 rounded-xl border border-[#3c3934] flex items-center justify-between px-3">
+                  <span className="text-[8px] font-black text-[#9babaf] uppercase tracking-wider">{settingsLang === 'en' ? 'Peak XP Daily Best' : 'Puncak XP Sehari'}</span>
+                  <span className="text-xs font-black text-white font-mono">{peakXpVal.toLocaleString()} XP</span>
+                </div>
+                <div className="bg-[#1e1c1b]/70 p-2.5 rounded-xl border border-[#3c3934] flex items-center justify-between px-3">
+                  <span className="text-[8px] font-black text-[#9babaf] uppercase tracking-wider">{settingsLang === 'en' ? 'Best Win Streak' : 'Menang Beruntun Maksimal'}</span>
+                  <span className="text-xs font-black text-emerald-400 font-mono">{winStreakVal} Match</span>
+                </div>
+                <div className="bg-[#1e1c1b]/70 p-2.5 rounded-xl border border-[#3c3934] flex items-center justify-between px-3">
+                  <span className="text-[8px] font-black text-[#9babaf] uppercase tracking-wider">{settingsLang === 'en' ? 'Longest Defense' : 'Pertahanan Terlama'}</span>
+                  <span className="text-xs font-black text-cyan-400 font-mono">{longestDefenseVal} Langkah</span>
                 </div>
               </div>
             </div>
@@ -2107,30 +3146,89 @@ export const Features41to50: React.FC<Features41to50Props> = ({
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {STATS_MEDALS.map(medal => {
+                {userMedals.map(medal => {
                   const isUnlocked = medal.unlocked || medal.progress >= medal.target;
                   const isPinned = pinnedMedals.includes(medal.id);
                   const showSecretMask = medal.isSecret && !isUnlocked;
+
+                  const getMedalLevelStyle = (level: number) => {
+                    switch (level) {
+                      case 1:
+                        return {
+                          ring: 'from-amber-800 via-amber-700 to-amber-950',
+                          badgeBg: 'bg-amber-950/20 border border-amber-800/40',
+                          glow: 'border border-amber-900/40',
+                          label: 'Lvl 1 (Perunggu)',
+                          textColor: 'text-amber-500',
+                          badgeIconColor: 'text-amber-500',
+                          glowClass: 'border-amber-900/35'
+                        };
+                      case 2:
+                        return {
+                          ring: 'from-slate-400 via-slate-200 to-slate-500',
+                          badgeBg: 'bg-slate-800/35 border border-slate-400/35 shadow-sm shadow-slate-400/10',
+                          glow: 'border border-slate-300/40 shadow shadow-slate-400/20',
+                          label: 'Lvl 2 (Perak)',
+                          textColor: 'text-slate-300',
+                          badgeIconColor: 'text-slate-200',
+                          glowClass: 'border-slate-400/40 shadow-sm shadow-slate-300/20'
+                        };
+                      case 3:
+                        return {
+                          ring: 'from-yellow-500 via-amber-300 to-yellow-600',
+                          badgeBg: 'bg-yellow-950/20 border border-yellow-500/35 shadow shadow-yellow-500/25',
+                          glow: 'border border-yellow-500/50 shadow shadow-yellow-500/40',
+                          label: 'Lvl 3 (Emas)',
+                          textColor: 'text-yellow-400',
+                          badgeIconColor: 'text-yellow-400',
+                          glowClass: 'border-yellow-500/50 shadow shadow-yellow-500/30'
+                        };
+                      case 4:
+                        return {
+                          ring: 'from-pink-500 via-purple-400 to-indigo-600 animate-pulse',
+                          badgeBg: 'bg-purple-950/20 border border-purple-500/45 shadow-md shadow-purple-500/30',
+                          glow: 'border border-purple-500/60 shadow-lg shadow-purple-500/30 animate-pulse',
+                          label: 'Lvl 4 (Neon Mutiara)',
+                          textColor: 'text-purple-400',
+                          badgeIconColor: 'text-pink-400',
+                          glowClass: 'border-purple-500/65 shadow-md shadow-purple-500/40 animate-pulse'
+                        };
+                      case 5:
+                      default:
+                        return {
+                          ring: 'from-[#ff007f] via-[#7f00ff] to-[#00f0ff] animate-pulse',
+                          badgeBg: 'bg-indigo-950/30 border border-cyan-400/55 shadow-xl shadow-indigo-500/50',
+                          glow: 'border border-teal-400/80 shadow-xl shadow-indigo-500/50',
+                          label: 'Lvl 5 (Dewa Kosmis)',
+                          textColor: 'text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 via-yellow-200 to-pink-400 font-extrabold animate-pulse',
+                          badgeIconColor: 'text-cyan-400',
+                          glowClass: 'border-cyan-400/80 shadow-lg shadow-cyan-400/30 animate-bounce-slow'
+                        };
+                    }
+                  };
+
+                  const lvlStyle = getMedalLevelStyle(medal.level || 1);
 
                   const renderMedalVisual = () => {
                     if (showSecretMask) {
                       return <span className="text-sm font-bold text-stone-500 font-mono">???</span>;
                     }
+                    const iconColor = isUnlocked ? lvlStyle.badgeIconColor : 'text-zinc-650';
                     switch (medal.badge) {
                       case 'SHD':
-                        return <Shield className="w-5 h-5 text-cyan-400" />;
+                        return <Shield className={`w-5 h-5 ${iconColor}`} />;
                       case 'KNT':
-                        return <Flame className="w-5 h-5 text-amber-500" />;
+                        return <Flame className={`w-5 h-5 ${iconColor}`} />;
                       case 'STR':
-                        return <Star className="w-5 h-5 text-yellow-500 fill-yellow-500/20" />;
+                        return <Star className={`w-5 h-5 ${iconColor} fill-current/20`} />;
                       case 'ZAP':
-                        return <Sparkles className="w-5 h-5 text-purple-400 animate-pulse" />;
+                        return <Sparkles className={`w-5 h-5 ${iconColor} animate-pulse`} />;
                       case 'CRN':
-                        return <Crown className="w-5 h-5 text-yellow-400 fill-yellow-400/20" />;
+                        return <Crown className={`w-5 h-5 ${iconColor} fill-current/20`} />;
                       case 'KEY':
-                        return <Lock className="w-5 h-5 text-rose-500" />;
+                        return <Lock className={`w-5 h-5 ${iconColor}`} />;
                       default:
-                        return <Award className="w-5 h-5 text-[#81b64c]" />;
+                        return <Award className={`w-5 h-5 ${iconColor}`} />;
                     }
                   };
 
@@ -2144,9 +3242,9 @@ export const Features41to50: React.FC<Features41to50Props> = ({
                       }`}
                     >
                       {/* Left Badge Icon inside background circle */}
-                      <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 ${
+                      <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 transition-all duration-500 ${
                         isUnlocked
-                          ? 'bg-[#81b64c]/15 border-2 border-[#81b64c]/35 animate-bounce-slow'
+                          ? `${lvlStyle.badgeBg} ${lvlStyle.glowClass}`
                           : 'bg-zinc-850 border border-zinc-750 filter grayscale'
                       }`}>
                         {renderMedalVisual()}
@@ -2174,21 +3272,38 @@ export const Features41to50: React.FC<Features41to50Props> = ({
                         {!showSecretMask && (
                           <div className="space-y-1 pt-1">
                             <div className="flex justify-between text-[8px] font-mono text-slate-400 font-bold">
-                              <span>PROGRESS KATALIS</span>
+                              <span className={`transition-colors duration-500 ${lvlStyle.textColor}`}>{lvlStyle.label}</span>
                               <span>{Math.min(medal.progress, medal.target)} / {medal.target}</span>
                             </div>
                             <div className="w-full bg-[#1e1c1b] h-1.5 rounded-full overflow-hidden">
                               <div 
-                                className={`h-full ${isUnlocked ? 'bg-[#81b64c]' : 'bg-zinc-650'}`} 
+                                className={`h-full transition-all duration-500 ${
+                                  isUnlocked 
+                                    ? medal.level === 5 ? 'bg-gradient-to-r from-cyan-400 to-pink-500' : 'bg-[#81b64c]' 
+                                    : 'bg-zinc-650'
+                                }`} 
                                 style={{ width: `${Math.min((medal.progress / medal.target) * 100, 100)}%` }} 
                               />
                             </div>
                           </div>
                         )}
 
-                        {isUnlocked && (
-                          <div className="pt-2 flex items-center justify-between">
-                            <span className="text-[8px] font-mono text-[#81b64c] font-black uppercase">Level {medal.level} Maks</span>
+                        {/* Interactive Buttons for simulating progress and levels */}
+                        <div className="pt-2 flex flex-wrap items-center justify-between gap-1.5 border-t border-[#3c3934]/35 mt-2">
+                          {!showSecretMask && (medal.level < 5 || medal.progress < medal.target) ? (
+                            <button
+                              onClick={() => handleSimulateMedalProgress(medal.id)}
+                              className="p-1 px-1.5 text-[8px] font-black uppercase rounded bg-[#81b64c]/10 text-[#81b64c] hover:bg-[#81b64c]/20 cursor-pointer transition-all border border-[#81b64c]/20"
+                            >
+                              {medal.id === 'm5' ? '+150 ELO (Simulasi)' : '+5 Progress'}
+                            </button>
+                          ) : !showSecretMask ? (
+                            <span className="text-[8px] font-mono text-amber-400 font-black uppercase">Level Max</span>
+                          ) : null}
+
+                          {/* Naik Level button removed per request */}
+
+                          {isUnlocked && (
                             <button
                               onClick={() => togglePinMedalToProfile(medal.id)}
                               className={`p-1 px-2 text-[8px] font-black uppercase rounded transition-all cursor-pointer ${
@@ -2197,10 +3312,10 @@ export const Features41to50: React.FC<Features41to50Props> = ({
                                   : 'bg-[#81b64c] text-slate-900'
                               }`}
                             >
-                              {isPinned ? 'Copot Pajangan' : 'Pajang di Profil'}
+                              {isPinned ? 'Copot' : 'Pajang'}
                             </button>
-                          </div>
-                        )}
+                          )}
+                        </div>
                       </div>
                     </div>
                   );
@@ -2208,7 +3323,8 @@ export const Features41to50: React.FC<Features41to50Props> = ({
               </div>
             </div>
           </div>
-        )}
+        );
+      })()}
 
         {/* =========================================================================
             FEATURE 46: FASHION POWER POINT SYSTEM & LEADERBOARD
@@ -2402,7 +3518,8 @@ export const Features41to50: React.FC<Features41to50Props> = ({
             { id: 'golden_ketupat', name: 'Ketupat Emas', name_en: 'Golden Ketupat Border', type: 'Bingkai', rarity: 'Epic', desc: 'Kemeriahan hari raya fitri berselimut tenunan ketupat kuning keemasan.' },
             { id: 'red_lantern', name: 'Lentera Merah', name_en: 'Red Lantern Border', type: 'Bingkai', rarity: 'Epic', desc: 'Kehangatan cahaya lampion merah oriental bersinar penuh berkah.' },
             { id: 'beach_wave', name: 'Ombak Pantai', name_en: 'Beach Wave Border', type: 'Bingkai', rarity: 'Epic', desc: 'Gulungan ombak laut biru jernih menyegarkan di pesisir pasir putih.' },
-            { id: 'blizzard_winter', name: 'Blizzard Winter', name_en: 'Blizzard Winter Border', type: 'Bingkai', rarity: 'Epic', desc: 'Sentuhan butiran salju beku hasil badai salju es arktik.' }
+            { id: 'blizzard_winter', name: 'Blizzard Winter', name_en: 'Blizzard Winter Border', type: 'Bingkai', rarity: 'Epic', desc: 'Sentuhan butiran salju beku hasil badai salju es arktik.' },
+            { id: 'avatar_border_test', name: 'Neon Pulsar', name_en: 'Neon Pulsar', type: 'Bingkai', rarity: 'Mythic', desc: 'Video animasi pulsa gelombang neon bergerak cepat.' }
           ];
 
           const checkDexOwned = (itemId: string, itemType: string) => {
@@ -2674,6 +3791,29 @@ export const Features41to50: React.FC<Features41to50Props> = ({
               </div>
             )}
 
+            {/* GAME RATING OPTION */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 py-3 border-b border-[#3c3934]/50">
+              <div className="max-w-md">
+                <h5 className="text-xs font-black text-white uppercase tracking-wider flex items-center gap-1.5">
+                  <Star className="w-4 h-4 text-amber-400 fill-amber-400/30" />
+                  {settingsLang === 'en' ? 'Rate Pal Mate Chess' : 'Beri Rating & Ulasan Game'}
+                </h5>
+                <p className="text-[10px] text-[#9babaf] mt-1 leading-relaxed">
+                  {settingsLang === 'en' ? 'Share your experience and star rating to help us improve Pal Mate Chess.' : 'Bagikan pengalaman dan ulasan Bintang Anda untuk membantu penyempurnaan arena Pal Mate.'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => {
+                  triggerAudio('move');
+                  setIsRatingModalOpen(true);
+                }}
+                className="p-2.5 px-4 bg-amber-500/10 hover:bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[10px] uppercase font-black tracking-wider rounded-xl cursor-pointer shadow-md active:scale-95 transition-all text-center shrink-0 sm:w-56"
+              >
+                ⭐ Beri Rating Game
+              </button>
+            </div>
+
             {/* STAMINA SUMMARY */}
             <div className="bg-[#1e1c1b] p-3 rounded-xl border border-[#3c3934] flex items-center justify-between text-xs text-slate-400 font-mono">
               <span>{settingsLang === 'en' ? 'Server Connected Version' : 'Suku Versi Server'}</span>
@@ -2860,6 +4000,86 @@ export const Features41to50: React.FC<Features41to50Props> = ({
           </div>
         )}
 
+        {/* Global Modals */}
+        <LaporanPembelajaranModal
+          isOpen={isLearningReportOpen}
+          score={quizScore}
+          totalQuestions={shuffledQuizQuestions.length > 0 ? shuffledQuizQuestions.length : (activeQuizNode ? (CATUR_QUIZ_QUESTIONS[activeQuizNode.id]?.length || 10) : 10)}
+          comboCount={quizMaxCombo}
+          xpEarned={Math.max(25, quizScore * 10 + quizMaxCombo * 5)}
+          elapsedSeconds={quizElapsedSeconds || 10}
+          onClaimXp={() => {
+            const earnedXp = Math.max(25, quizScore * 10 + quizMaxCombo * 5);
+            const earnedCoins = quizScore * 15 + 60;
+            setXp(p => p + earnedXp);
+            setCoins(p => p + earnedCoins);
+            triggerAudio('win');
+            setQuizFinished(false);
+            setIsLearningReportOpen(false);
+            setActiveQuizNode(null);
+            if (onPuzzleCompleted) {
+              onPuzzleCompleted();
+            }
+            spawnToast('XP & Koin Diklaim!', `Bonus +${earnedXp} XP dan +${earnedCoins} Koin berhasil ditambahkan ke akun!`, 'success');
+
+            // Automatically trigger Treasure Mission Reward modal AFTER learning report!
+            setTimeout(() => {
+              setIsTreasureModalOpen(true);
+            }, 450);
+          }}
+          onShare={() => {
+            if (navigator.clipboard) {
+              navigator.clipboard.writeText(`Saya baru saja menyelesaikan Latihan Kuis Catur "${activeQuizNode?.name || 'Taktikal'}" dengan ${quizScore} poin!`);
+              spawnToast('Tersalin!', 'Hasil kuis disalin ke clipboard!', 'info');
+            }
+          }}
+        />
+
+        <GameRatingModal
+          isOpen={isRatingModalOpen}
+          onClose={() => setIsRatingModalOpen(false)}
+          onSubmitRating={(stars, feedback) => {
+            triggerAudio('win');
+            spawnToast('Terima Kasih!', `Rating ${stars} Bintang berhasil dikirim! (${feedback})`, 'success');
+            setIsRatingModalOpen(false);
+          }}
+        />
+
+        <TreasureModal
+          isOpen={isTreasureModalOpen}
+          onClose={() => setIsTreasureModalOpen(false)}
+          userXp={xp}
+          quizCompletedCount={quizCompletedCount}
+          quizSessionCount={quizSessionCount}
+          claimedQuestIds={claimedQuestIds}
+          monthlyMissionsCompleted={monthlyMissionsCompleted}
+          monthlyRewardClaimed={monthlyRewardClaimed}
+          onClaimReward={(xpBonus, coinsBonus, diamondsBonus, questId) => {
+            setXp(p => p + xpBonus);
+            setCoins(p => p + coinsBonus);
+            setDiamonds(p => p + diamondsBonus);
+
+            if (questId && !claimedQuestIds.includes(questId)) {
+              setClaimedQuestIds(prev => {
+                const next = [...prev, questId];
+                const activeKey = (username || 'guest').trim().toLowerCase();
+                localStorage.setItem(`claimed_quest_ids:${activeKey}`, JSON.stringify(next));
+                return next;
+              });
+              setMonthlyMissionsCompleted(prev => Math.min(30, prev + 1));
+            }
+
+            triggerReward(xpBonus, `Selamat! Anda memperoleh +${xpBonus} XP, +${coinsBonus} Koin, dan +${diamondsBonus} Diamond dari Peti Misi!`, 'success');
+          }}
+          onClaimMonthlyReward={() => {
+            setXp(p => p + 500);
+            setCoins(p => p + 1000);
+            setDiamonds(p => p + 50);
+            setMonthlyRewardClaimed(true);
+            triggerReward(500, 'Luar Biasa! Anda mengklaim Hadiah Spesial Misi Bulanan! (+500 XP, +1000 Koin & +50 Diamond)', 'success');
+          }}
+        />
+
       </div>
 
       <div className="bg-[#262421] p-3 border-t border-[#3c3934]/80 text-center font-mono text-[8px] uppercase tracking-widest text-[#9babaf]">
@@ -2868,8 +4088,3 @@ export const Features41to50: React.FC<Features41to50Props> = ({
     </div>
   );
 };
-
-// =========================================================================
-// AVATAR COMPONENT HELPER TO AVOID BREAKAGES
-// =========================================================================
-import martinAvatar from '../assets/images/avatar_martin_1779709510230.png';

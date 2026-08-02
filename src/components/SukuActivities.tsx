@@ -1,6 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Award, Users, Swords, MessageSquare, Shield, Trophy, Activity, Flame, ChevronLeft, Check, Sparkles, Gift, Gem, Coins } from 'lucide-react';
+import { AvatarWithFrame } from './AvatarWithFrame';
+import treasureSvg from '../assets/images/treasure.svg';
 
 interface SukuActivitiesProps {
   activityDetail: 'list' | 'fragments' | 'bonus' | 'war' | 'chat';
@@ -138,7 +140,7 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
   const PLAYER_ROSTER_TEMPLATES: Omit<CombatUnit, 'id' | 'shield'>[] = [
     {
       name: 'Pion Perkasa',
-      symbol: '♙',
+      symbol: '',
       hp: 120,
       maxHp: 120,
       atk: 1.0,
@@ -153,7 +155,7 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
     },
     {
       name: 'Ksatria Sakti',
-      symbol: '♘',
+      symbol: '',
       hp: 150,
       maxHp: 150,
       atk: 1.2,
@@ -168,7 +170,7 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
     },
     {
       name: 'Gajah Taktis',
-      symbol: '♗',
+      symbol: '',
       hp: 130,
       maxHp: 130,
       atk: 1.1,
@@ -183,7 +185,7 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
     },
     {
       name: 'Benteng Kokoh',
-      symbol: '♖',
+      symbol: '',
       hp: 210,
       maxHp: 210,
       atk: 0.9,
@@ -198,7 +200,7 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
     },
     {
       name: 'Ratu Agung',
-      symbol: '♕',
+      symbol: '',
       hp: 140,
       maxHp: 140,
       atk: 1.3,
@@ -213,7 +215,7 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
     },
     {
       name: 'Raja Agung',
-      symbol: '♔',
+      symbol: '',
       hp: 180,
       maxHp: 180,
       atk: 1.1,
@@ -230,42 +232,42 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
 
   const ENEMY_PIECE_TEMPLATES: Record<string, Omit<CombatUnit, 'id' | 'color' | 'shield'>> = {
     pion_rival: {
-      name: 'Pion Hitam', symbol: '♟', hp: 100, maxHp: 100, atk: 0.8, element: 'Petir',
+      name: 'Pion Hitam', symbol: '', hp: 100, maxHp: 100, atk: 0.8, element: 'Petir',
       moves: [
         { name: 'Spark Strike', power: 40, type: 'Petir', category: 'attack', desc: 'Serangan sengatan listrik.' },
         { name: 'Volt Charge', power: 60, type: 'Petir', category: 'attack', desc: 'Serangan petir bertegangan tinggi.' }
       ]
     },
     ksatria_rival: {
-      name: 'Ksatria Hitam', symbol: '♞', hp: 130, maxHp: 130, atk: 1.0, element: 'Api',
+      name: 'Ksatria Hitam', symbol: '', hp: 130, maxHp: 130, atk: 1.0, element: 'Api',
       moves: [
         { name: 'Tusukan Bara', power: 45, type: 'Api', category: 'attack', desc: 'Tusukan pedang api.' },
         { name: 'Knight Jump', power: 65, type: 'Api', category: 'attack', desc: 'Lompatan menghantam target.' }
       ]
     },
     gajah_rival: {
-      name: 'Gajah Hitam', symbol: '♝', hp: 120, maxHp: 120, atk: 1.0, element: 'Air',
+      name: 'Gajah Hitam', symbol: '', hp: 120, maxHp: 120, atk: 1.0, element: 'Air',
       moves: [
         { name: 'Pancaran Aqua', power: 40, type: 'Air', category: 'attack', desc: 'Semburan air bertekanan tinggi.' },
         { name: 'Air Berkat', power: 0, type: 'Air', category: 'support', desc: 'Menyembuhkan 35 HP.' }
       ]
     },
     benteng_rival: {
-      name: 'Benteng Hitam', symbol: '♜', hp: 170, maxHp: 170, atk: 0.9, element: 'Tanah',
+      name: 'Benteng Hitam', symbol: '', hp: 170, maxHp: 170, atk: 0.9, element: 'Tanah',
       moves: [
         { name: 'Hantaman Batu', power: 50, type: 'Tanah', category: 'attack', desc: 'Hantaman dinding batu keras.' },
         { name: 'Fortress Shell', power: 0, type: 'Tanah', category: 'defend', desc: 'Memperoleh perisai +40 HP.' }
       ]
     },
     ratu_rival: {
-      name: 'Ratu Kegelapan', symbol: '♛', hp: 160, maxHp: 160, atk: 1.2, element: 'Kegelapan',
+      name: 'Ratu Kegelapan', symbol: '', hp: 160, maxHp: 160, atk: 1.2, element: 'Kegelapan',
       moves: [
         { name: 'Sinar Kelam', power: 50, type: 'Kegelapan', category: 'attack', desc: 'Semburan laser energi kegelapan murni.' },
         { name: 'Kiamat Bayang', power: 105, type: 'Kegelapan', category: 'ultimate', desc: 'Ledakan dahsyat badai kegelapan abadi.' }
       ]
     },
     raja_rival: {
-      name: 'Raja Kegelapan', symbol: '♚', hp: 200, maxHp: 200, atk: 1.1, element: 'Kegelapan',
+      name: 'Raja Kegelapan', symbol: '', hp: 200, maxHp: 200, atk: 1.1, element: 'Kegelapan',
       moves: [
         { name: 'Cakar Bayangan', power: 45, type: 'Kegelapan', category: 'attack', desc: 'Cakar bayangan gelap.' },
         { name: 'Apocalypse Reign', power: 110, type: 'Kegelapan', category: 'ultimate', desc: 'Kiamat kegelapan absolut.' }
@@ -338,13 +340,47 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
   const [currentTurnOwner, setCurrentTurnOwner] = useState<'player' | 'enemy'>('player');
   const [hasMovedThisTurn, setHasMovedThisTurn] = useState<string[]>([]); // unit IDs that have acted in the current phase
 
-  // Streak days state for daily checkin - Fix: start at Day 1 (0 days completed)
+  // Helper to format date strings YYYY-MM-DD
+  const getTodayDateStr = () => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  const getYesterdayDateStr = () => {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  };
+
+  // Streak days state for daily checkin
   const [streakDays, setStreakDays] = useState<number>(() => {
     const saved = localStorage.getItem('clan_checkin_streak');
     return saved !== null ? Number(saved) : 0;
   });
 
+  // Verify checkin status when component loads
+  useEffect(() => {
+    const todayStr = getTodayDateStr();
+    const yesterdayStr = getYesterdayDateStr();
+    const lastCheckinDate = localStorage.getItem('last_clan_checkin_date');
+
+    if (lastCheckinDate === todayStr) {
+      setClanCheckedIn(true);
+      localStorage.setItem('clan_checked_in', 'true');
+    } else {
+      setClanCheckedIn(false);
+      localStorage.setItem('clan_checked_in', 'false');
+      // If missed more than 1 day, reset streak to 0
+      if (lastCheckinDate && lastCheckinDate !== yesterdayStr) {
+        setStreakDays(0);
+        localStorage.setItem('clan_checkin_streak', '0');
+      }
+    }
+  }, [setClanCheckedIn]);
+
   const handleSimulateNewDay = () => {
+    const yesterdayStr = getYesterdayDateStr();
+    localStorage.setItem('last_clan_checkin_date', yesterdayStr);
     setClanCheckedIn(false);
     localStorage.setItem('clan_checked_in', 'false');
     if (streakDays >= 7) {
@@ -352,7 +388,7 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
       localStorage.setItem('clan_checkin_streak', '0');
     }
     triggerAudio('move');
-    triggerReward(0, "Simulasi Hari Baru Berhasil! Anda kini dapat melakukan absensi lagi.", "info");
+    triggerReward(0, "Simulasi Hari Baru Berhasil! Silakan stempel absensi suku Anda untuk hari ini.", "info");
   };
 
   // Activity C - Chess War Campaigns List
@@ -1112,46 +1148,36 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
     let finalDiamonds = 0;
 
     if (tier === 1) {
-      finalCoins = Math.floor(Math.random() * (220 - 120 + 1)) + 120;
-      finalDiamonds = Math.random() < 0.3 ? 1 : 0;
+      // Bronze Chest: 100 - 220 Coins, 0 - 1 Diamond
+      finalCoins = Math.floor(Math.random() * (220 - 100 + 1)) + 100;
+      finalDiamonds = Math.random() < 0.35 ? 1 : 0;
     } else if (tier === 2) {
-      finalCoins = Math.floor(Math.random() * (500 - 300 + 1)) + 300;
+      // Silver Chest: 250 - 500 Coins, 1 - 3 Diamonds
+      finalCoins = Math.floor(Math.random() * (500 - 250 + 1)) + 250;
       finalDiamonds = Math.floor(Math.random() * (3 - 1 + 1)) + 1;
     } else if (tier === 3) {
-      finalCoins = Math.floor(Math.random() * (1200 - 600 + 1)) + 600;
+      // Gold Chest: 500 - 1000 Coins, 3 - 8 Diamonds
+      finalCoins = Math.floor(Math.random() * (1000 - 500 + 1)) + 500;
       finalDiamonds = Math.floor(Math.random() * (8 - 3 + 1)) + 3;
     }
 
     triggerAudio('move');
-    setOpeningChest({
+    const chestData = {
       tier,
       requirement,
       label,
-      coins: finalCoins, // base container, we will show final
+      coins: finalCoins,
       diamonds: finalDiamonds,
-      isShaking: false,
+      isShaking: true,
       isOpened: false,
       finalCoins,
       finalDiamonds
-    });
-  };
+    };
+    setOpeningChest(chestData);
 
-  const executeOpenChest = () => {
-    if (!openingChest || openingChest.isOpened) return;
-
-    // Start shaking animation
-    setOpeningChest(prev => prev ? { ...prev, isShaking: true } : null);
-    triggerAudio('move');
-
+    // Auto-open chest after brief shake delay (no tapping required!)
     setTimeout(() => {
-      if (!openingChest) return;
-
-      const finalCoins = openingChest.finalCoins;
-      const finalDiamonds = openingChest.finalDiamonds;
-      const tier = openingChest.tier;
-      const label = openingChest.label;
-
-      // Apply rewards!
+      // Apply rewards automatically
       setCoins(c => {
         const next = c + finalCoins;
         localStorage.setItem('coins', String(next));
@@ -1186,7 +1212,48 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
         isShaking: false,
         isOpened: true
       } : null);
-    }, 1000);
+    }, 600);
+  };
+
+  const executeOpenChest = () => {
+    if (!openingChest || openingChest.isOpened) return;
+
+    const finalCoins = openingChest.finalCoins;
+    const finalDiamonds = openingChest.finalDiamonds;
+    const tier = openingChest.tier;
+    const label = openingChest.label;
+
+    setCoins(c => {
+      const next = c + finalCoins;
+      localStorage.setItem('coins', String(next));
+      return next;
+    });
+
+    if (finalDiamonds > 0) {
+      setDiamonds(d => {
+        const next = d + finalDiamonds;
+        localStorage.setItem('diamonds', String(next));
+        return next;
+      });
+    }
+
+    if (!claimedWeeklyMilestones.includes(tier)) {
+      const nextMilestones = [...claimedWeeklyMilestones, tier];
+      setClaimedWeeklyMilestones(nextMilestones);
+      localStorage.setItem('clan_weekly_milestones', JSON.stringify(nextMilestones));
+    }
+
+    let rewardDesc = `+${finalCoins} Koin`;
+    if (finalDiamonds > 0) rewardDesc += `, +${finalDiamonds} Diamond`;
+
+    triggerAudio('level_up');
+    triggerReward(100, `SELAMAT! Anda mendapatkan: ${rewardDesc}!`, 'level_up');
+
+    setOpeningChest(prev => prev ? {
+      ...prev,
+      isShaking: false,
+      isOpened: true
+    } : null);
   };
 
   const handleAbsensiCheckIn = () => {
@@ -1227,6 +1294,7 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
 
     setClanCheckedIn(true);
     localStorage.setItem('clan_checked_in', 'true');
+    localStorage.setItem('last_clan_checkin_date', getTodayDateStr());
 
     // Update active user's contribution points
     let userFound = false;
@@ -1269,7 +1337,7 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
       {activityDetail === 'list' ? (
         <div className="flex flex-col gap-4">
           <div className="p-4 bg-stone-900 border border-stone-850 rounded-2xl">
-            <span className="text-[10px] text-[#81b64c] font-black uppercase tracking-wider block">サークル活動 / Circle Activities</span>
+            <span className="text-[10px] text-[#81b64c] font-black uppercase tracking-wider block">Circle Activities</span>
             <h4 className="text-xs font-black text-white uppercase mt-0.5">Daftar Aktivitas Bersama Suku</h4>
             <p className="text-[10px] text-slate-450 mt-1 leading-normal font-medium">Bekerjasamalah dengan sesama pecatur dalam klan untuk mengumpulkan target bonus atau memenangkan perang tanding taktis!</p>
           </div>
@@ -1569,22 +1637,21 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
 
             {/* VIEW: BONUS & ABSENSI */}
             {activityDetail === 'bonus' && (
-            <div className="space-y-6">
-              {/* Absensi Checkin */}
-              <div className="bg-[#262421] p-6 rounded-3xl border border-stone-800 space-y-5 relative overflow-hidden">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-[#81b64c]/5 rounded-full blur-2xl pointer-events-none" />
-                <div className="text-center space-y-1">
-                  <span className="text-[9px] bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 px-3 py-1 rounded-full font-black uppercase tracking-widest leading-none inline-block mb-1">
-                    Buku Absen Harian Suku
-                  </span>
-                  <h4 className="text-base font-black text-white uppercase">Papan Presensi Stamp Suku Catur</h4>
-                  <p className="text-[10px] text-slate-400 max-w-sm mx-auto leading-normal">
+            <div className="space-y-6">              <div className="bg-[#262421] p-6 rounded-3xl border border-stone-800 space-y-5 relative overflow-hidden">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-[#81b64c]/10 rounded-full blur-2xl pointer-events-none" />
+                <div className="text-center space-y-1.5">
+                  <div className="inline-flex items-center gap-2 bg-gradient-to-r from-amber-500/20 via-yellow-500/20 to-emerald-500/20 border border-amber-500/40 text-amber-300 px-3.5 py-1 rounded-full font-black text-[10px] uppercase tracking-wider shadow-sm">
+                    <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping" />
+                    STREAK ABSENSI SUKU: {streakDays} HARI BERTURUT-TURUT
+                  </div>
+                  <h4 className="text-base font-black text-white uppercase tracking-wide">Papan Presensi Stamp Suku Catur</h4>
+                  <p className="text-[10px] text-slate-400 max-w-md mx-auto leading-relaxed">
                     Lakukan absen stamp harian untuk mendapatkan tunjangan koin, diamond klan, serta poin reputasi klan mingguan Anda!
                   </p>
                 </div>
- 
+
                 {/* 7-DAY STREAK CALENDAR GRID */}
-                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-3 pt-1">
+                <div className="grid grid-cols-2 sm:grid-cols-4 md:grid-cols-7 gap-2.5 pt-1">
                   {[
                     { day: 1, label: 'Hari 1', reward: '+120 Koin', points: '+50 Poin Suku', coins: 120, diamonds: 0 },
                     { day: 2, label: 'Hari 2', reward: '+150 Koin', points: '+70 Poin Suku', coins: 150, diamonds: 0 },
@@ -1598,41 +1665,47 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
                     const isPassedAndClaimed = d.day < activeDay || (d.day === activeDay && clanCheckedIn);
                     const isCurrentlyActiveToday = d.day === activeDay && !clanCheckedIn;
                     const isCheckedInToday = d.day === activeDay && clanCheckedIn;
- 
+
                     return (
                       <div 
                         key={d.day} 
-                        className={`p-3 rounded-2xl flex flex-col items-center justify-between transition-all border text-center relative min-h-[110px] ${
+                        className={`p-3 rounded-2xl flex flex-col items-center justify-between transition-all border text-center relative min-h-[115px] ${
                           isCheckedInToday || isPassedAndClaimed
-                            ? 'bg-emerald-950/20 border-emerald-500/40 text-emerald-400 font-bold'
+                            ? 'bg-gradient-to-b from-emerald-950/40 via-[#1c1a19] to-[#121110] border-emerald-500/50 shadow-md shadow-emerald-950/30 text-emerald-400 font-bold'
                             : isCurrentlyActiveToday
-                              ? 'bg-yellow-950/20 border-yellow-500 animate-pulse-slow text-yellow-400 font-extrabold shadow-lg shadow-yellow-950/35'
-                              : 'bg-[#1c1a19] border-stone-850 text-slate-500 font-medium'
+                              ? 'bg-gradient-to-b from-amber-950/50 via-[#26211a] to-[#1a1714] border-2 border-amber-400 ring-2 ring-amber-400/20 shadow-xl shadow-amber-950/50 text-amber-300 font-extrabold scale-[1.02]'
+                              : 'bg-[#181615] border-stone-850 text-slate-500 font-medium opacity-80'
                         }`}
                       >
-                        <span className="text-[9px] font-black tracking-wider uppercase mb-1">{d.label}</span>
+                        <span className={`text-[9px] font-mono font-black tracking-wider uppercase mb-1 ${
+                          isCheckedInToday || isPassedAndClaimed ? 'text-emerald-400' : isCurrentlyActiveToday ? 'text-amber-300' : 'text-slate-500'
+                        }`}>{d.label}</span>
                         
-                        <div className="my-2 flex items-center justify-center">
+                        <div className="my-1.5 flex items-center justify-center">
                           {isCheckedInToday || isPassedAndClaimed ? (
-                            <div className="w-8 h-8 rounded-full bg-emerald-500/10 border-2 border-emerald-500 flex items-center justify-center shadow-inner">
-                              <Check className="w-4 h-4 text-emerald-400 font-black" />
+                            <div className="w-8 h-8 rounded-full bg-emerald-500/20 border-2 border-emerald-400 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+                              <Check className="w-4 h-4 text-emerald-300 stroke-[3]" />
                             </div>
                           ) : d.isChest ? (
-                            <Trophy className={`w-6 h-6 ${isCurrentlyActiveToday ? 'text-yellow-400 animate-bounce' : 'text-stone-600'}`} />
+                            <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${isCurrentlyActiveToday ? 'bg-amber-500/20 border border-amber-400' : 'bg-stone-900 border border-stone-800'}`}>
+                              <img src={treasureSvg} alt="Peti Checkin" className={`w-6 h-6 object-contain ${isCurrentlyActiveToday ? 'animate-bounce' : 'opacity-60 grayscale'}`} referrerPolicy="no-referrer" />
+                            </div>
                           ) : (
-                            <Award className={`w-6 h-6 ${isCurrentlyActiveToday ? 'text-yellow-400' : 'text-stone-600'}`} />
+                            <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isCurrentlyActiveToday ? 'bg-amber-500/20 border border-amber-400' : 'bg-stone-900 border border-stone-800'}`}>
+                              <Award className={`w-4 h-4 ${isCurrentlyActiveToday ? 'text-amber-300' : 'text-stone-600'}`} />
+                            </div>
                           )}
                         </div>
- 
+
                         <div className="space-y-0.5">
-                          <span className={`text-[9px] font-black block leading-tight ${isCheckedInToday || isPassedAndClaimed ? 'text-emerald-400' : isCurrentlyActiveToday ? 'text-yellow-400' : 'text-slate-350'}`}>{d.reward}</span>
-                          <span className="text-[7.5px] font-bold text-slate-500 block uppercase font-mono">{d.points}</span>
+                          <span className={`text-[9px] font-black block leading-tight ${isCheckedInToday || isPassedAndClaimed ? 'text-emerald-300' : isCurrentlyActiveToday ? 'text-yellow-300' : 'text-slate-400'}`}>{d.reward}</span>
+                          <span className="text-[7.5px] font-bold text-slate-400 block uppercase font-mono">{d.points}</span>
                         </div>
- 
+
                         {/* Visual indicator ribbon */}
                         {isCurrentlyActiveToday && (
-                          <span className="absolute -top-1.5 -right-1 text-[7px] font-black bg-rose-600 text-white px-1.5 py-0.5 rounded-md uppercase tracking-wider animate-bounce">
-                            Hari Ini
+                          <span className="absolute -top-2 bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black text-[7.5px] px-2 py-0.5 rounded-full uppercase tracking-wider shadow-md animate-pulse">
+                            HARI INI
                           </span>
                         )}
                       </div>
@@ -1659,7 +1732,7 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
                     className="py-3 px-4 bg-stone-900 hover:bg-stone-850 text-slate-450 border border-stone-800 text-[9px] font-black uppercase rounded-xl transition cursor-pointer"
                     title="Simulasikan hari berikutnya untuk mengklaim absen baru"
                   >
-                    Simulasikan Hari Baru ➔
+                    Simulasikan Hari Baru 
                   </button>
                 </div>
               </div>
@@ -1683,15 +1756,15 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
                   <span className="text-[9px] text-[#81b64c] font-black uppercase tracking-wider block"> Cara Memperoleh Poin Milestone Suku:</span>
                   <ul className="text-[10px] text-slate-400 space-y-2 list-none pl-0">
                     <li className="flex items-start gap-2">
-                      <span className="text-[#81b64c] font-black">✓</span>
+                      <span className="text-[#81b64c] font-black"></span>
                       <span><strong>Absensi Harian Suku</strong>: Mengklaim stamp harian memberikan <strong>+50 s/d +200 Poin Suku</strong> (semakin panjang streak Anda, semakin melimpah koin & poin!).</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-[#81b64c] font-black">✓</span>
+                      <span className="text-[#81b64c] font-black"></span>
                       <span><strong>Perang Tanding Taktis Suku</strong>: Menang di medan tempur taktis suku menyumbang kontribusi instan sebesar <strong>+200 Poin Suku</strong> per kemenangan!</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-[#81b64c] font-black">✓</span>
+                      <span className="text-[#81b64c] font-black"></span>
                       <span><strong>Keanggotaan Suku Aktif</strong>: Undang teman klub baru dan berpartisipasi dalam obrolan tim harian untuk menjaga sinergi poin klan tetap maksimal.</span>
                     </li>
                   </ul>
@@ -1715,34 +1788,56 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
                   ].map((x) => {
                     const achieved = totalClanContribution >= x.requirement;
                     const claimed = claimedWeeklyMilestones.includes(x.tier);
- 
+
                     return (
                       <div key={x.tier} className="bg-stone-900 border border-stone-850 p-3.5 rounded-xl flex items-center justify-between gap-4">
-                        <div>
-                          <span className="text-[9.5px] font-black text-slate-450 block uppercase tracking-wide">
-                            {x.label}
-                          </span>
-                          <span className="text-[11px] font-mono font-bold text-slate-350 block mt-0.5">
-                            Syarat: {x.requirement} Poin
-                          </span>
-                          <div className="text-[9.5px] font-bold text-yellow-500 mt-1 flex items-center gap-1 bg-amber-950/20 px-1.5 py-0.5 rounded border border-amber-900/30">
-                            <Sparkles className="w-3 h-3 text-yellow-400" />
-                            <span>Hadiah Gacha: {x.rangeDesc}</span>
+                        <div className="flex items-center gap-3">
+                          {/* Chest SVG Visual */}
+                          <div className={`relative w-12 h-12 rounded-xl flex items-center justify-center shrink-0 border transition-all ${
+                            claimed 
+                              ? 'bg-emerald-500/20 border-emerald-500/40 text-emerald-400' 
+                              : achieved 
+                                ? 'bg-amber-500/25 border-amber-400 shadow-[0_0_12px_rgba(245,158,11,0.5)] animate-pulse' 
+                                : 'bg-[#15222d] border-[#26394a] opacity-50 filter grayscale'
+                          }`}>
+                            {claimed ? (
+                              <Check className="w-6 h-6 text-emerald-400 stroke-[3]" />
+                            ) : (
+                              <img
+                                src={treasureSvg}
+                                alt={x.label}
+                                className={`w-9 h-9 object-contain ${achieved ? 'animate-bounce' : ''}`}
+                                referrerPolicy="no-referrer"
+                              />
+                            )}
+                          </div>
+
+                          <div>
+                            <span className="text-[10px] font-black text-white block uppercase tracking-wide">
+                              {x.label}
+                            </span>
+                            <span className="text-[11px] font-mono font-bold text-slate-350 block mt-0.5">
+                              Syarat: {x.requirement} Poin
+                            </span>
+                            <div className="text-[9.5px] font-bold text-yellow-500 mt-1 flex items-center gap-1 bg-amber-950/20 px-1.5 py-0.5 rounded border border-amber-900/30">
+                              <Sparkles className="w-3 h-3 text-yellow-400" />
+                              <span>Hadiah Gacha: {x.rangeDesc}</span>
+                            </div>
                           </div>
                         </div>
- 
+
                         <button 
                           onClick={() => handleClaimMilestone(x.tier, x.requirement, x.label)}
                           disabled={claimed || !achieved}
-                          className={`px-3 py-2 text-[9.5px] font-black uppercase rounded-lg border-none cursor-pointer transition ${
+                          className={`px-3.5 py-2 text-[10px] font-black uppercase rounded-lg border-none cursor-pointer transition-all ${
                             claimed 
                               ? 'bg-stone-800 text-stone-600 cursor-not-allowed' 
                               : achieved 
-                                ? 'bg-yellow-500 text-slate-900 hover:bg-yellow-400 shadow animate-pulse'
+                                ? 'bg-yellow-500 text-slate-900 hover:bg-yellow-400 shadow-md shadow-yellow-500/20 active:scale-95 animate-pulse'
                                 : 'bg-stone-850 text-stone-500 cursor-not-allowed'
                           }`}
                         >
-                          {claimed ? 'DIKLAIM' : achieved ? 'KLAIM' : 'BELUM'}
+                          {claimed ? 'DIKLAIM' : achieved ? 'KLAIM PETI' : 'BELUM'}
                         </button>
                       </div>
                     );
@@ -1937,7 +2032,7 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
                             <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-wider text-slate-400">
                               <span>Pilih Pokémon Bidak Suku ({selectedCount} / {limit}):</span>
                               <span className={selectedCount === limit ? 'text-[#81b64c]' : 'text-amber-500'}>
-                                {selectedCount === limit ? '✓ SKUAD LENGKAP' : `KURANG ${limit - selectedCount} BIDAK`}
+                                {selectedCount === limit ? ' SKUAD LENGKAP' : `KURANG ${limit - selectedCount} BIDAK`}
                               </span>
                             </div>
 
@@ -1986,7 +2081,7 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
                                       <div className={`w-4 h-4 rounded border flex items-center justify-center transition-all ${
                                         isPicked ? 'bg-amber-500 border-amber-400' : 'bg-black/30 border-stone-700'
                                       }`}>
-                                        {isPicked && <span className="text-[10px] text-slate-950 font-black leading-none">✓</span>}
+                                        {isPicked && <span className="text-[10px] text-slate-950 font-black leading-none"></span>}
                                       </div>
                                     </div>
                                   </div>
@@ -2414,7 +2509,7 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
                                                 displayLabel = 'Tidak Berefek ';
                                               } else {
                                                 badgeColor = 'bg-[#81b64c]/10 text-[#81b64c] border-[#81b64c]/20';
-                                                displayLabel = 'Efektif ✓';
+                                                displayLabel = 'Efektif ';
                                               }
 
                                               return (
@@ -2527,66 +2622,148 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
           )}
 
           {/* VIEW: CHAT ROOM */}
-          {activityDetail === 'chat' && (
-            <div className="space-y-4">
-              <div className="bg-[#262421] p-5 rounded-2xl border border-stone-800 space-y-3.5">
-                <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center justify-between border-b border-stone-850 pb-2">
-                  <span>Obrolan Suku Aktif ({guildMembers.length} Orang)</span>
-                </h4>
+          {activityDetail === 'chat' && (() => {
+            const getUserDetails = (name: string) => {
+              if (!name) {
+                return {
+                  avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150',
+                  frameId: 'none'
+                };
+              }
+              if (name.toLowerCase() === (username || '').toLowerCase()) {
+                let activeAvatar = '';
+                let activeFrame = 'none';
+                try {
+                  const saved = localStorage.getItem('user');
+                  if (saved) {
+                    const uObj = JSON.parse(saved);
+                    activeAvatar = uObj.profileAvatar || uObj.avatar || '';
+                    activeFrame = uObj.selectedFrame || 'none';
+                  }
+                } catch (e) {}
+                if (!activeAvatar) {
+                  activeAvatar = localStorage.getItem('profileAvatar') || localStorage.getItem('guestAvatar') || '';
+                  activeFrame = localStorage.getItem('selectedFrame') || 'none';
+                }
+                return {
+                  avatar: activeAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150',
+                  frameId: activeFrame
+                };
+              }
 
-                <div className="space-y-3 max-h-[16rem] overflow-y-auto pr-1 bg-black/15 p-3 rounded-xl border border-stone-850 divide-y divide-stone-850">
-                  {guildChatMessages.map((msg, idx) => (
-                    <div key={idx} className="text-[11px] leading-relaxed pt-2.5 first:pt-0">
-                      <div className="flex items-center gap-1.5">
-                        <span className="font-black text-[#81b64c] text-xs">{msg.sender}</span>
-                        <span className="text-[8px] text-slate-500 font-mono italic">{msg.time}</span>
+              const member = guildMembers.find(m => m && m.name && m.name.toLowerCase() === name.toLowerCase());
+              if (member) {
+                return {
+                  avatar: member.avatar || member.profileAvatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150',
+                  frameId: member.frameId || member.selectedFrame || 'none'
+                };
+              }
+
+              if (name === 'Isna Caturia') {
+                return { avatar: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=150&h=150', frameId: 'gold' };
+              }
+              if (name === 'Naufal_Catur') {
+                return { avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=150&h=150', frameId: 'bronze' };
+              }
+              if (name === 'Grandmaster_X' || name === 'Martin_Pratama') {
+                return { avatar: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=150&h=150', frameId: 'cyber' };
+              }
+
+              return {
+                avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&h=150',
+                frameId: 'none'
+              };
+            };
+
+            return (
+              <div className="space-y-4">
+                <div className="bg-[#262421] p-5 rounded-2xl border border-stone-800 space-y-3.5">
+                  <h4 className="text-xs font-black text-white uppercase tracking-wider flex items-center justify-between border-b border-stone-850 pb-2.5">
+                    <span className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                      Obrolan Suku Aktif ({Math.max(1, (guildMembers || []).length)} Orang)
+                    </span>
+                    <span className="text-[9px] font-mono text-[#81b64c] font-black uppercase">● ONLINE REALTIME</span>
+                  </h4>
+
+                  <div className="space-y-3 max-h-[18rem] overflow-y-auto pr-1 bg-[#161514] p-3.5 rounded-2xl border border-stone-850">
+                    {guildChatMessages.length === 0 ? (
+                      <div className="text-center py-6 text-stone-500 text-xs italic">
+                        Belum ada obrolan suku. Mulai sapa klan Anda sekarang!
                       </div>
-                      <span className="text-slate-350 font-medium mt-0.5 block">{msg.text}</span>
-                    </div>
-                  ))}
-                </div>
+                    ) : (
+                      guildChatMessages.map((msg, idx) => {
+                        const details = getUserDetails(msg.sender);
+                        const isSelf = msg.sender?.toLowerCase() === username?.toLowerCase();
 
-                <div className="flex gap-2">
-                  <input 
-                    type="text" 
-                    placeholder="Ketik pesan obrolan suku klan..."
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        const val = e.currentTarget.value;
-                        if (!val.trim()) return;
+                        return (
+                          <div 
+                            key={idx} 
+                            className={`flex items-start gap-2.5 ${isSelf ? 'flex-row-reverse' : 'flex-row'}`}
+                          >
+                            <AvatarWithFrame
+                              src={details.avatar}
+                              frameId={details.frameId}
+                              size="xs"
+                            />
+                            <div className={`max-w-[80%] space-y-1 ${isSelf ? 'text-right' : 'text-left'}`}>
+                              <div className={`flex items-center gap-1.5 ${isSelf ? 'justify-end' : 'justify-start'}`}>
+                                <span className={`font-extrabold text-[11px] ${isSelf ? 'text-[#81b64c]' : 'text-amber-400'}`}>
+                                  {isSelf ? 'Anda (Kamu)' : msg.sender}
+                                </span>
+                                <span className="text-[8px] text-stone-500 font-mono">{msg.time}</span>
+                              </div>
+                              <div className={`p-3 rounded-2xl text-xs font-sans leading-relaxed text-white inline-block text-left shadow-sm ${
+                                isSelf 
+                                  ? 'bg-gradient-to-r from-[#81b64c]/20 to-[#81b64c]/10 border border-[#81b64c]/40 rounded-tr-none' 
+                                  : 'bg-[#1c1a19] border border-stone-800 rounded-tl-none'
+                              }`}>
+                                {msg.text}
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })
+                    )}
+                  </div>
 
-                        const timeNow = new Date().toLocaleTimeString('id-id', { hour: '2-digit', minute: '2-digit' });
-                        setGuildChatMessages(prev => [...prev, { sender: username, text: val, time: timeNow }]);
-                        e.currentTarget.value = '';
-                        triggerAudio('move');
+                  <div className="flex gap-2">
+                    <input 
+                      id="clan-chat-input-field"
+                      type="text" 
+                      placeholder="Ketik pesan obrolan suku klan..."
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          const val = e.currentTarget.value;
+                          if (!val.trim()) return;
 
-                        setTimeout(() => {
-                          const replies = [
-                            "Kerjasama klan catur kita mantap sekali!",
-                            "Ayo klaim absensi harian ya teman-teman agar poin target chest kita tercapai.",
-                            "Taktik puzzle board tadi seru banget, silakan diselesaikan.",
-                            "Apakah ada yang perlu kepingan fragment Gold Knight? Saya bersedia mendonasikan.",
-                            "Mabar catur santai sore ini kuy!"
-                          ];
-                          const senders = ['Naufal_Catur', 'Isna Caturia', 'Martin_Pratama'];
-                          const randRep = replies[Math.floor(Math.random() * replies.length)];
-                          const randSender = senders[Math.floor(Math.random() * senders.length)];
-
-                          setGuildChatMessages(prev => [...prev, {
-                            sender: randSender,
-                            text: randRep,
-                            time: new Date().toLocaleTimeString('id-id', { hour: '2-digit', minute: '2-digit' })
-                          }]);
-                          triggerAudio('win');
-                        }, 1200);
-                      }
-                    }}
-                    className="flex-1 bg-[#1a1817] border border-stone-800 p-2.5 rounded-xl text-xs text-white placeholder-stone-600 focus:outline-none focus:border-[#81b64c]"
-                  />
+                          const timeNow = new Date().toLocaleTimeString('id-id', { hour: '2-digit', minute: '2-digit' });
+                          setGuildChatMessages(prev => [...prev, { sender: username, text: val, time: timeNow }]);
+                          e.currentTarget.value = '';
+                          triggerAudio('move');
+                        }
+                      }}
+                      className="flex-1 bg-[#1a1817] border border-stone-800 p-2.5 px-3.5 rounded-xl text-xs text-white placeholder-stone-600 focus:outline-none focus:border-[#81b64c] transition"
+                    />
+                    <button
+                      onClick={() => {
+                        const inputEl = document.getElementById('clan-chat-input-field') as HTMLInputElement;
+                        if (inputEl && inputEl.value.trim()) {
+                          const timeNow = new Date().toLocaleTimeString('id-id', { hour: '2-digit', minute: '2-digit' });
+                          setGuildChatMessages(prev => [...prev, { sender: username, text: inputEl.value.trim(), time: timeNow }]);
+                          inputEl.value = '';
+                          triggerAudio('move');
+                        }
+                      }}
+                      className="px-4 py-2.5 bg-[#81b64c] hover:bg-green-500 text-white font-black text-xs uppercase rounded-xl transition cursor-pointer shadow flex items-center justify-center shrink-0"
+                    >
+                      Kirim
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          )}
+            );
+          })()}
         </div>
       )}
 
@@ -2610,16 +2787,20 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
               <div className={`absolute inset-0 bg-radial-gradient from-amber-500/10 to-transparent pointer-events-none transition-opacity duration-700 ${openingChest.isOpened ? 'opacity-100' : 'opacity-40'}`} />
 
               <div>
-                <span className="text-[10px] font-black uppercase text-amber-500 tracking-widest bg-amber-950/40 px-3 py-1 rounded-full border border-amber-900/30">
-                  {openingChest.label}
+                <span className={`text-[10px] font-black uppercase tracking-widest px-3.5 py-1 rounded-full border shadow-sm ${
+                  openingChest.tier === 1 ? 'bg-amber-950/70 text-amber-400 border-amber-800/60' :
+                  openingChest.tier === 2 ? 'bg-slate-800/90 text-slate-200 border-slate-400/60' :
+                  'bg-yellow-950/90 text-yellow-300 border-yellow-400/60'
+                }`}>
+                  {openingChest.tier === 1 ? 'BRONZE CHEST' : openingChest.tier === 2 ? 'SILVER CHEST' : 'GOLD CHEST'} • {openingChest.label}
                 </span>
                 <h3 className="text-lg font-black text-white mt-3 uppercase tracking-wider">
-                  {openingChest.isOpened ? 'KLAIM REWARD SUKU!' : 'PETI REWARD DIKUNCI'}
+                  {openingChest.isOpened ? 'REWARD SUKU BERHASIL DIKLAIM!' : 'MEMBUKA PETI REWARD...'}
                 </h3>
                 <p className="text-xs text-slate-400 mt-1">
                   {openingChest.isOpened 
-                    ? 'Hasil tarikan gacha keberuntungan dari chest milestone!' 
-                    : 'Silakan ketuk peti di bawah ini untuk membuka dan melakukan gacha reward!'}
+                    ? 'Hasil tarikan reward sesuai dengan rank milestone peti suku!' 
+                    : 'Peti sedang membuka otomatis, mohon tunggu...'}
                 </p>
               </div>
 
@@ -2649,33 +2830,37 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
                     className="relative cursor-pointer select-none"
                   >
                     {/* Pulsing light ring behind chest */}
-                    <div className="absolute inset-0 bg-yellow-500/10 rounded-full blur-2xl animate-pulse scale-150" />
+                    <div className={`absolute inset-0 rounded-full blur-2xl animate-pulse scale-150 ${
+                      openingChest.tier === 1 ? 'bg-amber-600/20' :
+                      openingChest.tier === 2 ? 'bg-slate-300/20' :
+                      'bg-yellow-400/25'
+                    }`} />
                     
                     {/* Big stylized chest body */}
-                    <div className="flex items-center justify-center filter drop-shadow-[0_10px_15px_rgba(245,158,11,0.25)] text-amber-500 py-4">
-                      {openingChest.tier === 1 ? (
-                        <Gift className="w-20 h-20 stroke-[1.5]" />
-                      ) : openingChest.tier === 2 ? (
-                        <Award className="w-20 h-20 stroke-[1.5]" />
-                      ) : (
-                        <Trophy className="w-20 h-20 stroke-[1.5]" />
-                      )}
-                    </div>
-
-                    <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-yellow-500 text-slate-900 font-extrabold text-[9px] uppercase tracking-wider px-2 py-0.5 rounded shadow whitespace-nowrap animate-bounce">
-                      KETUK UNTUK MEMBUKA!
+                    <div className="flex items-center justify-center filter drop-shadow-[0_10px_15px_rgba(245,158,11,0.4)] py-4">
+                      <img 
+                        src={treasureSvg} 
+                        alt="Peti Suku" 
+                        className="w-24 h-24 object-contain" 
+                        referrerPolicy="no-referrer" 
+                      />
                     </div>
                   </motion.div>
                 ) : (
                   /* OPENED / REVEALED LOOT STAGE */
                   <div className="space-y-4 w-full">
                     <motion.div
-                      initial={{ scale: 0.5, rotate: -45, opacity: 0 }}
-                      animate={{ scale: [0.5, 1.2, 1], rotate: 0, opacity: 1 }}
+                      initial={{ scale: 0.5, opacity: 0 }}
+                      animate={{ scale: 1, opacity: 1 }}
                       transition={{ type: "spring", damping: 12, stiffness: 200 }}
-                      className="text-[90px] mb-2 filter drop-shadow-[0_15px_20px_rgba(245,158,11,0.45)]"
+                      className="flex justify-center mb-2 filter drop-shadow-[0_15px_20px_rgba(245,158,11,0.5)]"
                     >
-                      
+                      <img 
+                        src={treasureSvg} 
+                        alt="Peti Terbuka" 
+                        className="w-28 h-28 object-contain animate-bounce" 
+                        referrerPolicy="no-referrer" 
+                      />
                     </motion.div>
 
                     {/* Reward Floating Cards */}

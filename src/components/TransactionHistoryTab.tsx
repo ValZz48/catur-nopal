@@ -10,7 +10,8 @@ export const TransactionHistoryTab: React.FC<TransactionHistoryTabProps> = ({ pr
   // Read transaction history from localStorage
   const [localHistory, setLocalHistory] = useState<any[]>(() => {
     try {
-      const saved = localStorage.getItem('chess_transaction_history');
+      const activeUser = (localStorage.getItem('username') || 'guest').trim().toLowerCase();
+      const saved = localStorage.getItem(`chess_transaction_history:${activeUser}`);
       return saved ? JSON.parse(saved) : [];
     } catch (e) {
       return [];
@@ -19,14 +20,24 @@ export const TransactionHistoryTab: React.FC<TransactionHistoryTabProps> = ({ pr
 
   // Listen for real-time transaction updates
   useEffect(() => {
+    let active = true;
     const handleUpdate = () => {
       try {
-        const saved = localStorage.getItem('chess_transaction_history');
-        setLocalHistory(saved ? JSON.parse(saved) : []);
+        const activeUser = (localStorage.getItem('username') || 'guest').trim().toLowerCase();
+        const saved = localStorage.getItem(`chess_transaction_history:${activeUser}`);
+        const nextList = saved ? JSON.parse(saved) : [];
+        setTimeout(() => {
+          if (active) {
+            setLocalHistory(nextList);
+          }
+        }, 0);
       } catch (e) {}
     };
     window.addEventListener('chess_transaction_update', handleUpdate);
-    return () => window.removeEventListener('chess_transaction_update', handleUpdate);
+    return () => {
+      active = false;
+      window.removeEventListener('chess_transaction_update', handleUpdate);
+    };
   }, []);
 
   const [currencyFilter, setCurrencyFilter] = useState<'all' | 'coin' | 'diamond'>('all');

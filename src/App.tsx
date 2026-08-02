@@ -62,7 +62,8 @@ import {
   Clipboard,
   Download,
   Star,
-  Percent
+  Percent,
+  CheckCheck
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Character, GameMode, Puzzle, Lesson, PurchaseableTheme, BoardTheme, Achievement } from './types';
@@ -78,15 +79,71 @@ import { SocialHub } from './components/SocialHub';
 import { ChessTutorialTour } from './components/ChessTutorialTour';
 import { AdminStaffConsole } from './components/AdminStaffConsole';
 import { AvatarWithFrame } from './components/AvatarWithFrame';
+import streakSvg from './assets/images/streak.svg';
+import { DuolingoMascotHeader } from './components/DuolingoMascotHeader';
+import { AnimatedMascot } from './components/AnimatedMascot';
 import { ConfirmationDialog } from './components/ConfirmationDialog';
 import { ChessOpeningsDb } from './components/ChessOpeningsDb';
 import { TransactionHistoryTab } from './components/TransactionHistoryTab';
+import { PageLoadingScreen } from './components/PageLoadingScreen';
+
+// Diagnostic Logging Middleware for localStorage updates
+try {
+  const originalSetItem = window.localStorage.setItem;
+  const originalRemoveItem = window.localStorage.removeItem;
+
+  window.localStorage.setItem = function (key: string, value: string) {
+    const lowerKey = key.toLowerCase();
+    if (
+      lowerKey.includes('onlinehistory') || 
+      lowerKey.includes('telemetry') || 
+      lowerKey.includes('elo') ||
+      lowerKey.includes('rating')
+    ) {
+      console.groupCollapsed(`%c[Storage Diagnostic] localStorage.setItem called for key: "${key}"`, 'color: #3b82f6; font-weight: bold;');
+      console.log('Value:', value);
+      console.trace('Stack Trace:');
+      console.groupEnd();
+    }
+    return originalSetItem.apply(this, arguments as any);
+  };
+
+  window.localStorage.removeItem = function (key: string) {
+    const lowerKey = key.toLowerCase();
+    if (
+      lowerKey.includes('onlinehistory') || 
+      lowerKey.includes('telemetry') || 
+      lowerKey.includes('elo') ||
+      lowerKey.includes('rating')
+    ) {
+      console.groupCollapsed(`%c[Storage Diagnostic] localStorage.removeItem called for key: "${key}"`, 'color: #ef4444; font-weight: bold;');
+      console.trace('Stack Trace:');
+      console.groupEnd();
+    }
+    return originalRemoveItem.apply(this, arguments as any);
+  };
+} catch (e) {
+  console.error('[Storage Diagnostic] Failed to inject diagnostic middleware:', e);
+}
 
 import martinAvatar from './assets/images/avatar_martin_1779709510230.png';
 import nelsonAvatar from './assets/images/nelson_avatar_1779712159293.png';
 import wallyAvatar from './assets/images/wally_avatar_1779712178593.png';
 import magnusAvatar from './assets/images/magnus_avatar_1779712198066.png';
+
+import duoAvatar from './assets/images/duo_avatar_1779707455306.png';
+import lilyAvatar from './assets/images/lily_avatar_1779707473241.png';
+import oscarAvatar from './assets/images/oscar_avatar_1779707493065.png';
+import zariAvatar from './assets/images/zari_avatar_1779707508891.png';
+import eddyAvatar from './assets/images/eddy_duo_style_1784811264758.jpg';
+import juniorAvatar from './assets/images/junior_duo_style_1784811276328.jpg';
+import linAvatar from './assets/images/lin_duo_style_1784811286442.jpg';
+import vikramAvatar from './assets/images/vikram_duo_style_1784811297014.jpg';
+import beaAvatar from './assets/images/bea_duo_style_1784811329878.jpg';
+import falstaffAvatar from './assets/images/falstaff_duo_style_1784811342155.jpg';
+
 import palmateBannerHero from './assets/images/palmate_banner_16_9_1782894241833.jpg';
+import palmateBannerHeroLight from './assets/images/palmateBannerHeroLight.svg';
 
 interface AvatarFrame {
   id: string;
@@ -232,6 +289,17 @@ const AVATAR_FRAMES: AvatarFrame[] = [
     themeColor: 'text-sky-200',
     description: 'Sentuhan butiran salju beku hasil badai salju es arktik yang dingin bersinar.',
     description_en: 'Chilly Arctic ice storm snow crystals shining with frost.'
+  },
+  {
+    id: 'avatar_border_test',
+    name: 'Neon Pulsar',
+    name_en: 'Neon Pulsar Border',
+    costType: 'coin',
+    cost: 300,
+    isPremiumExclusive: false,
+    themeColor: 'text-cyan-300',
+    description: 'Bingkai video bergerak animasi gelombang pulsar neon futuristik.',
+    description_en: 'Exclusive animated fast neon wave pulsar video avatar border.'
   }
 ];
 
@@ -244,27 +312,15 @@ interface LevelReward {
   frameReward?: string; // e.g. 'bronze', 'silver', 'gold' etc
 }
 
-const LEVEL_REWARDS: LevelReward[] = [
-  { level: 2, xpRequired: 100, coins: 150, diamonds: 5 },
-  { level: 3, xpRequired: 200, coins: 250, diamonds: 10 },
-  { level: 4, xpRequired: 300, coins: 350, diamonds: 15 },
-  { level: 5, xpRequired: 400, coins: 500, diamonds: 20 },
-  { level: 6, xpRequired: 500, coins: 650, diamonds: 25 },
-  { level: 7, xpRequired: 600, coins: 800, diamonds: 30 },
-  { level: 8, xpRequired: 700, coins: 1000, diamonds: 35 },
-  { level: 9, xpRequired: 800, coins: 1200, diamonds: 40 },
-  { level: 10, xpRequired: 900, coins: 1500, diamonds: 100 },
-  { level: 11, xpRequired: 1000, coins: 1700, diamonds: 55 },
-  { level: 12, xpRequired: 1100, coins: 1900, diamonds: 60 },
-  { level: 13, xpRequired: 1200, coins: 2100, diamonds: 70 },
-  { level: 14, xpRequired: 1300, coins: 2300, diamonds: 80 },
-  { level: 15, xpRequired: 1400, coins: 2500, diamonds: 100 },
-  { level: 16, xpRequired: 1500, coins: 2700, diamonds: 110 },
-  { level: 17, xpRequired: 1600, coins: 3000, diamonds: 120 },
-  { level: 18, xpRequired: 1700, coins: 3300, diamonds: 130 },
-  { level: 19, xpRequired: 1800, coins: 3600, diamonds: 140 },
-  { level: 20, xpRequired: 1900, coins: 4000, diamonds: 150 }
-];
+const LEVEL_REWARDS: LevelReward[] = Array.from({ length: 99 }, (_, idx) => {
+  const level = idx + 2;
+  const xpRequired = (level - 1) * 100;
+  const isMilestone = level % 10 === 0;
+  const isSemiMilestone = level % 5 === 0;
+  const coins = level * 200 + (isMilestone ? 2500 : isSemiMilestone ? 1000 : 0);
+  const diamonds = Math.floor(level * 7.5) + (isMilestone ? 100 : isSemiMilestone ? 35 : 0);
+  return { level, xpRequired, coins, diamonds };
+});
 
 const formatTime = (seconds: number): string => {
   const m = Math.floor(seconds / 60);
@@ -275,9 +331,9 @@ const formatTime = (seconds: number): string => {
 const EVALUATION_LABELS: Record<string, { label: string; bg: string; text: string; icon: string }> = {
   brilliant: { label: 'Brilian', bg: 'bg-emerald-600 border-emerald-500', text: 'text-white font-extrabold', icon: '!!' },
   great: { label: 'Hebat', bg: 'bg-blue-600 border-blue-500', text: 'text-white font-extrabold', icon: '!' },
-  best: { label: 'Terbaik', bg: 'bg-[#81b64c] border-[#81b64c]', text: 'text-white font-extrabold', icon: '★' },
-  excellent: { label: 'Sangat Baik', bg: 'bg-teal-600 border-teal-500', text: 'text-white font-bold', icon: '★' },
-  good: { label: 'Baik', bg: 'bg-sky-600 border-sky-500', text: 'text-white font-semibold', icon: '✓' },
+  best: { label: 'Terbaik', bg: 'bg-[#81b64c] border-[#81b64c]', text: 'text-white font-extrabold', icon: '' },
+  excellent: { label: 'Sangat Baik', bg: 'bg-teal-600 border-teal-500', text: 'text-white font-bold', icon: '' },
+  good: { label: 'Baik', bg: 'bg-sky-600 border-sky-500', text: 'text-white font-semibold', icon: '' },
   book: { label: 'Teori Buku', bg: 'bg-amber-600 border-amber-500', text: 'text-white font-semibold', icon: 'B' },
   inaccuracy: { label: 'Kurang Tepat', bg: 'bg-zinc-650 border-zinc-500', text: 'text-white font-semibold', icon: '?!' },
   mistake: { label: 'Kesalahan', bg: 'bg-orange-600 border-orange-500', text: 'text-white font-extrabold', icon: '?' },
@@ -578,6 +634,12 @@ const fetchWithTimeout = async (resource: string, options: RequestInit = {}, tim
 };
 
 export default function App() {
+  // --- USER AUTHENTICATION STATES & SYNCHRONIZATION ---
+  const [user, setUser] = useState<any>(() => {
+    const saved = localStorage.getItem('user');
+    return saved ? JSON.parse(saved) : null;
+  });
+
   // Navigation / Gamification States which persist in localStorage
   const [isNavDrawerOpen, setIsNavDrawerOpen] = useState<boolean>(false);
   const [activeHubTab, setActiveHubTab] = useState<'replay' | 'social' | 'rank' | 'pass'>('replay');
@@ -587,6 +649,25 @@ export default function App() {
   const [mode, setMode] = useState<GameMode>(() => {
     return (localStorage.getItem('mode') as GameMode) || 'home';
   });
+  const [isPageLoading, setIsPageLoading] = useState<boolean>(false);
+  const prevModeRef = useRef<GameMode>(mode);
+
+  useEffect(() => {
+    if (prevModeRef.current !== mode) {
+      const GAMEPLAY_MODES: GameMode[] = ['play', 'online-match', 'local-friend', 'puzzles', 'lessons', 'tournament'];
+      const isEnteringGameMode = GAMEPLAY_MODES.includes(mode) && !GAMEPLAY_MODES.includes(prevModeRef.current);
+      
+      prevModeRef.current = mode;
+
+      if (isEnteringGameMode) {
+        setIsPageLoading(true);
+        const t = setTimeout(() => {
+          setIsPageLoading(false);
+        }, 2600);
+        return () => clearTimeout(t);
+      }
+    }
+  }, [mode]);
   const getActUser = () => {
     const actUserObj = localStorage.getItem('user');
     if (actUserObj) {
@@ -607,19 +688,32 @@ export default function App() {
     return Number(localStorage.getItem('xp')) || 0;
   });
 
+  const lastTxRef = useRef<{ [key: string]: number }>({});
+
   const logTransactionHelper = (type: 'coin' | 'diamond', amount: number, desc: string) => {
+    if (amount === 0) return;
+    const activeUser = (localStorage.getItem('username') || 'guest').trim().toLowerCase();
+    const txKey = `${activeUser}:${type}:${amount}:${desc}`;
+    const now = Date.now();
+    if (lastTxRef.current[txKey] && now - lastTxRef.current[txKey] < 2000) {
+      return; // Skip duplicate logging within 2 seconds
+    }
+    lastTxRef.current[txKey] = now;
+
     const newRecord = {
-      id: `tx-${type}-${Date.now()}-${Math.floor(Math.random()*1000)}`,
-      timestamp: Date.now(),
+      id: `tx-${type}-${now}-${Math.floor(Math.random()*1000)}`,
+      timestamp: now,
       type,
       amount,
       desc
     };
     try {
-      const saved = localStorage.getItem('chess_transaction_history');
+      const userKey = `chess_transaction_history:${activeUser}`;
+      const saved = localStorage.getItem(userKey) || localStorage.getItem('chess_transaction_history');
       const list = saved ? JSON.parse(saved) : [];
       const updated = [newRecord, ...list].slice(0, 100);
       localStorage.setItem('chess_transaction_history', JSON.stringify(updated));
+      localStorage.setItem(userKey, JSON.stringify(updated));
       window.dispatchEvent(new Event('chess_transaction_update'));
     } catch (e) {
       console.error(e);
@@ -699,7 +793,7 @@ export default function App() {
       const saved = localStorage.getItem(`seasonPassLevel:${actUser}`);
       if (saved !== null) return Number(saved);
     }
-    return Number(localStorage.getItem('seasonPassLevel')) || 1;
+    return 1;
   });
   const [passXp, setPassXp] = useState<number>(() => {
     const actUser = getActUser();
@@ -707,7 +801,7 @@ export default function App() {
       const saved = localStorage.getItem(`seasonPassXp:${actUser}`);
       if (saved !== null) return Number(saved);
     }
-    return Number(localStorage.getItem('seasonPassXp')) || 0;
+    return 0;
   });
   const [passStatus, setPassStatus] = useState<'free' | 'premium' | 'deluxe'>(() => {
     const actUser = getActUser();
@@ -715,16 +809,30 @@ export default function App() {
       const saved = localStorage.getItem(`seasonPassStatus:${actUser}`);
       if (saved !== null) return (saved as any);
     }
-    return (localStorage.getItem('seasonPassStatus') as any) || 'free';
+    return 'free';
   });
+  // STATE MANAGEMENT FOR SEASON PASS REWARDS:
+  // All claimable statuses are correctly initialized to 'unclaimed' by default.
+  // Any newly unlocked level's rewards will start as 'unclaimed' and strictly require
+  // manual button interaction (which appends the reward ID to claimedPassRewards) to be marked as 'claimed'.
+  // This explicitly prevents any automatic or accidental claims upon opening new levels.
   const [claimedPassRewards, setClaimedPassRewards] = useState<string[]>(() => {
     const actUser = getActUser();
+    let loaded: string[] = [];
     if (actUser) {
       const saved = localStorage.getItem(`claimedPassRewards:${actUser}`);
-      if (saved) return JSON.parse(saved);
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved);
+          if (Array.isArray(parsed)) {
+            loaded = parsed.filter(id => typeof id === 'string');
+          }
+        } catch (e) {
+          console.error("Error parsing saved claimedPassRewards:", e);
+        }
+      }
     }
-    const saved = localStorage.getItem('claimedPassRewards');
-    return saved ? JSON.parse(saved) : [];
+    return loaded;
   });
   const [claimedRankRewards, setClaimedRankRewards] = useState<string[]>(() => {
     const actUser = getActUser();
@@ -732,8 +840,7 @@ export default function App() {
       const saved = localStorage.getItem(`claimedRankRewards:${actUser}`);
       if (saved) return JSON.parse(saved);
     }
-    const saved = localStorage.getItem('claimedRankRewards');
-    return saved ? JSON.parse(saved) : [];
+    return [];
   });
   const [diamondSavings, setDiamondSavings] = useState<number>(() => {
     return Number(localStorage.getItem('chessDiamondSavings')) || 0;
@@ -763,7 +870,7 @@ export default function App() {
       return next;
     });
   };
-  const [profileActiveTab, setProfileActiveTab] = useState<'profile' | 'inventory' | 'replay' | 'social' | 'stats' | 'medals' | 'fashion' | 'blocked' | 'opening'>('profile');
+  const [profileActiveTab, setProfileActiveTab] = useState<'profile' | 'inventory' | 'replay' | 'social' | 'stats' | 'medals' | 'fashion' | 'blocked' | 'opening' | 'transactions'>('profile');
   const [inventorySearch, setInventorySearch] = useState('');
   const [featureSearch, setFeatureSearch] = useState('');
   const [storeActiveTab, setStoreActiveTab] = useState<'shop' | 'gacha' | 'flash_sale' | 'gifting'>('shop');
@@ -1290,20 +1397,18 @@ export default function App() {
           const next = prev + amt;
           localStorage.setItem('diamonds', String(next));
           return next;
-        });
+        }, true);
         triggerReward(0, `Klaim Berhasil! Anda mendapatkan ${amt} Diamond dari quest "${questToClaim.title}"!`, 'reward', 0, amt);
       } else if (questToClaim.rewardType === 'xp') {
         const amt = questToClaim.rewardAmount;
-        setXp(p => {
-          const n = p + amt;
-          localStorage.setItem('xp', String(n));
-          if (user) {
-            const updatedUser = { ...user, xp: n };
-            localStorage.setItem('user', JSON.stringify(updatedUser));
-            setUser(updatedUser);
-          }
-          return n;
-        });
+        const newXp = xp + amt;
+        setXp(newXp);
+        localStorage.setItem('xp', String(newXp));
+        if (user) {
+          const updatedUser = { ...user, xp: newXp };
+          localStorage.setItem('user', JSON.stringify(updatedUser));
+          setUser(updatedUser);
+        }
         triggerReward(amt, `Klaim Berhasil! Anda mendapatkan +${amt} XP dari quest "${questToClaim.title}"!`, 'reward');
       }
     }
@@ -1390,7 +1495,14 @@ export default function App() {
   const [unlockedFrames, setUnlockedFrames] = useState<string[]>(() => {
     const actUser = getActiveUsername();
     const saved = localStorage.getItem(`unlockedFrames:${actUser}`);
-    return saved ? JSON.parse(saved) : ['none'];
+    const mp4Frames = ['avatar_border_test'];
+    if (!saved) return ['none', ...mp4Frames];
+    try {
+      const parsed = JSON.parse(saved);
+      return Array.from(new Set([...parsed, ...mp4Frames]));
+    } catch (e) {
+      return ['none', ...mp4Frames];
+    }
   });
 
   const [guestMatchesPlayed, setGuestMatchesPlayed] = useState<number>(() => {
@@ -1506,7 +1618,7 @@ export default function App() {
   const [puzzleMovesPlayed, setPuzzleMovesPlayed] = useState<number>(0);
   const [puzzleStatus, setPuzzleStatus] = useState<'playing' | 'failed' | 'solved'>('playing');
   const [showPuzzleHint, setShowPuzzleHint] = useState<boolean>(false);
-  const [puzzlesSubTab, setPuzzlesSubTab] = useState<'roadmap' | 'board'>('board');
+  const [puzzlesSubTab, setPuzzlesSubTab] = useState<'roadmap' | 'board'>('roadmap');
 
   // Pre-match ritual state management
   const [showPreMatchRitual, setShowPreMatchRitual] = useState<boolean>(false);
@@ -1586,8 +1698,8 @@ export default function App() {
   const setQueuedPremove = (v: any) => {};
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [settingsSubTab, setSettingsSubTab] = useState<'preferences' | 'help' | 'admin'>('preferences');
+  const [helpActiveTab, setHelpActiveTab] = useState<'faq' | 'ai' | 'tickets'>('faq');
   const [analysisSubMode, setAnalysisSubMode] = useState<'game' | 'free'>('game');
-  const [lessonsActiveSubTab, setLessonsActiveSubTab] = useState<'lessons' | 'openings'>('lessons');
 
   const showLocalToast = (msg: string) => {
     setToastMessage(msg);
@@ -1644,6 +1756,22 @@ export default function App() {
 
   // Interactive feedback triggers
   const [showRewardModal, setShowRewardModal] = useState<boolean>(false);
+  const [isStreakModalOpen, setIsStreakModalOpen] = useState<boolean>(false);
+  const [lastClaimedDailyRewardSummary, setLastClaimedDailyRewardSummary] = useState<{
+    dayNumber: number;
+    baseXp: number;
+    streakBonusXp: number;
+    totalXp: number;
+    streakBonusCoins: number;
+    giftTitle: string;
+  }>({
+    dayNumber: 1,
+    baseXp: 10,
+    streakBonusXp: 0,
+    totalXp: 10,
+    streakBonusCoins: 0,
+    giftTitle: 'XP Standar'
+  });
   const [pendingLevelUpReward, setPendingLevelUpReward] = useState<string | null>(null);
   const [rewardAmount, setRewardAmount] = useState<number>(0);
   const [rewardCoinsAmount, setRewardCoinsAmount] = useState<number>(0);
@@ -1652,9 +1780,73 @@ export default function App() {
   const [rewardType, setRewardType] = useState<'reward' | 'premium' | 'info' | 'success_no_xp' | 'level_up'>('reward');
 
   // Currency flying particles animation states
-  const [flyingParticles, setFlyingParticles] = useState<Array<{ id: number; type: 'coin' | 'diamond'; delay: number; rx: number; ry: number; direction?: 'in' | 'out' }>>([]);
+  const [realGuildsLeaderboard, setRealGuildsLeaderboard] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchLeaderboard = () => {
+      fetch('/api/guilds/leaderboard')
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.success && Array.isArray(data.guilds)) {
+            setRealGuildsLeaderboard(data.guilds);
+          }
+        })
+        .catch(() => {});
+
+      // Sync user's local club to server if owner
+      const hasOwner = localStorage.getItem('guild_has_owner') === 'true';
+      if (hasOwner) {
+        try {
+          const profileSaved = localStorage.getItem('guild_profile_data');
+          const membersSaved = localStorage.getItem('guild_members');
+          const profile = profileSaved ? JSON.parse(profileSaved) : null;
+          const members = membersSaved ? JSON.parse(membersSaved) : [];
+          if (profile && profile.name) {
+            const totalElo = members.reduce((sum: number, m: any) => sum + (m.rating || 600), 0);
+            const activeUser = user?.username || localStorage.getItem('username') || 'Guest';
+            fetch('/api/guilds/sync', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                guild: {
+                  id: profile.id || profile.name,
+                  name: profile.name,
+                  tag: profile.tag || 'ELIT',
+                  leader: profile.leader || activeUser,
+                  ownerUsername: activeUser,
+                  level: Number(localStorage.getItem('guild_lvl')) || 1,
+                  totalElo: totalElo || 1200,
+                  membersCount: members.length || 1,
+                  maxMembers: 30,
+                  motto: profile.motto || profile.description || 'Klan Catur Sejati',
+                  logo: profile.logo || 'perisai'
+                }
+              })
+            }).catch(() => {});
+          }
+        } catch (_) {}
+      }
+    };
+    fetchLeaderboard();
+    const interval = setInterval(fetchLeaderboard, 3000);
+    return () => clearInterval(interval);
+  }, [user]);
+
+  const [flyingParticles, setFlyingParticles] = useState<Array<{
+    id: number;
+    type: 'coin' | 'diamond' | 'xp';
+    delay: number;
+    rx: number;
+    ry: number;
+    startX: number;
+    startY: number;
+    endX: number;
+    endY: number;
+    direction?: 'in' | 'out';
+  }>>([]);
   const [isDiamondsPulsing, setIsDiamondsPulsing] = useState<boolean>(false);
   const [isCoinsPulsing, setIsCoinsPulsing] = useState<boolean>(false);
+  const [isXpPulsing, setIsXpPulsing] = useState<boolean>(false);
   const [targetCoords, setTargetCoords] = useState<{ coin: { x: number; y: number }; diamond: { x: number; y: number } }>({
     coin: { x: window.innerWidth - 160, y: 24 },
     diamond: { x: window.innerWidth - 80, y: 24 }
@@ -1662,48 +1854,89 @@ export default function App() {
 
   const prevCoinsRef = useRef<number>(coins);
   const prevDiamondsRef = useRef<number>(diamonds);
+  const prevXpRef = useRef<number>(xp);
 
   useEffect(() => {
     if (isResettingRef.current) {
       prevCoinsRef.current = coins;
       prevDiamondsRef.current = diamonds;
+      prevXpRef.current = xp;
       return;
     }
 
     const diffCoins = coins - prevCoinsRef.current;
     const diffDiamonds = diamonds - prevDiamondsRef.current;
+    const diffXp = xp - prevXpRef.current;
 
     prevCoinsRef.current = coins;
     prevDiamondsRef.current = diamonds;
+    prevXpRef.current = xp;
 
-    const triggerParticles = (type: 'coin' | 'diamond', direction: 'in' | 'out') => {
+    const triggerParticles = (type: 'coin' | 'diamond' | 'xp', direction: 'in' | 'out') => {
       const coinEl = document.getElementById('nav-coins-display');
       const diamondEl = document.getElementById('nav-diamonds-display');
-      const nextCoords = {
-        coin: { x: window.innerWidth - 160, y: 24 },
-        diamond: { x: window.innerWidth - 80, y: 24 }
-      };
-      if (coinEl) {
-        const rect = coinEl.getBoundingClientRect();
-        nextCoords.coin = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
+      const xpEl = document.getElementById('nav-xp-display');
+      const target = { x: window.innerWidth / 2, y: 100 }; // default fallback
+      if (type === 'coin') {
+        if (coinEl) {
+          const rect = coinEl.getBoundingClientRect();
+          target.x = rect.left + rect.width / 2;
+          target.y = rect.top + rect.height / 2;
+        } else {
+          target.x = window.innerWidth - 160;
+          target.y = 24;
+        }
+      } else if (type === 'diamond') {
+        if (diamondEl) {
+          const rect = diamondEl.getBoundingClientRect();
+          target.x = rect.left + rect.width / 2;
+          target.y = rect.top + rect.height / 2;
+        } else {
+          target.x = window.innerWidth - 80;
+          target.y = 24;
+        }
+      } else {
+        if (xpEl) {
+          const rect = xpEl.getBoundingClientRect();
+          target.x = rect.left + rect.width / 2;
+          target.y = rect.top + rect.height / 2;
+        } else {
+          target.x = window.innerWidth - 240;
+          target.y = 24;
+        }
       }
-      if (diamondEl) {
-        const rect = diamondEl.getBoundingClientRect();
-        nextCoords.diamond = { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2 };
-      }
-      setTargetCoords(nextCoords);
 
       setFlyingParticles(prev => {
         const cleanPrev = prev.length > 50 ? [] : prev;
         const nextParticles = [...cleanPrev];
         let pId = Date.now() + Math.random();
         for (let i = 0; i < 12; i++) {
+          const rx = (Math.random() - 0.5) * 160;
+          const ry = (Math.random() - 0.5) * 160;
+          
+          let startX, startY, endX, endY;
+          if (direction === 'in') {
+            startX = window.innerWidth / 2;
+            startY = window.innerHeight * 0.6; // fly from bottom-center/reward modal area
+            endX = target.x;
+            endY = target.y;
+          } else {
+            startX = target.x;
+            startY = target.y;
+            endX = target.x + rx;
+            endY = target.y + ry;
+          }
+
           nextParticles.push({
             id: pId + i,
             type: type,
             delay: i * 0.05,
-            rx: (Math.random() - 0.5) * 100,
-            ry: (Math.random() - 0.5) * 100,
+            rx: rx,
+            ry: ry,
+            startX: startX,
+            startY: startY,
+            endX: endX,
+            endY: endY,
             direction: direction
           });
         }
@@ -1715,10 +1948,14 @@ export default function App() {
           setIsCoinsPulsing(true);
           triggerAudio('move');
           setTimeout(() => setIsCoinsPulsing(false), 400);
-        } else {
+        } else if (type === 'diamond') {
           setIsDiamondsPulsing(true);
           triggerAudio('move');
           setTimeout(() => setIsDiamondsPulsing(false), 400);
+        } else {
+          setIsXpPulsing(true);
+          triggerAudio('move');
+          setTimeout(() => setIsXpPulsing(false), 400);
         }
       }, direction === 'in' ? 900 : 100);
 
@@ -1738,7 +1975,13 @@ export default function App() {
     } else if (diffDiamonds < 0) {
       triggerParticles('diamond', 'out');
     }
-  }, [coins, diamonds]);
+
+    if (diffXp > 0) {
+      triggerParticles('xp', 'in');
+    } else if (diffXp < 0) {
+      triggerParticles('xp', 'out');
+    }
+  }, [coins, diamonds, xp]);
 
   // --- ONLINE MULTIPLAYER MATCHMAKING STATE & LOGIC ---
   const [onlineStatus, setOnlineStatus] = useState<'idle' | 'searching' | 'playing' | 'game-over'>('idle');
@@ -1815,41 +2058,152 @@ export default function App() {
     return localStorage.getItem('username') || `Pecatur_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
   });
 
+  const [pinnedMedalsIds, setPinnedMedalsIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('pinned_medals_ids');
+      return saved ? JSON.parse(saved) : [];
+    } catch (_) {
+      return [];
+    }
+  });
+
   const [invalidSquareFlash, setInvalidSquareFlash] = useState<string | null>(null);
   const [draggingSquare, setDraggingSquare] = useState<string | null>(null);
 
   // --- USER AUTHENTICATION STATES & SYNCHRONIZATION ---
-  const [user, setUser] = useState<any>(() => {
-    const saved = localStorage.getItem('user');
-    return saved ? JSON.parse(saved) : null;
-  });
+  const [userMedalsLevels, setUserMedalsLevels] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    const handlePinnedMedalsUpdate = () => {
+      try {
+        const saved = localStorage.getItem('pinned_medals_ids');
+        if (saved) {
+          setPinnedMedalsIds(JSON.parse(saved));
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+    window.addEventListener('pinned_medals_update', handlePinnedMedalsUpdate);
+    return () => {
+      window.removeEventListener('pinned_medals_update', handlePinnedMedalsUpdate);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleRealtimeUserUpdate = () => {
+      try {
+        const saved = localStorage.getItem('user');
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          setUser((prev: any) => {
+            if (JSON.stringify(prev) !== JSON.stringify(parsed)) {
+              return parsed;
+            }
+            return prev;
+          });
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    handleRealtimeUserUpdate();
+    window.addEventListener('user_updated', handleRealtimeUserUpdate);
+    window.addEventListener('storage', handleRealtimeUserUpdate);
+    const interval = setInterval(handleRealtimeUserUpdate, 2000);
+
+    return () => {
+      window.removeEventListener('user_updated', handleRealtimeUserUpdate);
+      window.removeEventListener('storage', handleRealtimeUserUpdate);
+      clearInterval(interval);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleRefreshLevels = () => {
+      try {
+        const activeUser = (user?.username || username || 'guest').trim().toLowerCase();
+        const saved = localStorage.getItem(`medals_progress:${activeUser}`);
+        if (saved) {
+          const parsed = JSON.parse(saved);
+          const levelsMap: Record<string, number> = {};
+          parsed.forEach((m: any) => {
+            levelsMap[m.id] = m.level || 1;
+          });
+          setUserMedalsLevels(levelsMap);
+        } else {
+          setUserMedalsLevels({});
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    handleRefreshLevels();
+    window.addEventListener('medals_progress_update', handleRefreshLevels);
+    window.addEventListener('pinned_medals_update', handleRefreshLevels);
+    return () => {
+      window.removeEventListener('medals_progress_update', handleRefreshLevels);
+      window.removeEventListener('pinned_medals_update', handleRefreshLevels);
+    };
+  }, [username, user]);
 
   const restoreGuildFromUser = (userData: any) => {
     if (!userData) return;
-    if (userData.guild_has_owner !== undefined) {
-      localStorage.setItem('guild_has_owner', String(userData.guild_has_owner));
+
+    const explicitlyLeft = localStorage.getItem('guild_explicitly_left') === 'true';
+    const localHasOwner = localStorage.getItem('guild_has_owner') === 'true';
+    const localProfileRaw = localStorage.getItem('guild_profile_data');
+    let localProfileName = '';
+    if (localProfileRaw) {
+      try {
+        const p = typeof localProfileRaw === 'string' ? JSON.parse(localProfileRaw) : localProfileRaw;
+        localProfileName = p?.name || '';
+      } catch (e) {}
     }
-    if (userData.guild_profile_data !== undefined) {
-      localStorage.setItem('guild_profile_data', typeof userData.guild_profile_data === 'string' ? userData.guild_profile_data : JSON.stringify(userData.guild_profile_data));
+
+    const userDataHasGuild = Boolean(userData.guild_has_owner && (userData.guild_profile_data?.name || typeof userData.guild_profile_data === 'string'));
+
+    if (userDataHasGuild && !explicitlyLeft) {
+      localStorage.setItem('guild_has_owner', 'true');
+      localStorage.removeItem('guild_explicitly_left');
+      if (userData.guild_profile_data !== undefined) {
+        localStorage.setItem('guild_profile_data', typeof userData.guild_profile_data === 'string' ? userData.guild_profile_data : JSON.stringify(userData.guild_profile_data));
+      }
+      if (userData.guild_members !== undefined) {
+        localStorage.setItem('guild_members', typeof userData.guild_members === 'string' ? userData.guild_members : JSON.stringify(userData.guild_members));
+      }
+      if (userData.guild_lvl !== undefined) {
+        localStorage.setItem('guild_lvl', String(userData.guild_lvl));
+      }
+      if (userData.guild_treasury_gold !== undefined) {
+        localStorage.setItem('guild_treasury_gold', String(userData.guild_treasury_gold));
+      }
+      if (userData.guild_blacklist_list !== undefined) {
+        localStorage.setItem('guild_blacklist_list', typeof userData.guild_blacklist_list === 'string' ? userData.guild_blacklist_list : JSON.stringify(userData.guild_blacklist_list));
+      }
+      if (userData.guild_action_history !== undefined) {
+        localStorage.setItem('guild_action_history', typeof userData.guild_action_history === 'string' ? userData.guild_action_history : JSON.stringify(userData.guild_action_history));
+      }
+      if (userData.guild_join_requests !== undefined) {
+        localStorage.setItem('guild_join_requests', typeof userData.guild_join_requests === 'string' ? userData.guild_join_requests : JSON.stringify(userData.guild_join_requests));
+      }
+    } else if (localHasOwner && localProfileName && !explicitlyLeft) {
+      userData.guild_has_owner = true;
+      try {
+        userData.guild_profile_data = typeof localProfileRaw === 'string' ? JSON.parse(localProfileRaw) : localProfileRaw;
+      } catch (e) {}
+      const localMembersRaw = localStorage.getItem('guild_members');
+      if (localMembersRaw) {
+        try { userData.guild_members = JSON.parse(localMembersRaw); } catch (e) {}
+      }
+    } else {
+      localStorage.setItem('guild_has_owner', 'false');
+      localStorage.removeItem('guild_profile_data');
+      localStorage.removeItem('guild_members');
     }
-    if (userData.guild_members !== undefined) {
-      localStorage.setItem('guild_members', typeof userData.guild_members === 'string' ? userData.guild_members : JSON.stringify(userData.guild_members));
-    }
-    if (userData.guild_lvl !== undefined) {
-      localStorage.setItem('guild_lvl', String(userData.guild_lvl));
-    }
-    if (userData.guild_treasury_gold !== undefined) {
-      localStorage.setItem('guild_treasury_gold', String(userData.guild_treasury_gold));
-    }
-    if (userData.guild_blacklist_list !== undefined) {
-      localStorage.setItem('guild_blacklist_list', typeof userData.guild_blacklist_list === 'string' ? userData.guild_blacklist_list : JSON.stringify(userData.guild_blacklist_list));
-    }
-    if (userData.guild_action_history !== undefined) {
-      localStorage.setItem('guild_action_history', typeof userData.guild_action_history === 'string' ? userData.guild_action_history : JSON.stringify(userData.guild_action_history));
-    }
-    if (userData.guild_join_requests !== undefined) {
-      localStorage.setItem('guild_join_requests', typeof userData.guild_join_requests === 'string' ? userData.guild_join_requests : JSON.stringify(userData.guild_join_requests));
-    }
+
     if (userData.requested_fragment_skin !== undefined) {
       localStorage.setItem('requested_fragment_skin', String(userData.requested_fragment_skin));
     }
@@ -1874,10 +2228,185 @@ export default function App() {
     if (user) {
       restoreGuildFromUser(user);
     }
-  }, [user]);
+  }, [user?.username || user?.id]);
+
+  useEffect(() => {
+    const handleSyncGuildToUser = () => {
+      const hasOwner = localStorage.getItem('guild_has_owner') === 'true';
+      const explicitlyLeft = localStorage.getItem('guild_explicitly_left') === 'true';
+      const profileRaw = localStorage.getItem('guild_profile_data');
+      setUser((prev: any) => {
+        if (!prev) return prev;
+        let profObj = null;
+        if (hasOwner && !explicitlyLeft && profileRaw) {
+          try { profObj = typeof profileRaw === 'string' ? JSON.parse(profileRaw) : profileRaw; } catch (e) {}
+        }
+        const targetHasOwner = hasOwner && !explicitlyLeft && !!profObj;
+        const currentHasOwner = !!prev.guild_has_owner;
+        const currentProfileStr = prev.guild_profile_data ? JSON.stringify(prev.guild_profile_data) : '';
+        const targetProfileStr = profObj ? JSON.stringify(profObj) : '';
+
+        if (currentHasOwner === targetHasOwner && currentProfileStr === targetProfileStr) {
+          return prev;
+        }
+        return {
+          ...prev,
+          guild_has_owner: targetHasOwner,
+          guild_profile_data: profObj
+        };
+      });
+    };
+
+    window.addEventListener('guild_state_updated', handleSyncGuildToUser);
+    return () => window.removeEventListener('guild_state_updated', handleSyncGuildToUser);
+  }, []);
   const [showAuthModal, setShowAuthModal] = useState<boolean>(false);
   const [showProfileModal, setShowProfileModal] = useState<boolean>(false);
   const [showAvatarStudio, setShowAvatarStudio] = useState<boolean>(false);
+  const [showSeasonalBanner, setShowSeasonalBanner] = useState<boolean>(true);
+  const [activeTutorialDetail, setActiveTutorialDetail] = useState<string | null>(null);
+
+  // --- CLIENT SUPPORT TICKETS & AI CHAT STATE ---
+  const [supportTicketsList, setSupportTicketsList] = useState<any[]>([]);
+  const [isLoadingSupportTickets, setIsLoadingSupportTickets] = useState(false);
+  const [isCreatingTicket, setIsCreatingTicket] = useState(false);
+  const [newTicketTitle, setNewTicketTitle] = useState('');
+  const [newTicketDescription, setNewTicketDescription] = useState('');
+  const [newTicketCategory, setNewTicketCategory] = useState('Bug');
+  const [selectedClientTicket, setSelectedClientTicket] = useState<any | null>(null);
+  const [clientTicketReplyText, setClientTicketReplyText] = useState('');
+  const [isSendingClientReply, setIsSendingClientReply] = useState(false);
+  const [isShowingCreateTicketForm, setIsShowingCreateTicketForm] = useState(false);
+
+  const [aiChatMessages, setAiChatMessages] = useState<{ role: 'user' | 'model', text: string }[]>([
+    { role: 'model', text: 'Halo! Saya Pal Mate AI Support. Ada yang bisa saya bantu terkait platform, klan Suku Catur, kustomisasi skin, koin harian, atau kuis musiman? Silakan tanyakan di sini!' }
+  ]);
+  const [aiChatInput, setAiChatInput] = useState('');
+  const [isAiResponding, setIsAiResponding] = useState(false);
+  const [isShowingAiChat, setIsShowingAiChat] = useState(false);
+
+  const fetchClientTickets = async () => {
+    if (!user?.username) return;
+    setIsLoadingSupportTickets(true);
+    try {
+      const res = await fetch('/api/support/tickets/list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: user.username })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setSupportTicketsList(data.tickets || []);
+        if (selectedClientTicket) {
+          const updated = (data.tickets || []).find((t: any) => t.id === selectedClientTicket.id);
+          if (updated) setSelectedClientTicket(updated);
+        }
+      }
+    } catch (e) {
+      console.error("Gagal memuat tiket", e);
+    } finally {
+      setIsLoadingSupportTickets(false);
+    }
+  };
+
+  const handleCreateTicket = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user?.username) {
+      triggerReward(0, "Silakan login terlebih dahulu untuk membuat tiket", "info");
+      return;
+    }
+    if (!newTicketTitle.trim() || !newTicketDescription.trim()) return;
+    setIsCreatingTicket(true);
+    try {
+      const res = await fetch('/api/support/tickets/create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: user.username,
+          title: newTicketTitle,
+          description: newTicketDescription,
+          category: newTicketCategory
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerReward(15, "Tiket berhasil dikirim ke Staff! Terima kasih atas laporan Anda.", "success_no_xp");
+        setNewTicketTitle('');
+        setNewTicketDescription('');
+        setNewTicketCategory('Bug');
+        setIsShowingCreateTicketForm(false);
+        fetchClientTickets();
+      }
+    } catch (err) {
+      triggerReward(0, "Gagal membuat tiket", "info");
+    } finally {
+      setIsCreatingTicket(false);
+    }
+  };
+
+  const handleSendClientReply = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!clientTicketReplyText.trim() || !selectedClientTicket || !user?.username) return;
+    setIsSendingClientReply(true);
+    try {
+      const res = await fetch('/api/support/tickets/reply', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: user.username,
+          ticketId: selectedClientTicket.id,
+          text: clientTicketReplyText
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setClientTicketReplyText('');
+        fetchClientTickets();
+        triggerAudio('move');
+      }
+    } catch (err) {
+      triggerReward(0, "Gagal mengirim balasan", "info");
+    } finally {
+      setIsSendingClientReply(false);
+    }
+  };
+
+  const handleSendAiMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!aiChatInput.trim()) return;
+    const userMsg = aiChatInput.trim();
+    setAiChatInput('');
+    setAiChatMessages(prev => [...prev, { role: 'user', text: userMsg }]);
+    setIsAiResponding(true);
+    triggerAudio('move');
+
+    try {
+      const res = await fetch('/api/support/ai-chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: userMsg,
+          history: aiChatMessages.map(m => ({ role: m.role, text: m.text }))
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        setAiChatMessages(prev => [...prev, { role: 'model', text: data.reply }]);
+        triggerAudio('move');
+      }
+    } catch (err) {
+      setAiChatMessages(prev => [...prev, { role: 'model', text: 'Maaf, saya mengalami kendala jaringan sementara. Silakan coba kirim pesan lagi atau hubungi staff kami.' }]);
+    } finally {
+      setIsAiResponding(false);
+    }
+  };
+
+  useEffect(() => {
+    if (settingsSubTab === 'help' && user) {
+      fetchClientTickets();
+    }
+  }, [settingsSubTab, user]);
+
   const [targetProfileUser, setTargetProfileUser] = useState<any>(null);
   const profileDisplayUser = targetProfileUser || user;
 
@@ -1968,6 +2497,30 @@ export default function App() {
     localStorage.setItem(`starter_pack_purchased:${userScope}`, starterPackClaimed ? 'true' : 'false');
   }, [passLevel, passXp, passStatus, claimedPassRewards, starterPackClaimed, username]);
 
+  // Ensure that when passLevel increases, any pre-existing/stale claim records for levels > previous level are removed to prevent auto-claim bugs from contaminated local storage
+  const prevPassLevelRef = useRef<number>(passLevel);
+  useEffect(() => {
+    if (isResettingRef.current) {
+      prevPassLevelRef.current = passLevel;
+      return;
+    }
+    if (passLevel > prevPassLevelRef.current) {
+      const prevLvl = prevPassLevelRef.current;
+      setClaimedPassRewards(prev => {
+        const filtered = prev.filter(id => {
+          const parts = id.split('_');
+          const lvl = parseInt(parts[0], 10);
+          if (!isNaN(lvl) && lvl > prevLvl) {
+            return false; // remove any claim records for newly unlocked levels
+          }
+          return true;
+        });
+        return filtered;
+      });
+    }
+    prevPassLevelRef.current = passLevel;
+  }, [passLevel]);
+
   useEffect(() => {
     if (isResettingRef.current) return;
     if (username.trim().toLowerCase() !== loadedUsernameRef.current) return;
@@ -1999,7 +2552,10 @@ export default function App() {
 
   const [showGiftInboxModal, setShowGiftInboxModal] = useState<boolean>(false);
   const [showFriendListModal, setShowFriendListModal] = useState<boolean>(false);
-  const [inboxActiveTab, setInboxActiveTab] = useState<'gifts' | 'invites'>('gifts');
+  const [inboxActiveTab, setInboxActiveTab] = useState<'gifts' | 'invites'>('invites');
+  const [isInboxRead, setIsInboxRead] = useState<boolean>(() => {
+    return localStorage.getItem(`inbox_read_${username}`) === 'true';
+  });
 
   // Gifting transaction cashout action
   const handleCashOutGiftInApp = (gift: any, cashType: 'coins' | 'diamonds') => {
@@ -2064,35 +2620,216 @@ export default function App() {
     return [];
   });
 
+  const resetUserSession = () => {
+    isResettingRef.current = true;
+    setUser(null);
+    localStorage.removeItem('user');
+    localStorage.removeItem('guild_has_owner');
+    localStorage.removeItem('guild_members');
+    localStorage.removeItem('guild_profile_data');
+    localStorage.removeItem('guild_lvl');
+    localStorage.removeItem('guild_treasury_gold');
+    localStorage.removeItem('guild_logs');
+    localStorage.removeItem('guild_join_requests');
+    localStorage.removeItem('guild_action_history');
+    localStorage.removeItem('guild_fragment_requests');
+    localStorage.removeItem('guild_chat_messages');
+    localStorage.removeItem('conquered_boards_list');
+    localStorage.removeItem('clan_checked_in');
+    localStorage.removeItem('clan_weekly_milestones');
+    localStorage.removeItem('requested_fragment_skin');
+    localStorage.removeItem('has_active_fragment_req');
+    localStorage.removeItem('today_fragment_donation_count');
+    setOnlineRating(400);
+    localStorage.setItem('onlineRating', '400');
+    setXp(0);
+    localStorage.setItem('xp', '0');
+    setCoins(500);
+    localStorage.setItem('coins', '500');
+    setDiamondsRaw(20);
+    localStorage.setItem('diamonds', '20');
+    setPassLevel(1);
+    setPassXp(0);
+    setPassStatus('free');
+    setClaimedPassRewards([]);
+    setClaimedRankRewards([]);
+    setStarterPackClaimed(false);
+    setUnlockedSkins(['standard']);
+    setSelectedSkin('standard');
+    setSelectedFrame('none');
+    setUnlockedFrames(['none']);
+    setUnlockedThemes(['classic']);
+    localStorage.setItem('unlockedThemes', JSON.stringify(['classic']));
+    setGuestMatchesPlayed(0);
+    localStorage.setItem('guestMatchesPlayed', '0');
+    setGuestMatchesWon(0);
+    localStorage.setItem('guestMatchesWon', '0');
+    setProfileEditingBio('Pecatur sejati pantang menyerah!');
+    setClaimedAchievements([]);
+    setMembershipStatus('free');
+    localStorage.setItem('membershipStatus', 'free');
+
+    // Clean up social & seasonal event states to prevent leakage into guest account
+    setFriendsList([]);
+    setFriendRequests([]);
+    setInboxMessages([]);
+    setReceivedGifts([]);
+    localStorage.setItem('friendsList', '[]');
+    localStorage.removeItem('friend_affinities');
+    localStorage.removeItem('friendRequests');
+    localStorage.removeItem('raw_received_gifts');
+    localStorage.removeItem('received_gifts');
+    localStorage.removeItem('inboxMessages');
+    localStorage.setItem('seasonal_event_score', '0');
+    localStorage.setItem('seasonal_completed_quests', '[]');
+    localStorage.setItem('seasonal_answered_quizzes', '[]');
+    localStorage.removeItem('seasonal_completed_milestones');
+    localStorage.setItem('claimedPassRewards', '[]');
+    localStorage.setItem('claimedRankRewards', '[]');
+    localStorage.setItem('starter_pack_purchased', 'false');
+    setOnlineHistory([]);
+    localStorage.setItem('onlineHistory', '[]');
+    localStorage.removeItem('chess_transaction_history');
+    localStorage.removeItem('pinned_medals_ids');
+    localStorage.removeItem('blocked_users');
+    window.dispatchEvent(new Event('blocked_users_update'));
+
+    const prevName = `Pecatur_${Math.random().toString(36).substring(2,6).toUpperCase()}`;
+    const cleanPrev = prevName.toLowerCase();
+    localStorage.setItem(`streak:${cleanPrev}`, '0');
+    localStorage.setItem(`peak_xp:${cleanPrev}`, '0');
+    localStorage.setItem(`win_streak:${cleanPrev}`, '0');
+    localStorage.setItem(`current_win_streak:${cleanPrev}`, '0');
+    localStorage.setItem(`longest_defense:${cleanPrev}`, '0');
+    setUsername(prevName);
+    localStorage.setItem('username', prevName);
+    loadUserScopedStats(prevName);
+  };
+
   const loadUserScopedStats = (
     targetUser: string, 
     customServerDate?: string, 
     serverCoins?: number, 
-    serverDiamonds?: number
+    serverDiamonds?: number,
+    serverUnlockedItems?: string[],
+    serverSelectedFrame?: string,
+    serverUnlockedFrames?: string[],
+    serverSelectedSkin?: string,
+    serverEquippedTitle?: string,
+    serverEquippedCheckmateEffect?: string,
+    serverCustomStatus?: string,
+    serverUnlockedSkins?: string[],
+    serverUnlockedTitles?: string[],
+    serverUnlockedCheckmateEffects?: string[],
+    serverUnlockedThemes?: string[],
+    serverElo?: number,
+    serverXp?: number,
+    serverOnlineHistory?: any[],
+    serverTransactions?: any[],
+    serverPinnedMedals?: string[],
+    serverBlockedUsers?: string[],
+    serverStreak?: number,
+    serverPeakXp?: number,
+    serverWinStreak?: number,
+    serverLongestDef?: number,
+    serverLikesCount?: number,
+    serverLikedBy?: string[]
   ) => {
     isResettingRef.current = true;
     const userScope = targetUser.trim().toLowerCase();
+    loadedUsernameRef.current = userScope;
+
+    // Properly load or reset all user-specific state variables to default/empty values when logging out or switching to guest
+    const isGuest = userScope.startsWith('pecatur_') || !localStorage.getItem('user');
+    if (isGuest) {
+      setFriendsList([]);
+      setFriendRequests([]);
+      setInboxMessages([]);
+      setReceivedGifts([]);
+      setClaimedAchievements([]);
+      setOnlineHistory([]);
+
+      localStorage.setItem('friendsList', '[]');
+      localStorage.setItem('friendRequests', '[]');
+      localStorage.setItem('inboxMessages', '[]');
+      localStorage.setItem('raw_received_gifts', '[]');
+      localStorage.setItem('received_gifts', '[]');
+      localStorage.setItem('claimedAchievements', '[]');
+      localStorage.setItem('onlineHistory', '[]');
+      localStorage.setItem('chess_transaction_history', '[]');
+      localStorage.setItem('blocked_users', '[]');
+      localStorage.setItem(`blocked_users:${userScope}`, '[]');
+      window.dispatchEvent(new Event('blocked_users_update'));
+      
+      localStorage.setItem('pinned_medals_ids', '[]');
+      localStorage.setItem(`pinned_medals_ids:${userScope}`, '[]');
+      setPinnedMedalsIds([]);
+    } else {
+      const savedFriends = localStorage.getItem(`friendsList:${userScope}`);
+      const finalFriends = savedFriends ? JSON.parse(savedFriends) : [];
+      setFriendsList(finalFriends);
+      localStorage.setItem('friendsList', JSON.stringify(finalFriends));
+
+      const savedRequests = localStorage.getItem(`friendRequests:${userScope}`);
+      const finalRequests = savedRequests ? JSON.parse(savedRequests) : [];
+      setFriendRequests(finalRequests);
+      localStorage.setItem('friendRequests', JSON.stringify(finalRequests));
+
+      const savedInbox = localStorage.getItem(`inboxMessages:${userScope}`);
+      const finalInbox = savedInbox ? JSON.parse(savedInbox) : [];
+      setInboxMessages(finalInbox);
+      localStorage.setItem('inboxMessages', JSON.stringify(finalInbox));
+
+      const savedGifts = localStorage.getItem(`raw_received_gifts:${userScope}`) || localStorage.getItem(`received_gifts:${userScope}`);
+      const finalGifts = savedGifts ? JSON.parse(savedGifts) : [];
+      setReceivedGifts(finalGifts);
+      localStorage.setItem('raw_received_gifts', JSON.stringify(finalGifts));
+
+      const savedAchievements = localStorage.getItem(`claimedAchievements:${userScope}`);
+      const finalAchievements = savedAchievements ? JSON.parse(savedAchievements) : [];
+      setClaimedAchievements(finalAchievements);
+      localStorage.setItem('claimedAchievements', JSON.stringify(finalAchievements));
+    }
     
     // Reset automatic level-up detection to prevent auto-level up bugs on login/logout
     lastCheckedLevel.current = null;
 
     // Load coins, diamonds, xp
-    const savedCoins = localStorage.getItem(`coins:${userScope}`);
-    const finalCoins = serverCoins !== undefined ? serverCoins : (savedCoins !== null ? Number(savedCoins) : 500);
+    const savedScopedCoins = localStorage.getItem(`coins:${userScope}`);
+    const finalCoins = isGuest 
+      ? (savedScopedCoins ? Number(savedScopedCoins) : 500)
+      : Math.max(
+          serverCoins !== undefined ? serverCoins : 0,
+          savedScopedCoins ? Number(savedScopedCoins) : 0,
+          500
+        );
     setCoins(finalCoins);
     localStorage.setItem('coins', String(finalCoins));
     localStorage.setItem(`coins:${userScope}`, String(finalCoins));
 
-    const savedDiamonds = localStorage.getItem(`diamonds:${userScope}`);
-    const finalDiamonds = serverDiamonds !== undefined ? serverDiamonds : (savedDiamonds !== null ? Number(savedDiamonds) : 20);
+    const savedScopedDiamonds = localStorage.getItem(`diamonds:${userScope}`);
+    const finalDiamonds = isGuest
+      ? (savedScopedDiamonds ? Number(savedScopedDiamonds) : 20)
+      : Math.max(
+          serverDiamonds !== undefined ? serverDiamonds : 0,
+          savedScopedDiamonds ? Number(savedScopedDiamonds) : 0,
+          20
+        );
     setDiamondsRaw(finalDiamonds);
     localStorage.setItem('diamonds', String(finalDiamonds));
     localStorage.setItem(`diamonds:${userScope}`, String(finalDiamonds));
 
-    const savedXp = localStorage.getItem(`xp:${userScope}`);
-    const finalXp = savedXp !== null ? Number(savedXp) : 0;
+    const savedScopedXp = localStorage.getItem(`xp:${userScope}`);
+    const finalXp = isGuest
+      ? (savedScopedXp ? Number(savedScopedXp) : 0)
+      : Math.max(
+          serverXp !== undefined ? serverXp : 0,
+          savedScopedXp ? Number(savedScopedXp) : 0,
+          0
+        );
     setXp(finalXp);
     localStorage.setItem('xp', String(finalXp));
+    localStorage.setItem(`xp:${userScope}`, String(finalXp));
 
     // Load season pass
     const savedPassLevel = localStorage.getItem(`seasonPassLevel:${userScope}`);
@@ -2108,16 +2845,29 @@ export default function App() {
     const savedPassStatus = localStorage.getItem(`seasonPassStatus:${userScope}`) || 'free';
     setPassStatus(savedPassStatus as any);
     localStorage.setItem('seasonPassStatus', savedPassStatus);
+    localStorage.setItem(`seasonPassStatus:${userScope}`, savedPassStatus);
 
     const savedClaimedPassRewards = localStorage.getItem(`claimedPassRewards:${userScope}`);
-    const finalClaimedRewards = savedClaimedPassRewards ? JSON.parse(savedClaimedPassRewards) : [];
+    let finalClaimedRewards: string[] = [];
+    if (savedClaimedPassRewards) {
+      try {
+        const parsed = JSON.parse(savedClaimedPassRewards);
+        if (Array.isArray(parsed)) {
+          finalClaimedRewards = parsed.filter(id => typeof id === 'string');
+        }
+      } catch (e) {
+        console.error("Error parsing savedClaimedPassRewards during load:", e);
+      }
+    }
     setClaimedPassRewards(finalClaimedRewards);
     localStorage.setItem('claimedPassRewards', JSON.stringify(finalClaimedRewards));
+    localStorage.setItem(`claimedPassRewards:${userScope}`, JSON.stringify(finalClaimedRewards));
 
     const savedClaimedRankRewards = localStorage.getItem(`claimedRankRewards:${userScope}`);
     const finalClaimedRankRewards = savedClaimedRankRewards ? JSON.parse(savedClaimedRankRewards) : [];
     setClaimedRankRewards(finalClaimedRankRewards);
     localStorage.setItem('claimedRankRewards', JSON.stringify(finalClaimedRankRewards));
+    localStorage.setItem(`claimedRankRewards:${userScope}`, JSON.stringify(finalClaimedRankRewards));
 
     const savedDiamondSavings = localStorage.getItem(`chessDiamondSavings:${userScope}`);
     const finalSavings = savedDiamondSavings !== null ? Number(savedDiamondSavings) : 0;
@@ -2131,52 +2881,267 @@ export default function App() {
 
     // Load streak
     const savedStreak = localStorage.getItem(`streak:${userScope}`);
-    setStreak(savedStreak !== null ? Number(savedStreak) : 0);
+    let finalStreak = 0;
+    if (savedStreak !== null) {
+      finalStreak = Number(savedStreak);
+    } else if (!isGuest) {
+      if (serverStreak !== undefined) {
+        finalStreak = serverStreak;
+      } else if (user && (user as any).streak !== undefined) {
+        finalStreak = (user as any).streak;
+      } else {
+        const globalStr = localStorage.getItem('streak');
+        finalStreak = globalStr ? Number(globalStr) : 0;
+      }
+    }
+    setStreak(finalStreak);
+    localStorage.setItem(`streak:${userScope}`, String(finalStreak));
+    localStorage.setItem('streak', String(finalStreak));
+
+    // Load peak XP, win streak, longest defense
+    const savedPeakXp = localStorage.getItem(`peak_xp:${userScope}`);
+    let finalPeakXp = 0;
+    if (savedPeakXp !== null) {
+      finalPeakXp = Number(savedPeakXp);
+    } else if (!isGuest) {
+      if (serverPeakXp !== undefined) {
+        finalPeakXp = serverPeakXp;
+      } else if (user && (user as any).peakXp !== undefined) {
+        finalPeakXp = (user as any).peakXp;
+      } else {
+        const globalP = localStorage.getItem('peak_xp');
+        finalPeakXp = globalP ? Number(globalP) : 0;
+      }
+    }
+    localStorage.setItem(`peak_xp:${userScope}`, String(finalPeakXp));
+    localStorage.setItem('peak_xp', String(finalPeakXp));
+
+    const savedWinStreak = localStorage.getItem(`win_streak:${userScope}`);
+    let finalWinStreak = 0;
+    if (savedWinStreak !== null) {
+      finalWinStreak = Number(savedWinStreak);
+    } else if (!isGuest) {
+      if (serverWinStreak !== undefined) {
+        finalWinStreak = serverWinStreak;
+      } else if (user && (user as any).winStreak !== undefined) {
+        finalWinStreak = (user as any).winStreak;
+      } else {
+        const globalWS = localStorage.getItem('win_streak');
+        finalWinStreak = globalWS ? Number(globalWS) : 0;
+      }
+    }
+    localStorage.setItem(`win_streak:${userScope}`, String(finalWinStreak));
+    localStorage.setItem('win_streak', String(finalWinStreak));
+
+    const savedLongestDef = localStorage.getItem(`longest_defense:${userScope}`);
+    let finalLongestDef = 0;
+    if (savedLongestDef !== null) {
+      finalLongestDef = Number(savedLongestDef);
+    } else if (!isGuest) {
+      if (serverLongestDef !== undefined) {
+        finalLongestDef = serverLongestDef;
+      } else if (user && (user as any).longestDefense !== undefined) {
+        finalLongestDef = (user as any).longestDefense;
+      } else {
+        const globalLD = localStorage.getItem('longest_defense');
+        finalLongestDef = globalLD ? Number(globalLD) : 0;
+      }
+    }
+    localStorage.setItem(`longest_defense:${userScope}`, String(finalLongestDef));
+    localStorage.setItem('longest_defense', String(finalLongestDef));
     
+    // Helper to safely parse JSON array from localStorage
+    const safeParseArray = (key: string): string[] => {
+      try {
+        const item = localStorage.getItem(key);
+        return item ? JSON.parse(item) : [];
+      } catch (e) {
+        return [];
+      }
+    };
+
+    // Load unlocked items (scoped only, avoid leaking previous user's active state)
+    const items = isGuest 
+      ? safeParseArray(`unlockedItems:${userScope}`)
+      : Array.from(new Set([
+          ...(serverUnlockedItems || []),
+          ...safeParseArray(`unlockedItems:${userScope}`)
+        ])).sort();
+    setUnlockedItems(items);
+    localStorage.setItem(`unlockedItems:${userScope}`, JSON.stringify(items));
+    localStorage.setItem('unlockedItems', JSON.stringify(items));
+
+    // Load unlocked themes
+    const themesList = isGuest
+      ? Array.from(new Set(['classic', ...safeParseArray(`unlockedThemes:${userScope}`)]))
+      : Array.from(new Set([
+          'classic',
+          ...(serverUnlockedThemes || []),
+          ...safeParseArray(`unlockedThemes:${userScope}`)
+        ]));
+    setUnlockedThemes(themesList as any[]);
+    localStorage.setItem(`unlockedThemes:${userScope}`, JSON.stringify(themesList));
+    localStorage.setItem('unlockedThemes', JSON.stringify(themesList));
+
     // Load unlocked skins
-    const savedSkins = localStorage.getItem(`unlockedSkins:${userScope}`);
-    const skinsList = savedSkins ? JSON.parse(savedSkins) : ['standard'];
+    const skinsList = isGuest
+      ? Array.from(new Set(['standard', 'classic', ...safeParseArray(`unlockedSkins:${userScope}`)]))
+      : Array.from(new Set([
+          'standard', 'classic',
+          ...(serverUnlockedSkins || []),
+          ...safeParseArray(`unlockedSkins:${userScope}`)
+        ]));
     setUnlockedSkins(skinsList);
+    localStorage.setItem(`unlockedSkins:${userScope}`, JSON.stringify(skinsList));
     localStorage.setItem('unlockedSkins', JSON.stringify(skinsList));
-    
-    // Load selected skin
-    const savedSelectedSkin = localStorage.getItem(`selectedSkin:${userScope}`) || 'standard';
-    setSelectedSkin(savedSelectedSkin);
-    localStorage.setItem('selectedSkin', savedSelectedSkin);
 
     // Load avatar frames
-    const savedSelectedFrame = localStorage.getItem(`selectedFrame:${userScope}`) || 'none';
-    setSelectedFrame(savedSelectedFrame);
-    localStorage.setItem('selectedFrame', savedSelectedFrame);
-
-    const savedUnlockedFrames = localStorage.getItem(`unlockedFrames:${userScope}`);
-    const framesList = savedUnlockedFrames ? JSON.parse(savedUnlockedFrames) : ['none'];
+    const framesList = isGuest
+      ? Array.from(new Set(['none', ...safeParseArray(`unlockedFrames:${userScope}`)]))
+      : Array.from(new Set([
+          'none',
+          ...(serverUnlockedFrames || []),
+          ...safeParseArray(`unlockedFrames:${userScope}`)
+        ]));
     setUnlockedFrames(framesList);
+    localStorage.setItem(`unlockedFrames:${userScope}`, JSON.stringify(framesList));
     localStorage.setItem('unlockedFrames', JSON.stringify(framesList));
 
-    // Load custom titles and checkmate effects
-    const savedUnlockedTitles = localStorage.getItem(`unlockedTitles:${userScope}`);
-    const titlesList = savedUnlockedTitles ? JSON.parse(savedUnlockedTitles) : ['Pecatur Perintis'];
+    // Load custom titles
+    const titlesList = isGuest
+      ? Array.from(new Set(['Pecatur Perintis', ...safeParseArray(`unlockedTitles:${userScope}`)]))
+      : Array.from(new Set([
+          'Pecatur Perintis',
+          ...(serverUnlockedTitles || []),
+          ...safeParseArray(`unlockedTitles:${userScope}`)
+        ]));
     setUnlockedTitles(titlesList);
+    localStorage.setItem(`unlockedTitles:${userScope}`, JSON.stringify(titlesList));
     localStorage.setItem('unlockedTitles', JSON.stringify(titlesList));
 
-    const savedEquippedTitle = localStorage.getItem(`equippedTitle:${userScope}`) || 'Pecatur Perintis';
-    setEquippedTitle(savedEquippedTitle);
-    localStorage.setItem('equippedTitle', savedEquippedTitle);
-
-    const savedUnlockedCheckmateEffects = localStorage.getItem(`unlockedCheckmateEffects:${userScope}`);
-    const checkmateEffectsList = savedUnlockedCheckmateEffects ? JSON.parse(savedUnlockedCheckmateEffects) : ['none'];
+    // Load checkmate effects
+    const checkmateEffectsList = isGuest
+      ? Array.from(new Set(['none', ...safeParseArray(`unlockedCheckmateEffects:${userScope}`)]))
+      : Array.from(new Set([
+          'none',
+          ...(serverUnlockedCheckmateEffects || []),
+          ...safeParseArray(`unlockedCheckmateEffects:${userScope}`)
+        ]));
     setUnlockedCheckmateEffects(checkmateEffectsList);
+    localStorage.setItem(`unlockedCheckmateEffects:${userScope}`, JSON.stringify(checkmateEffectsList));
     localStorage.setItem('unlockedCheckmateEffects', JSON.stringify(checkmateEffectsList));
 
-    const savedEquippedCheckmateEffect = localStorage.getItem(`equippedCheckmateEffect:${userScope}`) || 'none';
-    setEquippedCheckmateEffect(savedEquippedCheckmateEffect);
-    localStorage.setItem('equippedCheckmateEffect', savedEquippedCheckmateEffect);
+    // Trigger category splits for any additional unlocked items as a fallback
+    if (items.length > 0) {
+      applyUnlockedItemsToIndependentStates(items, targetUser);
+    }
 
-    const savedUnlockedItems = localStorage.getItem(`unlockedItems:${userScope}`);
-    const items = savedUnlockedItems ? JSON.parse(savedUnlockedItems) : [];
-    setUnlockedItems([...items].sort());
-    localStorage.setItem('unlockedItems', JSON.stringify([...items].sort()));
+    // Load selected skin
+    const localSkin = localStorage.getItem(`selectedSkin:${userScope}`) || localStorage.getItem('selectedSkin') || selectedSkin;
+    const finalSelectedSkin = (serverSelectedSkin && serverSelectedSkin !== 'standard' && serverSelectedSkin !== 'none')
+      ? serverSelectedSkin
+      : (skinsList.includes(localSkin) ? localSkin : (serverSelectedSkin || 'standard'));
+    setSelectedSkin(finalSelectedSkin);
+    localStorage.setItem('selectedSkin', finalSelectedSkin);
+    localStorage.setItem(`selectedSkin:${userScope}`, finalSelectedSkin);
+
+    // Load avatar frame
+    const localFrame = localStorage.getItem(`selectedFrame:${userScope}`) || localStorage.getItem('selectedFrame') || selectedFrame;
+    const finalSelectedFrame = (serverSelectedFrame && serverSelectedFrame !== 'none')
+      ? serverSelectedFrame
+      : (framesList.includes(localFrame) ? localFrame : (serverSelectedFrame || 'none'));
+    setSelectedFrame(finalSelectedFrame);
+    localStorage.setItem('selectedFrame', finalSelectedFrame);
+    localStorage.setItem(`selectedFrame:${userScope}`, finalSelectedFrame);
+
+    // Load equipped title
+    const localTitle = localStorage.getItem(`equippedTitle:${userScope}`) || localStorage.getItem('equippedTitle') || equippedTitle;
+    const finalEquippedTitle = (serverEquippedTitle && serverEquippedTitle !== 'Pecatur Perintis')
+      ? serverEquippedTitle
+      : (titlesList.includes(localTitle) ? localTitle : (serverEquippedTitle || 'Pecatur Perintis'));
+    setEquippedTitle(finalEquippedTitle);
+    localStorage.setItem('equippedTitle', finalEquippedTitle);
+    localStorage.setItem(`equippedTitle:${userScope}`, finalEquippedTitle);
+
+    // Load equipped checkmate effect
+    const localCheckmate = localStorage.getItem(`equippedCheckmateEffect:${userScope}`) || localStorage.getItem('equippedCheckmateEffect') || equippedCheckmateEffect;
+    const finalEquippedCheckmateEffect = (serverEquippedCheckmateEffect && serverEquippedCheckmateEffect !== 'none')
+      ? serverEquippedCheckmateEffect
+      : (checkmateEffectsList.includes(localCheckmate) ? localCheckmate : (serverEquippedCheckmateEffect || 'none'));
+    setEquippedCheckmateEffect(finalEquippedCheckmateEffect);
+    localStorage.setItem('equippedCheckmateEffect', finalEquippedCheckmateEffect);
+    localStorage.setItem(`equippedCheckmateEffect:${userScope}`, finalEquippedCheckmateEffect);
+
+    // Load custom status
+    const localStatus = localStorage.getItem(`customStatus:${userScope}`) || localStorage.getItem('customStatus') || customStatus;
+    const finalCustomStatus = (serverCustomStatus && serverCustomStatus.trim().length > 0)
+      ? serverCustomStatus
+      : localStatus;
+    setCustomStatus(finalCustomStatus);
+    localStorage.setItem('customStatus', finalCustomStatus);
+    localStorage.setItem(`customStatus:${userScope}`, finalCustomStatus);
+
+    // Load likesCount & likedBy (scoped)
+    const savedLikesCount = localStorage.getItem(`likesCount:${userScope}`);
+    let finalLikesCount = 0;
+    if (savedLikesCount !== null) {
+      finalLikesCount = Number(savedLikesCount);
+    } else if (!isGuest) {
+      if (serverLikesCount !== undefined) {
+        finalLikesCount = serverLikesCount;
+      } else if (user && typeof (user as any).likesCount === 'number') {
+        finalLikesCount = (user as any).likesCount;
+      } else {
+        const globalL = localStorage.getItem('likesCount');
+        finalLikesCount = globalL ? Number(globalL) : 0;
+      }
+    }
+    if (serverLikesCount !== undefined && serverLikesCount > finalLikesCount) {
+      finalLikesCount = serverLikesCount;
+    }
+    localStorage.setItem(`likesCount:${userScope}`, String(finalLikesCount));
+    localStorage.setItem('likesCount', String(finalLikesCount));
+
+    const savedLikedBy = localStorage.getItem(`likedBy:${userScope}`);
+    let finalLikedBy: string[] = [];
+    if (savedLikedBy !== null) {
+      try { finalLikedBy = JSON.parse(savedLikedBy); } catch (_) { finalLikedBy = []; }
+    } else if (!isGuest) {
+      if (serverLikedBy !== undefined && Array.isArray(serverLikedBy)) {
+        finalLikedBy = serverLikedBy;
+      } else if (user && Array.isArray((user as any).likedBy)) {
+        finalLikedBy = (user as any).likedBy;
+      } else {
+        const globalLB = localStorage.getItem('likedBy');
+        try { finalLikedBy = globalLB ? JSON.parse(globalLB) : []; } catch (_) { finalLikedBy = []; }
+      }
+    }
+    if (serverLikedBy !== undefined && Array.isArray(serverLikedBy) && serverLikedBy.length > finalLikedBy.length) {
+      finalLikedBy = serverLikedBy;
+    }
+    localStorage.setItem(`likedBy:${userScope}`, JSON.stringify(finalLikedBy));
+    localStorage.setItem('likedBy', JSON.stringify(finalLikedBy));
+
+    // Update user object state if user exists to prevent user useEffect from resetting state
+    setUser(prevUser => {
+      if (!prevUser) return null;
+      return {
+        ...prevUser,
+        likesCount: finalLikesCount,
+        likedBy: finalLikedBy,
+        selectedFrame: finalSelectedFrame,
+        unlockedFrames: framesList,
+        selectedSkin: finalSelectedSkin,
+        unlockedSkins: skinsList,
+        unlockedThemes: themesList,
+        unlockedItems: items,
+        equippedTitle: finalEquippedTitle,
+        unlockedTitles: titlesList,
+        equippedCheckmateEffect: finalEquippedCheckmateEffect,
+        unlockedCheckmateEffects: checkmateEffectsList,
+        customStatus: finalCustomStatus
+      };
+    });
 
     // Load claimed level rewards
     const savedLvlClaimed = localStorage.getItem(`claimedLevelRewards:${userScope}`);
@@ -2189,25 +3154,109 @@ export default function App() {
     setDailyClaimed(isClaimedToday);
     
     const savedIdx = localStorage.getItem(`dailyIndex:${userScope}`);
-    let finalIdx = 0;
-    if (lastClaim) {
-      if (lastClaim === today) {
-        finalIdx = savedIdx ? parseInt(savedIdx, 10) : 0;
-      } else {
-        const d = new Date(today + 'T00:00:00');
-        d.setDate(d.getDate() - 1);
-        const yesterday = d.toLocaleDateString('en-CA');
-        if (lastClaim === yesterday) {
-          finalIdx = savedIdx ? parseInt(savedIdx, 10) : 0;
-        }
-      }
+    let finalIdx = savedIdx ? parseInt(savedIdx, 10) : 0;
+    if (isNaN(finalIdx) || finalIdx < 0 || finalIdx >= 7) {
+      finalIdx = 0;
     }
     setDailyIndex(finalIdx);
+
+    // Load and mirror user-scoped ELO & history to avoid leakage or loss on account switch
+    const savedScopedElo = localStorage.getItem(`onlineRating:${userScope}`);
+    const finalElo = isGuest 
+      ? 400 
+      : (serverElo !== undefined ? serverElo : (savedScopedElo ? Number(savedScopedElo) : 400));
+    setOnlineRating(finalElo);
+    localStorage.setItem(`onlineRating:${userScope}`, String(finalElo));
+
+    let finalHistory = [];
+    if (serverOnlineHistory !== undefined) {
+      finalHistory = serverOnlineHistory;
+    } else {
+      const savedHistory = localStorage.getItem(`onlineHistory:${userScope}`);
+      try {
+        finalHistory = savedHistory ? JSON.parse(savedHistory) : [];
+      } catch (e) {
+        finalHistory = [];
+      }
+    }
+    setOnlineHistory(finalHistory);
+    localStorage.setItem('onlineHistory', JSON.stringify(finalHistory));
+    localStorage.setItem(`onlineHistory:${userScope}`, JSON.stringify(finalHistory));
+
+    // Load and mirror transaction history, pinned medals, and blocked users
+    let finalTx = [];
+    if (serverTransactions !== undefined) {
+      finalTx = serverTransactions;
+    } else {
+      const savedTx = localStorage.getItem(`chess_transaction_history:${userScope}`);
+      try {
+        finalTx = savedTx ? JSON.parse(savedTx) : [];
+      } catch (e) {
+        finalTx = [];
+      }
+    }
+    localStorage.setItem('chess_transaction_history', JSON.stringify(finalTx));
+    localStorage.setItem(`chess_transaction_history:${userScope}`, JSON.stringify(finalTx));
+    window.dispatchEvent(new Event('chess_transaction_update'));
+
+    const savedMedals = localStorage.getItem(`pinned_medals_ids:${userScope}`);
+    let finalMedals: string[] = [];
+    if (savedMedals !== null) {
+      try { finalMedals = JSON.parse(savedMedals); } catch (_) { finalMedals = []; }
+    } else if (!isGuest) {
+      if (serverPinnedMedals !== undefined && Array.isArray(serverPinnedMedals)) {
+        finalMedals = serverPinnedMedals;
+      } else if (user && Array.isArray((user as any).pinned_medals_ids) && (user as any).pinned_medals_ids.length > 0) {
+        finalMedals = (user as any).pinned_medals_ids;
+      } else {
+        const globalM = localStorage.getItem('pinned_medals_ids');
+        try { finalMedals = globalM ? JSON.parse(globalM) : []; } catch (_) { finalMedals = []; }
+      }
+    }
+    localStorage.setItem('pinned_medals_ids', JSON.stringify(finalMedals));
+    localStorage.setItem(`pinned_medals_ids:${userScope}`, JSON.stringify(finalMedals));
+    setPinnedMedalsIds(finalMedals);
+
+    const savedBlocked = localStorage.getItem(`blocked_users:${userScope}`);
+    let finalBlocked: string[] = [];
+    if (savedBlocked !== null) {
+      try { finalBlocked = JSON.parse(savedBlocked); } catch (_) { finalBlocked = []; }
+    } else if (!isGuest) {
+      if (serverBlockedUsers !== undefined && Array.isArray(serverBlockedUsers)) {
+        finalBlocked = serverBlockedUsers;
+      } else if (user && Array.isArray((user as any).blockedUsers) && (user as any).blockedUsers.length > 0) {
+        finalBlocked = (user as any).blockedUsers;
+      } else {
+        const globalB = localStorage.getItem('blocked_users');
+        try { finalBlocked = globalB ? JSON.parse(globalB) : []; } catch (_) { finalBlocked = []; }
+      }
+    }
+    localStorage.setItem('blocked_users', JSON.stringify(finalBlocked));
+    localStorage.setItem(`blocked_users:${userScope}`, JSON.stringify(finalBlocked));
+    window.dispatchEvent(new Event('blocked_users_update'));
 
     setTimeout(() => {
       loadedUsernameRef.current = userScope;
       isResettingRef.current = false;
     }, 500);
+  };
+
+  const handleEquipSkin = (skinId: string) => {
+    setSelectedSkin(skinId);
+    const userScope = username.trim().toLowerCase();
+    localStorage.setItem('selectedSkin', skinId);
+    localStorage.setItem(`selectedSkin:${userScope}`, skinId);
+    if (user) {
+      const updated = { ...user, selectedSkin: skinId };
+      setUser(updated);
+      localStorage.setItem('user', JSON.stringify(updated));
+      syncUserStats(
+        undefined, undefined, undefined, undefined, undefined,
+        undefined, undefined, undefined, undefined, undefined,
+        undefined, undefined, undefined, false, skinId
+      );
+    }
+    triggerAudio('move');
   };
 
   const [authTab, setAuthTab] = useState<'login' | 'register'>('login');
@@ -2347,11 +3396,11 @@ export default function App() {
     // Categorize
     const themes = items.filter(id => ['classic', 'forest', 'cosmic', 'magma_lava', 'ice_freeze'].includes(id));
     const skins = items.filter(id => ['standard', 'wood', 'neon', 'gold', 'anime', 'cyberpunk', 'crystal', 'emerald_wood', 'golden_ketupat_skin', 'red_dragon_skin', 'beach_sun_skin', 'blizzard_wood'].includes(id));
-    const frames = items.filter(id => ['none', 'bronze', 'silver', 'gold', 'cyber', 'magma', 'cosmic', 'embed_emerald', 'golden_ketupat', 'red_lantern', 'beach_wave', 'blizzard_winter'].includes(id));
+    const frames = items.filter(id => ['none', 'bronze', 'silver', 'gold', 'cyber', 'magma', 'cosmic', 'embed_emerald', 'golden_ketupat', 'red_lantern', 'beach_wave', 'blizzard_winter', 'avatar_border_test'].includes(id));
     const effects = items.filter(id => ['none', 'dragon_flare', 'cosmic_nebula', 'lightning_strike', 'cyber_glitch'].includes(id));
     const titles = items.filter(id => !['classic', 'forest', 'cosmic', 'magma_lava', 'ice_freeze',
                                           'standard', 'wood', 'neon', 'gold', 'anime', 'cyberpunk', 'crystal', 'emerald_wood', 'golden_ketupat_skin', 'red_dragon_skin', 'beach_sun_skin', 'blizzard_wood',
-                                          'none', 'bronze', 'silver', 'gold', 'cyber', 'magma', 'cosmic', 'embed_emerald', 'golden_ketupat', 'red_lantern', 'beach_wave', 'blizzard_winter',
+                                          'none', 'bronze', 'silver', 'gold', 'cyber', 'magma', 'cosmic', 'embed_emerald', 'golden_ketupat', 'red_lantern', 'beach_wave', 'blizzard_winter', 'avatar_border_test',
                                           'dragon_flare', 'cosmic_nebula', 'lightning_strike', 'cyber_glitch'].includes(id));
     
     if (themes.length > 0) {
@@ -2397,9 +3446,10 @@ export default function App() {
   };
 
   useEffect(() => {
-    const actUser = getActiveUsername();
-    const userScope = actUser.trim().toLowerCase();
-    if (unlockedSkins && unlockedSkins.length > 0 && !isResettingRef.current) {
+    if (isResettingRef.current) return;
+    if (username.trim().toLowerCase() !== loadedUsernameRef.current) return;
+    const userScope = username.trim().toLowerCase();
+    if (unlockedSkins && unlockedSkins.length > 0) {
       localStorage.setItem(`unlockedSkins:${userScope}`, JSON.stringify(unlockedSkins));
     }
   }, [unlockedSkins, username]);
@@ -2411,12 +3461,53 @@ export default function App() {
   }, [unlockedThemes]);
 
   useEffect(() => {
-    const actUser = getActiveUsername();
-    const userScope = actUser.trim().toLowerCase();
-    if (unlockedFrames && unlockedFrames.length > 0 && !isResettingRef.current) {
+    if (isResettingRef.current) return;
+    if (username.trim().toLowerCase() !== loadedUsernameRef.current) return;
+    const userScope = username.trim().toLowerCase();
+    if (unlockedFrames && unlockedFrames.length > 0) {
       localStorage.setItem(`unlockedFrames:${userScope}`, JSON.stringify(unlockedFrames));
     }
   }, [unlockedFrames, username]);
+
+  const statsRef = useRef({
+    onlineRating,
+    xp,
+    coins,
+    diamonds,
+    unlockedThemes,
+    unlockedSkins,
+    unlockedFrames,
+    unlockedTitles,
+    unlockedCheckmateEffects,
+    unlockedItems,
+    selectedSkin,
+    selectedFrame,
+    equippedTitle,
+    equippedCheckmateEffect,
+    customStatus,
+    username
+  });
+
+  useEffect(() => {
+    statsRef.current = {
+      onlineRating,
+      xp,
+      coins,
+      diamonds,
+      unlockedThemes,
+      unlockedSkins,
+      unlockedFrames,
+      unlockedTitles,
+      unlockedCheckmateEffects,
+      unlockedItems,
+      selectedSkin,
+      selectedFrame,
+      equippedTitle,
+      equippedCheckmateEffect,
+      customStatus,
+      username
+    };
+  }, [onlineRating, xp, coins, diamonds, unlockedThemes, unlockedSkins, unlockedFrames, unlockedTitles, unlockedCheckmateEffects, unlockedItems, selectedSkin, selectedFrame, equippedTitle, equippedCheckmateEffect, customStatus, username]);
 
   const syncUserStats = async (
     updatedElo?: number, 
@@ -2431,8 +3522,52 @@ export default function App() {
     updatedUnlockedFrames?: string[],
     updatedCoins?: number,
     updatedDiamonds?: number,
-    updatedFrame?: string
+    updatedFrame?: string,
+    forceSeasonalReset?: boolean,
+    updatedSkin?: string,
+    updatedUnlockedSkins?: string[],
+    updatedTitle?: string,
+    updatedUnlockedTitles?: string[],
+    updatedCheckmateEffect?: string,
+    updatedUnlockedCheckmateEffects?: string[],
+    updatedCustomStatus?: string
   ) => {
+    if (isResettingRef.current) {
+      console.log("[Sync] Blocked sync call due to isResettingRef = true");
+      return;
+    }
+    if (user && user.username) {
+      const cleanUser = user.username.trim().toLowerCase();
+      if (loadedUsernameRef.current && loadedUsernameRef.current !== cleanUser) {
+        console.log(`[Sync] Blocked sync call due to username mismatch: loadedUsernameRef=${loadedUsernameRef.current}, activeUser=${cleanUser}`);
+        return;
+      }
+    }
+
+    const currentStats = statsRef.current;
+
+    // Guard: block sync if the ref state username does not match the active user username (prevents stale closure leak from guest/prev user)
+    if (user && user.username && currentStats.username.trim().toLowerCase() !== user.username.trim().toLowerCase()) {
+      console.log("[Sync] Blocked sync call due to statsRef username mismatch during transition");
+      return;
+    }
+
+    const eloToSync = updatedElo !== undefined ? updatedElo : currentStats.onlineRating;
+    const xpToSync = updatedXp !== undefined ? updatedXp : currentStats.xp;
+    const coinsToSync = updatedCoins !== undefined ? updatedCoins : currentStats.coins;
+    const diamondsToSync = updatedDiamonds !== undefined ? updatedDiamonds : currentStats.diamonds;
+    const themesToSync = updatedThemes !== undefined ? updatedThemes : currentStats.unlockedThemes;
+    const unlockedSkinsToSync = updatedUnlockedSkins !== undefined ? updatedUnlockedSkins : currentStats.unlockedSkins;
+    const unlockedFramesToSync = updatedUnlockedFrames !== undefined ? updatedUnlockedFrames : currentStats.unlockedFrames;
+    const unlockedTitlesToSync = updatedUnlockedTitles !== undefined ? updatedUnlockedTitles : currentStats.unlockedTitles;
+    const unlockedCheckmateEffectsToSync = updatedUnlockedCheckmateEffects !== undefined ? updatedUnlockedCheckmateEffects : currentStats.unlockedCheckmateEffects;
+    const itemsToSync = updatedUnlockedItems !== undefined ? updatedUnlockedItems : currentStats.unlockedItems;
+    const selectedSkinToSync = updatedSkin !== undefined ? updatedSkin : currentStats.selectedSkin;
+    const selectedFrameToSync = updatedFrame !== undefined ? updatedFrame : currentStats.selectedFrame;
+    const equippedTitleToSync = updatedTitle !== undefined ? updatedTitle : currentStats.equippedTitle;
+    const equippedEffectToSync = updatedCheckmateEffect !== undefined ? updatedCheckmateEffect : currentStats.equippedCheckmateEffect;
+    const customStatusToSync = updatedCustomStatus !== undefined ? updatedCustomStatus : currentStats.customStatus;
+
     if (updatedBio !== undefined || updatedAvatar !== undefined) {
       setSaveStatus('saving');
     }
@@ -2464,14 +3599,27 @@ export default function App() {
     }
     try {
       const requestPayload: any = { username: user.username, membershipStatus };
-      if (updatedElo !== undefined) requestPayload.elo = updatedElo;
-      if (updatedXp !== undefined) requestPayload.xp = updatedXp;
-      if (updatedThemes !== undefined) requestPayload.unlockedThemes = updatedThemes;
-      if (updatedUnlockedItems !== undefined) requestPayload.unlockedItems = updatedUnlockedItems;
+      // Add online match history and transaction history to sync payload
+      requestPayload.onlineHistory = onlineHistory;
+      try {
+        const savedTx = localStorage.getItem('chess_transaction_history');
+        if (savedTx) {
+          requestPayload.chess_transaction_history = JSON.parse(savedTx);
+        } else {
+          requestPayload.chess_transaction_history = [];
+        }
+      } catch (txErr) {
+        requestPayload.chess_transaction_history = [];
+      }
+
+      if (eloToSync !== undefined) requestPayload.elo = eloToSync;
+      if (xpToSync !== undefined) requestPayload.xp = xpToSync;
+      if (themesToSync !== undefined) requestPayload.unlockedThemes = themesToSync;
+      if (itemsToSync !== undefined) requestPayload.unlockedItems = itemsToSync;
       
       // Always sync coins and diamonds!
-      requestPayload.coins = updatedCoins !== undefined ? updatedCoins : coins;
-      requestPayload.diamonds = updatedDiamonds !== undefined ? updatedDiamonds : diamonds;
+      requestPayload.coins = coinsToSync;
+      requestPayload.diamonds = diamondsToSync;
       
       // Always guarantee matchesPlayed and matchesWon are sent
       requestPayload.matchesPlayed = updatedPlayed !== undefined ? updatedPlayed : (user.matchesPlayed || 0);
@@ -2485,8 +3633,38 @@ export default function App() {
         requestPayload.claimedAchievements = claimedAchievements;
       }
 
-      requestPayload.selectedFrame = updatedFrame !== undefined ? updatedFrame : selectedFrame;
-      requestPayload.unlockedFrames = updatedUnlockedFrames !== undefined ? updatedUnlockedFrames : unlockedFrames;
+      requestPayload.selectedFrame = selectedFrameToSync;
+      requestPayload.unlockedFrames = unlockedFramesToSync;
+
+      // Always sync skin, title, effect, custom status, privacy, and likes fields
+      requestPayload.selectedSkin = selectedSkinToSync;
+      requestPayload.unlockedSkins = unlockedSkinsToSync;
+      requestPayload.equippedTitle = equippedTitleToSync;
+      requestPayload.unlockedTitles = unlockedTitlesToSync;
+      requestPayload.equippedCheckmateEffect = equippedEffectToSync;
+      requestPayload.unlockedCheckmateEffects = unlockedCheckmateEffectsToSync;
+      requestPayload.customStatus = customStatusToSync;
+      requestPayload.isPrivate = user?.isPrivate !== undefined ? !!user.isPrivate : false;
+      const activeUserScope = user.username.trim().toLowerCase();
+      const scopedLikes = Number(localStorage.getItem(`likesCount:${activeUserScope}`) || localStorage.getItem('likesCount') || '0');
+      requestPayload.likesCount = (typeof user?.likesCount === 'number' && user.likesCount > 0) ? user.likesCount : scopedLikes;
+      try {
+        const savedLikedBy = localStorage.getItem(`likedBy:${activeUserScope}`) || localStorage.getItem('likedBy');
+        requestPayload.likedBy = (Array.isArray(user?.likedBy) && user.likedBy.length > 0) ? user.likedBy : (savedLikedBy ? JSON.parse(savedLikedBy) : []);
+      } catch (e) {
+        requestPayload.likedBy = [];
+      }
+      requestPayload.streak = streak;
+      requestPayload.peakXp = Number(localStorage.getItem(`peak_xp:${activeUserScope}`) || localStorage.getItem('peak_xp') || '0');
+      requestPayload.winStreak = Number(localStorage.getItem(`win_streak:${activeUserScope}`) || localStorage.getItem('win_streak') || '0');
+      requestPayload.longestDefense = Number(localStorage.getItem(`longest_defense:${activeUserScope}`) || localStorage.getItem('longest_defense') || '0');
+      requestPayload.pinned_medals_ids = pinnedMedalsIds;
+      try {
+        const savedBlocked = localStorage.getItem(`blocked_users:${activeUserScope}`) || localStorage.getItem('blocked_users');
+        requestPayload.blockedUsers = savedBlocked ? JSON.parse(savedBlocked) : [];
+      } catch (e) {
+        requestPayload.blockedUsers = [];
+      }
 
       // Add latest guild data from localStorage to request payload
       requestPayload.guild_has_owner = localStorage.getItem('guild_has_owner') === 'true';
@@ -2504,8 +3682,6 @@ export default function App() {
       }
       const guildLvl = localStorage.getItem('guild_lvl');
       if (guildLvl) requestPayload.guild_lvl = Number(guildLvl);
-      const guildTreasury = localStorage.getItem('guild_treasury_gold');
-      if (guildTreasury) requestPayload.guild_treasury_gold = Number(guildTreasury);
       const guildBlacklist = localStorage.getItem('guild_blacklist_list');
       if (guildBlacklist) {
         try {
@@ -2546,19 +3722,26 @@ export default function App() {
       }
 
       // Add seasonal event progress & points
-      const seasonalScore = localStorage.getItem('seasonal_event_score');
-      if (seasonalScore) requestPayload.seasonal_event_score = Number(seasonalScore);
-      const seasonalQuests = localStorage.getItem('seasonal_completed_quests');
-      if (seasonalQuests) {
-        try {
-          requestPayload.seasonal_completed_quests = JSON.parse(seasonalQuests);
-        } catch (e) {}
-      }
-      const seasonalQuizzes = localStorage.getItem('seasonal_answered_quizzes');
-      if (seasonalQuizzes) {
-        try {
-          requestPayload.seasonal_answered_quizzes = JSON.parse(seasonalQuizzes);
-        } catch (e) {}
+      if (forceSeasonalReset) {
+        requestPayload.forceSeasonalReset = true;
+        requestPayload.seasonal_event_score = 0;
+        requestPayload.seasonal_answered_quizzes = [];
+        requestPayload.seasonal_completed_milestones = [];
+      } else {
+        const seasonalScore = localStorage.getItem('seasonal_event_score');
+        if (seasonalScore) requestPayload.seasonal_event_score = Number(seasonalScore);
+        const seasonalQuests = localStorage.getItem('seasonal_completed_quests');
+        if (seasonalQuests) {
+          try {
+            requestPayload.seasonal_completed_quests = JSON.parse(seasonalQuests);
+          } catch (e) {}
+        }
+        const seasonalQuizzes = localStorage.getItem('seasonal_answered_quizzes');
+        if (seasonalQuizzes) {
+          try {
+            requestPayload.seasonal_answered_quizzes = JSON.parse(seasonalQuizzes);
+          } catch (e) {}
+        }
       }
 
       const res = await fetchWithTimeout('/api/auth/sync', {
@@ -2606,7 +3789,19 @@ export default function App() {
           clan_weekly_milestones: data.user.clan_weekly_milestones,
           seasonal_event_score: data.user.seasonal_event_score !== undefined ? data.user.seasonal_event_score : (user?.seasonal_event_score || 0),
           seasonal_completed_quests: data.user.seasonal_completed_quests || [],
-          seasonal_answered_quizzes: data.user.seasonal_answered_quizzes || []
+          seasonal_answered_quizzes: data.user.seasonal_answered_quizzes || [],
+          selectedSkin: data.user.selectedSkin || 'standard',
+          unlockedSkins: data.user.unlockedSkins || ['standard'],
+          equippedTitle: data.user.equippedTitle || 'Pecatur Perintis',
+          unlockedTitles: data.user.unlockedTitles || ['Pecatur Perintis'],
+          equippedCheckmateEffect: data.user.equippedCheckmateEffect || 'none',
+          unlockedCheckmateEffects: data.user.unlockedCheckmateEffects || ['none'],
+          customStatus: data.user.customStatus || 'Pantang menyerah sebelum raja digulingkan!',
+          isPrivate: data.user.isPrivate !== undefined ? !!data.user.isPrivate : (user?.isPrivate || false),
+          followers: Array.isArray(data.user.followers) ? data.user.followers : (user?.followers || []),
+          following: Array.isArray(data.user.following) ? data.user.following : (user?.following || []),
+          likesCount: typeof data.user.likesCount === 'number' ? data.user.likesCount : (data.user.likes !== undefined ? data.user.likes : (user?.likesCount || 0)),
+          likedBy: Array.isArray(data.user.likedBy) ? data.user.likedBy : (user?.likedBy || [])
         };
         setUser(synced);
         setClaimedAchievements(data.user.claimedAchievements || []);
@@ -2623,6 +3818,10 @@ export default function App() {
         const cleanScope = synced.username.trim().toLowerCase();
         localStorage.setItem(`unlockedItems:${cleanScope}`, JSON.stringify(sortedItems));
         applyUnlockedItemsToIndependentStates(sortedItems, synced.username);
+        localStorage.setItem('likesCount', String(synced.likesCount));
+        localStorage.setItem(`likesCount:${cleanScope}`, String(synced.likesCount));
+        localStorage.setItem('likedBy', JSON.stringify(synced.likedBy));
+        localStorage.setItem(`likedBy:${cleanScope}`, JSON.stringify(synced.likedBy));
 
         if (data.user.coins !== undefined) {
           setCoins(data.user.coins);
@@ -2633,6 +3832,28 @@ export default function App() {
           setDiamondsRaw(data.user.diamonds);
           localStorage.setItem('diamonds', String(data.user.diamonds));
           localStorage.setItem(`diamonds:${cleanScope}`, String(data.user.diamonds));
+        }
+
+        if (data.user.elo !== undefined) {
+          setOnlineRating(data.user.elo);
+          localStorage.setItem('onlineRating', String(data.user.elo));
+          localStorage.setItem(`onlineRating:${cleanScope}`, String(data.user.elo));
+        }
+        if (data.user.xp !== undefined) {
+          setXp(data.user.xp);
+          localStorage.setItem('xp', String(data.user.xp));
+          localStorage.setItem(`xp:${cleanScope}`, String(data.user.xp));
+        }
+
+        if (data.user.onlineHistory !== undefined) {
+          setOnlineHistory(data.user.onlineHistory);
+          localStorage.setItem('onlineHistory', JSON.stringify(data.user.onlineHistory));
+          localStorage.setItem(`onlineHistory:${cleanScope}`, JSON.stringify(data.user.onlineHistory));
+        }
+        if (data.user.chess_transaction_history !== undefined) {
+          localStorage.setItem('chess_transaction_history', JSON.stringify(data.user.chess_transaction_history));
+          localStorage.setItem(`chess_transaction_history:${cleanScope}`, JSON.stringify(data.user.chess_transaction_history));
+          window.dispatchEvent(new Event('chess_transaction_update'));
         }
 
         if (updatedBio !== undefined || updatedAvatar !== undefined) {
@@ -2662,8 +3883,19 @@ export default function App() {
           claimedAchievements: updatedClaimedAchievements !== undefined ? updatedClaimedAchievements : (claimedAchievements || []),
           membershipStatus: membershipStatus,
           unlockedItems: sortedFallbackItems,
-          selectedFrame: selectedFrame,
-          unlockedFrames: updatedUnlockedFrames !== undefined ? updatedUnlockedFrames : unlockedFrames
+          selectedFrame: updatedFrame !== undefined ? updatedFrame : selectedFrame,
+          unlockedFrames: updatedUnlockedFrames !== undefined ? updatedUnlockedFrames : unlockedFrames,
+          selectedSkin: updatedSkin !== undefined ? updatedSkin : selectedSkin,
+          unlockedSkins: updatedUnlockedSkins !== undefined ? updatedUnlockedSkins : unlockedSkins,
+          equippedTitle: updatedTitle !== undefined ? updatedTitle : equippedTitle,
+          unlockedTitles: updatedUnlockedTitles !== undefined ? updatedUnlockedTitles : unlockedTitles,
+          equippedCheckmateEffect: updatedCheckmateEffect !== undefined ? updatedCheckmateEffect : equippedCheckmateEffect,
+          unlockedCheckmateEffects: updatedUnlockedCheckmateEffects !== undefined ? updatedUnlockedCheckmateEffects : unlockedCheckmateEffects,
+          customStatus: updatedCustomStatus !== undefined ? updatedCustomStatus : customStatus,
+          followers: user?.followers || [],
+          following: user?.following || [],
+          likesCount: typeof user?.likesCount === 'number' ? user.likesCount : (user?.likes || 0),
+          likedBy: user?.likedBy || []
         };
         setUser(nextUserObj);
         localStorage.setItem('user', JSON.stringify(nextUserObj));
@@ -2673,6 +3905,10 @@ export default function App() {
         localStorage.setItem(`coins:${cleanScope}`, String(fallbackCoins));
         localStorage.setItem('diamonds', String(fallbackDiamonds));
         localStorage.setItem(`diamonds:${cleanScope}`, String(fallbackDiamonds));
+        localStorage.setItem('likesCount', String(nextUserObj.likesCount || 0));
+        localStorage.setItem(`likesCount:${cleanScope}`, String(nextUserObj.likesCount || 0));
+        localStorage.setItem('likedBy', JSON.stringify(nextUserObj.likedBy || []));
+        localStorage.setItem(`likedBy:${cleanScope}`, JSON.stringify(nextUserObj.likedBy || []));
         
         // Save to mock_users cache in localStorage so login with same user works later
         const mockUsersRaw = localStorage.getItem('mock_users') || '[]';
@@ -2697,7 +3933,18 @@ export default function App() {
             profileBio: nextUserObj.profileBio,
             claimedAchievements: nextUserObj.claimedAchievements,
             membershipStatus: nextUserObj.membershipStatus,
-            unlockedItems: nextUserObj.unlockedItems
+            unlockedItems: nextUserObj.unlockedItems,
+            selectedFrame: nextUserObj.selectedFrame,
+            unlockedFrames: nextUserObj.unlockedFrames,
+            selectedSkin: nextUserObj.selectedSkin,
+            unlockedSkins: nextUserObj.unlockedSkins,
+            equippedTitle: nextUserObj.equippedTitle,
+            unlockedTitles: nextUserObj.unlockedTitles,
+            equippedCheckmateEffect: nextUserObj.equippedCheckmateEffect,
+            unlockedCheckmateEffects: nextUserObj.unlockedCheckmateEffects,
+            customStatus: nextUserObj.customStatus,
+            likesCount: nextUserObj.likesCount || 0,
+            likedBy: nextUserObj.likedBy || []
           };
           localStorage.setItem('mock_users', JSON.stringify(mockUsers));
         }
@@ -2708,6 +3955,92 @@ export default function App() {
       }
     }
   };
+
+  const pullUserStatsFromServer = async (targetUsername: string) => {
+    try {
+      const res = await fetch(`/api/auth/user-data?username=${encodeURIComponent(targetUsername)}`);
+      if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+      const data = await res.json();
+      if (data && data.success && data.user) {
+        const u = data.user;
+        loadUserScopedStats(
+          u.username,
+          undefined,
+          u.coins,
+          u.diamonds,
+          u.unlockedItems,
+          u.selectedFrame,
+          u.unlockedFrames,
+          u.selectedSkin,
+          u.equippedTitle,
+          u.equippedCheckmateEffect,
+          u.customStatus,
+          u.unlockedSkins,
+          u.unlockedTitles,
+          u.unlockedCheckmateEffects,
+          u.unlockedThemes,
+          u.elo,
+          u.xp,
+          u.onlineHistory,
+          u.chess_transaction_history,
+          u.pinned_medals_ids,
+          u.blockedUsers,
+          u.streak,
+          u.peakXp,
+          u.winStreak,
+          u.longestDefense,
+          u.likesCount,
+          u.likedBy
+        );
+        setUser(prev => {
+          if (!prev) return null;
+          return {
+            ...prev,
+            elo: u.elo || 400,
+            xp: u.xp || 0,
+            coins: u.coins || 500,
+            diamonds: u.diamonds || 20,
+            profileAvatar: u.profileAvatar,
+            profileBio: u.profileBio,
+            membershipStatus: u.membershipStatus,
+            matchesPlayed: u.matchesPlayed || 0,
+            matchesWon: u.matchesWon || 0,
+            unlockedThemes: u.unlockedThemes || ['classic'],
+            unlockedItems: u.unlockedItems || [],
+            selectedFrame: u.selectedFrame || 'none',
+            unlockedFrames: u.unlockedFrames || ['none'],
+            selectedSkin: u.selectedSkin || 'standard',
+            unlockedSkins: u.unlockedSkins || ['standard'],
+            equippedTitle: u.equippedTitle || 'Pecatur Perintis',
+            unlockedTitles: u.unlockedTitles || ['Pecatur Perintis'],
+            equippedCheckmateEffect: u.equippedCheckmateEffect || 'none',
+            unlockedCheckmateEffects: u.unlockedCheckmateEffects || ['none'],
+            customStatus: u.customStatus || '',
+            followers: Array.isArray(u.followers) ? u.followers : (prev.followers || []),
+            following: Array.isArray(u.following) ? u.following : (prev.following || []),
+            likesCount: typeof u.likesCount === 'number' ? u.likesCount : (u.likes !== undefined ? u.likes : (prev.likesCount || 0)),
+            likedBy: Array.isArray(u.likedBy) ? u.likedBy : (prev.likedBy || [])
+          };
+        });
+      }
+    } catch (err) {
+      console.error("[Pull Stats] Failed to pull user stats from server:", err);
+    }
+  };
+
+  useEffect(() => {
+    const handleSyncRequest = () => {
+      if (user && user.username) {
+        pullUserStatsFromServer(user.username);
+      } else {
+        syncUserStats();
+      }
+    };
+    window.addEventListener('sync_active_user', handleSyncRequest);
+    return () => {
+      window.removeEventListener('sync_active_user', handleSyncRequest);
+    };
+  }, [user?.username]);
 
   // Sync user profile username inside input
   const handleSaveUsername = (newName: string) => {
@@ -2725,6 +4058,22 @@ export default function App() {
         setFriendsList(data.friends || []);
         setFriendRequests(data.friendRequests || []);
         setInboxMessages(data.inbox || []);
+
+        setUser(prev => {
+          if (!prev) return prev;
+          const updated = {
+            ...prev,
+            followers: data.followers || prev.followers || [],
+            following: data.following || prev.following || [],
+            likesCount: typeof data.likesCount === 'number' ? data.likesCount : (prev.likesCount || 0),
+            likedBy: data.likedBy || prev.likedBy || [],
+            followRequests: data.followRequests || prev.followRequests || [],
+            isPrivate: data.isPrivate !== undefined ? !!data.isPrivate : !!prev.isPrivate,
+            visitorLog: data.visitorLog || prev.visitorLog || []
+          };
+          localStorage.setItem('user', JSON.stringify(updated));
+          return updated;
+        });
       }
     } catch (e) {
       console.warn("Failed to fetch social info:", e);
@@ -2867,12 +4216,12 @@ export default function App() {
   // Poll social/friend metrics for real-time notifications
   useEffect(() => {
     let socialInterval: any = null;
-    if (user) {
+    if (username) {
       fetchSocialInfo();
       socialInterval = setInterval(fetchSocialInfo, 5000);
     }
     return () => clearInterval(socialInterval);
-  }, [username, user]);
+  }, [username]);
 
   // Master mode change cleanup effect to prevent stuck/disabled boards & lingering overlays
   useEffect(() => {
@@ -2929,7 +4278,14 @@ export default function App() {
     localStorage.setItem('membershipStatus', membershipStatus);
     localStorage.setItem(`membershipStatus:${userScope}`, membershipStatus);
     localStorage.setItem('onlineRating', String(onlineRating));
+    localStorage.setItem(`onlineRating:${userScope}`, String(onlineRating));
     localStorage.setItem('onlineHistory', JSON.stringify(onlineHistory));
+    localStorage.setItem(`onlineHistory:${userScope}`, JSON.stringify(onlineHistory));
+    localStorage.setItem(`friendsList:${userScope}`, JSON.stringify(friendsList));
+    localStorage.setItem(`friendRequests:${userScope}`, JSON.stringify(friendRequests));
+    localStorage.setItem(`inboxMessages:${userScope}`, JSON.stringify(inboxMessages));
+    localStorage.setItem(`raw_received_gifts:${userScope}`, JSON.stringify(rawReceivedGifts));
+    localStorage.setItem(`claimedAchievements:${userScope}`, JSON.stringify(claimedAchievements));
     localStorage.setItem('username', username);
     localStorage.setItem(`unlockedItems:${userScope}`, JSON.stringify(unlockedItems));
     localStorage.setItem(`claimedLevelRewards:${userScope}`, JSON.stringify(claimedLevelRewards));
@@ -2948,7 +4304,7 @@ export default function App() {
     } else {
       localStorage.removeItem('user');
     }
-  }, [mode, xp, coins, diamonds, selectedFrame, unlockedFrames, hearts, streak, soundEnabled, unlockedThemes, boardTheme, selectedCharacter, onlineRating, onlineHistory, username, user, selectedSkin, unlockedSkins, membershipStatus, claimedLevelRewards, customStatus, equippedTitle, unlockedTitles, equippedCheckmateEffect, unlockedCheckmateEffects, unlockedItems]);
+  }, [mode, xp, coins, diamonds, selectedFrame, unlockedFrames, hearts, streak, soundEnabled, unlockedThemes, boardTheme, selectedCharacter, onlineRating, onlineHistory, username, user, selectedSkin, unlockedSkins, membershipStatus, claimedLevelRewards, customStatus, equippedTitle, unlockedTitles, equippedCheckmateEffect, unlockedCheckmateEffects, unlockedItems, friendsList, friendRequests, inboxMessages, rawReceivedGifts, claimedAchievements]);
 
   // Normalization effect to synchronize all prefixed and standard item names (ensuring inventory and Chess Dex match perfectly)
   useEffect(() => {
@@ -3063,7 +4419,7 @@ export default function App() {
   useEffect(() => {
     if (user) {
       const timer = setTimeout(() => {
-        syncUserStats(onlineRating, xp, unlockedThemes, user.matchesPlayed || 0, user.matchesWon || 0, undefined, undefined, undefined, undefined, undefined, coins, diamonds);
+        syncUserStats();
       }, 3000);
       return () => clearTimeout(timer);
     }
@@ -3095,12 +4451,45 @@ export default function App() {
     localStorage.setItem('guestMatchesPlayed', String(nextPlayed));
     localStorage.setItem('guestMatchesWon', String(nextWon));
 
+    const actUserKey = getActiveUsername().trim().toLowerCase();
+    if (outcome === 'win') {
+      const curWS = Number(localStorage.getItem(`current_win_streak:${actUserKey}`) || '0') + 1;
+      localStorage.setItem(`current_win_streak:${actUserKey}`, String(curWS));
+      const bestWS = Number(localStorage.getItem(`win_streak:${actUserKey}`) || '0');
+      if (curWS > bestWS) {
+        localStorage.setItem(`win_streak:${actUserKey}`, String(curWS));
+      }
+    } else if (outcome === 'lose') {
+      localStorage.setItem(`current_win_streak:${actUserKey}`, '0');
+    }
+
+    try {
+      const totalMoves = chessRef.current.history().length;
+      if (totalMoves > 0) {
+        const bestDef = Number(localStorage.getItem(`longest_defense:${actUserKey}`) || '0');
+        if (totalMoves > bestDef) {
+          localStorage.setItem(`longest_defense:${actUserKey}`, String(totalMoves));
+        }
+      }
+    } catch (_) {}
+
     // Add XP for completing a match!
     let xpEarned = 10;
     if (outcome === 'win') xpEarned = 25;
     const nextXp = xp + xpEarned;
     setXp(nextXp);
     localStorage.setItem('xp', String(nextXp));
+
+    const todayStr = new Date().toLocaleDateString('en-CA');
+    const lastXpDate = localStorage.getItem(`today_xp_date:${actUserKey}`);
+    let todayXp = lastXpDate === todayStr ? Number(localStorage.getItem(`today_xp:${actUserKey}`) || '0') : 0;
+    todayXp += xpEarned;
+    localStorage.setItem(`today_xp_date:${actUserKey}`, todayStr);
+    localStorage.setItem(`today_xp:${actUserKey}`, String(todayXp));
+    const bestPeak = Number(localStorage.getItem(`peak_xp:${actUserKey}`) || '0');
+    if (todayXp > bestPeak) {
+      localStorage.setItem(`peak_xp:${actUserKey}`, String(todayXp));
+    }
 
     updateDailyQuestProgress('play', 1);
     if (outcome === 'win') {
@@ -3120,39 +4509,180 @@ export default function App() {
         try {
           const parsed = JSON.parse(savedUser);
           if (parsed && parsed.username) {
-            const localElo = localStorage.getItem('onlineRating') ? Number(localStorage.getItem('onlineRating')) : 400;
-            const localXp = localStorage.getItem('xp') ? Number(localStorage.getItem('xp')) : 0;
+            const cleanUser = parsed.username.trim().toLowerCase();
+            loadedUsernameRef.current = cleanUser;
 
-            // Fetch newest synced stats from the backend by sending only their username
+            const savedScopedElo = localStorage.getItem(`onlineRating:${cleanUser}`);
+            const savedElo = localStorage.getItem('onlineRating');
+            const localElo = Math.max(
+              parsed.elo || 0,
+              savedScopedElo ? Number(savedScopedElo) : 0,
+              savedElo ? Number(savedElo) : 0,
+              400
+            );
+
+            const savedScopedCoins = localStorage.getItem(`coins:${cleanUser}`);
+            const savedCoins = localStorage.getItem('coins');
+            const localCoins = Math.max(
+              parsed.coins || 0,
+              savedScopedCoins ? Number(savedScopedCoins) : 0,
+              savedCoins ? Number(savedCoins) : 0,
+              500
+            );
+
+            const savedScopedDiamonds = localStorage.getItem(`diamonds:${cleanUser}`);
+            const savedDiamonds = localStorage.getItem('diamonds');
+            const localDiamonds = Math.max(
+              parsed.diamonds || 0,
+              savedScopedDiamonds ? Number(savedScopedDiamonds) : 0,
+              savedDiamonds ? Number(savedDiamonds) : 0,
+              20
+            );
+
+            const savedScopedXp = localStorage.getItem(`xp:${cleanUser}`);
+            const savedXp = localStorage.getItem('xp');
+            const localXp = Math.max(
+              parsed.xp || 0,
+              savedScopedXp ? Number(savedScopedXp) : 0,
+              savedXp ? Number(savedXp) : 0,
+              0
+            );
+
+            const unionArray = (...arrays: any[]) => Array.from(new Set(arrays.flat().filter(x => typeof x === 'string' && x.length > 0)));
+
+            const localFrames = unionArray(
+              parsed.unlockedFrames || [],
+              JSON.parse(localStorage.getItem(`unlockedFrames:${cleanUser}`) || '[]'),
+              JSON.parse(localStorage.getItem('unlockedFrames') || '[]'),
+              ['none']
+            );
+            const localSkins = unionArray(
+              parsed.unlockedSkins || [],
+              JSON.parse(localStorage.getItem(`unlockedSkins:${cleanUser}`) || '[]'),
+              JSON.parse(localStorage.getItem('unlockedSkins') || '[]'),
+              ['standard']
+            );
+            const localThemes = unionArray(
+              parsed.unlockedThemes || [],
+              JSON.parse(localStorage.getItem(`unlockedThemes:${cleanUser}`) || '[]'),
+              JSON.parse(localStorage.getItem('unlockedThemes') || '[]'),
+              ['classic']
+            );
+            const localItems = unionArray(
+              parsed.unlockedItems || [],
+              JSON.parse(localStorage.getItem(`unlockedItems:${cleanUser}`) || '[]'),
+              JSON.parse(localStorage.getItem('unlockedItems') || '[]')
+            );
+            const localTitles = unionArray(
+              parsed.unlockedTitles || [],
+              JSON.parse(localStorage.getItem(`unlockedTitles:${cleanUser}`) || '[]'),
+              JSON.parse(localStorage.getItem('unlockedTitles') || '[]'),
+              ['Pecatur Perintis']
+            );
+            const localEffects = unionArray(
+              parsed.unlockedCheckmateEffects || [],
+              JSON.parse(localStorage.getItem(`unlockedCheckmateEffects:${cleanUser}`) || '[]'),
+              JSON.parse(localStorage.getItem('unlockedCheckmateEffects') || '[]'),
+              ['none']
+            );
+
+            // Fetch newest synced stats from the backend by sending username and local fallback state
             const res = await fetchWithTimeout('/api/auth/sync', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ username: parsed.username })
+              body: JSON.stringify({ 
+                username: parsed.username,
+                elo: localElo,
+                coins: localCoins,
+                diamonds: localDiamonds,
+                xp: localXp,
+                unlockedFrames: localFrames,
+                unlockedSkins: localSkins,
+                unlockedThemes: localThemes,
+                unlockedItems: localItems,
+                unlockedTitles: localTitles,
+                unlockedCheckmateEffects: localEffects
+              })
             }, 1500);
             const data = await res.json();
             if (data && data.success && data.user) {
-              const finalElo = Math.max(data.user.elo ?? 400, localElo);
-              const finalXp = Math.max(data.user.xp ?? 0, localXp);
+              isResettingRef.current = true;
+              const finalElo = Math.max(data.user.elo !== undefined ? data.user.elo : 0, localElo);
+              const finalCoins = Math.max(data.user.coins !== undefined ? data.user.coins : 0, localCoins);
+              const finalDiamonds = Math.max(data.user.diamonds !== undefined ? data.user.diamonds : 0, localDiamonds);
+              const finalXp = Math.max(data.user.xp !== undefined ? data.user.xp : 0, localXp);
+
+              const finalFrames = unionArray(data.user.unlockedFrames || [], localFrames);
+              const finalSkins = unionArray(data.user.unlockedSkins || [], localSkins);
+              const finalThemes = unionArray(data.user.unlockedThemes || [], localThemes);
+              const finalItems = unionArray(data.user.unlockedItems || [], localItems);
+              const finalTitles = unionArray(data.user.unlockedTitles || [], localTitles);
+              const finalEffects = unionArray(data.user.unlockedCheckmateEffects || [], localEffects);
+
+              const localSelectedFrame = localStorage.getItem(`selectedFrame:${cleanUser}`) || localStorage.getItem('selectedFrame') || selectedFrame;
+              const finalSelectedFrame = (data.user.selectedFrame && data.user.selectedFrame !== 'none')
+                ? data.user.selectedFrame
+                : (parsed.selectedFrame && parsed.selectedFrame !== 'none')
+                  ? parsed.selectedFrame
+                  : (localSelectedFrame && localSelectedFrame !== 'none' && finalFrames.includes(localSelectedFrame))
+                    ? localSelectedFrame
+                    : 'none';
+
+              const localSelectedSkin = localStorage.getItem(`selectedSkin:${cleanUser}`) || localStorage.getItem('selectedSkin') || selectedSkin;
+              const finalSelectedSkin = (data.user.selectedSkin && data.user.selectedSkin !== 'standard' && data.user.selectedSkin !== 'none')
+                ? data.user.selectedSkin
+                : (parsed.selectedSkin && parsed.selectedSkin !== 'standard' && parsed.selectedSkin !== 'none')
+                  ? parsed.selectedSkin
+                  : (localSelectedSkin && localSelectedSkin !== 'standard' && finalSkins.includes(localSelectedSkin))
+                    ? localSelectedSkin
+                    : 'standard';
+
+              const localEquippedTitle = localStorage.getItem(`equippedTitle:${cleanUser}`) || localStorage.getItem('equippedTitle') || equippedTitle;
+              const finalEquippedTitle = (data.user.equippedTitle && data.user.equippedTitle !== 'Pecatur Perintis')
+                ? data.user.equippedTitle
+                : (parsed.equippedTitle && parsed.equippedTitle !== 'Pecatur Perintis')
+                  ? parsed.equippedTitle
+                  : (localEquippedTitle && finalTitles.includes(localEquippedTitle))
+                    ? localEquippedTitle
+                    : 'Pecatur Perintis';
+
+              const localEffect = localStorage.getItem(`equippedCheckmateEffect:${cleanUser}`) || localStorage.getItem('equippedCheckmateEffect') || equippedCheckmateEffect;
+              const finalCheckmateEffect = (data.user.equippedCheckmateEffect && data.user.equippedCheckmateEffect !== 'none')
+                ? data.user.equippedCheckmateEffect
+                : (parsed.equippedCheckmateEffect && parsed.equippedCheckmateEffect !== 'none')
+                  ? parsed.equippedCheckmateEffect
+                  : (localEffect && finalEffects.includes(localEffect))
+                    ? localEffect
+                    : 'none';
 
               const synced = {
                 username: data.user.username,
                 elo: finalElo,
                 xp: finalXp,
-                unlockedThemes: data.user.unlockedThemes ?? ["classic"],
-                matchesPlayed: data.user.matchesPlayed ?? 0,
-                matchesWon: data.user.matchesWon ?? 0,
-                profileAvatar: data.user.profileAvatar ?? martinAvatar,
-                profileBio: data.user.profileBio ?? "Pecatur sejati pantang menyerah!",
-                claimedAchievements: data.user.claimedAchievements || [],
-                membershipStatus: data.user.membershipStatus || 'free',
-                unlockedItems: data.user.unlockedItems || [],
-                selectedFrame: data.user.selectedFrame || 'none',
-                unlockedFrames: data.user.unlockedFrames || ['none'],
+                coins: finalCoins,
+                diamonds: finalDiamonds,
+                unlockedThemes: finalThemes,
+                matchesPlayed: Math.max(data.user.matchesPlayed ?? 0, parsed.matchesPlayed ?? 0),
+                matchesWon: Math.max(data.user.matchesWon ?? 0, parsed.matchesWon ?? 0),
+                profileAvatar: data.user.profileAvatar ?? parsed.profileAvatar ?? martinAvatar,
+                profileBio: data.user.profileBio ?? parsed.profileBio ?? "Pecatur sejati pantang menyerah!",
+                claimedAchievements: unionArray(data.user.claimedAchievements || [], parsed.claimedAchievements || []),
+                membershipStatus: data.user.membershipStatus || parsed.membershipStatus || 'free',
+                unlockedItems: finalItems,
+                selectedFrame: finalSelectedFrame,
+                unlockedFrames: finalFrames,
+                selectedSkin: finalSelectedSkin,
+                equippedTitle: finalEquippedTitle,
+                equippedCheckmateEffect: finalCheckmateEffect,
+                customStatus: data.user.customStatus || parsed.customStatus || 'Pantang menyerah sebelum raja digulingkan!',
                 isStaff: !!data.user.isStaff,
-                isAdmin: !!data.user.isAdmin
+                isAdmin: !!data.user.isAdmin,
+                unlockedSkins: finalSkins,
+                unlockedTitles: finalTitles,
+                unlockedCheckmateEffects: finalEffects
               };
               setUser(synced);
-              setClaimedAchievements(data.user.claimedAchievements || []);
+              setClaimedAchievements(synced.claimedAchievements);
               localStorage.setItem('user', JSON.stringify(synced));
               
               setMembershipStatus(synced.membershipStatus as any);
@@ -3161,39 +4691,82 @@ export default function App() {
               // Synchronize local states instantly
               setOnlineRating(finalElo);
               localStorage.setItem('onlineRating', String(finalElo));
+              localStorage.setItem(`onlineRating:${cleanUser}`, String(finalElo));
+
+              setCoins(finalCoins);
+              localStorage.setItem('coins', String(finalCoins));
+              localStorage.setItem(`coins:${cleanUser}`, String(finalCoins));
+
+              setDiamondsRaw(finalDiamonds);
+              localStorage.setItem('diamonds', String(finalDiamonds));
+              localStorage.setItem(`diamonds:${cleanUser}`, String(finalDiamonds));
+
               setXp(finalXp);
               localStorage.setItem('xp', String(finalXp));
-              setUnlockedThemes(synced.unlockedThemes);
+              localStorage.setItem(`xp:${cleanUser}`, String(finalXp));
 
-              const sortedItems = [...(data.user.unlockedItems || [])].sort();
-              setUnlockedItems(sortedItems);
-              const cleanScope = data.user.username.trim().toLowerCase();
-              localStorage.setItem(`unlockedItems:${cleanScope}`, JSON.stringify(sortedItems));
-              
-              const syncedFrames = data.user.unlockedFrames || ['none'];
-              setUnlockedFrames(syncedFrames);
-              localStorage.setItem(`unlockedFrames:${cleanScope}`, JSON.stringify(syncedFrames));
-              
-              applyUnlockedItemsToIndependentStates(sortedItems, data.user.username);
+              setUnlockedThemes(finalThemes);
+              setUnlockedFrames(finalFrames);
+              setUnlockedSkins(finalSkins);
+              setUnlockedItems(finalItems);
+              setSelectedFrame(finalSelectedFrame);
+              setSelectedSkin(finalSelectedSkin);
+              setEquippedTitle(finalEquippedTitle);
+              setEquippedCheckmateEffect(finalCheckmateEffect);
 
-              // If the client had higher values, push them back to the server to consolidate!
-              if (finalElo > (data.user.elo ?? 400) || finalXp > (data.user.xp ?? 0)) {
-                await fetchWithTimeout('/api/auth/sync', {
-                  method: 'POST',
-                  headers: { 'Content-Type': 'application/json' },
-                  body: JSON.stringify({
-                    username: parsed.username,
-                    elo: finalElo,
-                    xp: finalXp,
-                    matchesPlayed: synced.matchesPlayed,
-                    matchesWon: synced.matchesWon
-                  })
-                }, 1500);
-              }
+              loadUserScopedStats(
+                synced.username,
+                undefined,
+                synced.coins,
+                synced.diamonds,
+                synced.unlockedItems,
+                synced.selectedFrame,
+                synced.unlockedFrames,
+                synced.selectedSkin,
+                synced.equippedTitle,
+                synced.equippedCheckmateEffect,
+                synced.customStatus,
+                synced.unlockedSkins,
+                synced.unlockedTitles,
+                synced.unlockedCheckmateEffects,
+                synced.unlockedThemes,
+                synced.elo,
+                synced.xp,
+                data.user.onlineHistory,
+                data.user.chess_transaction_history
+              );
+
+              // Push consolidated state back to server
+              await fetchWithTimeout('/api/auth/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  username: parsed.username,
+                  elo: finalElo,
+                  xp: finalXp,
+                  coins: finalCoins,
+                  diamonds: finalDiamonds,
+                  matchesPlayed: synced.matchesPlayed,
+                  matchesWon: synced.matchesWon,
+                  selectedFrame: finalSelectedFrame,
+                  unlockedFrames: finalFrames,
+                  selectedSkin: finalSelectedSkin,
+                  unlockedSkins: finalSkins,
+                  unlockedThemes: finalThemes,
+                  unlockedItems: finalItems,
+                  equippedTitle: finalEquippedTitle,
+                  unlockedTitles: finalTitles,
+                  equippedCheckmateEffect: finalCheckmateEffect,
+                  unlockedCheckmateEffects: finalEffects,
+                  customStatus: synced.customStatus
+                })
+              }, 1500);
             }
           }
         } catch (e) {
           console.warn("Error on initial user profile sync:", e);
+        } finally {
+          isResettingRef.current = false;
         }
       }
 
@@ -4106,8 +5679,15 @@ export default function App() {
     coins?: number,
     diamonds?: number
   ) => {
-    setXp(prev => prev + amount);
-    setRewardAmount(amount);
+    let finalXp = amount;
+    if (amount > 0 && type !== 'info' && type !== 'success_no_xp') {
+      const gLvl = Math.max(1, Number(localStorage.getItem('guild_lvl') || '1'));
+      const clanBonusPct = gLvl >= 5 ? 25 : (gLvl >= 4 ? 20 : (gLvl >= 3 ? 15 : (gLvl >= 2 ? 10 : 5)));
+      finalXp = Math.round(amount * (1 + clanBonusPct / 100));
+    }
+
+    setXp(prev => prev + finalXp);
+    setRewardAmount(finalXp);
     setRewardCoinsAmount(coins || 0);
     setRewardDiamondsAmount(diamonds || 0);
     setRewardMessage(message);
@@ -4971,7 +6551,7 @@ export default function App() {
                           <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
                         </svg>
                       ) : (
-                        EVALUATION_LABELS[lastMove.type]?.icon || '✓'
+                        EVALUATION_LABELS[lastMove.type]?.icon || ''
                       )}
                     </div>
                   )}
@@ -5614,6 +7194,7 @@ export default function App() {
             triggerAudio('win');
           } else {
             setLessonStatus('completed');
+            updateDailyQuestProgress('puzzle', 1);
             triggerReward(activeLesson.points, `Hebat! Selesai Mempelajari: ${activeLesson.title}!`);
           }
         } else {
@@ -5986,27 +7567,41 @@ export default function App() {
       return;
     }
 
+    let nextCoins = coins;
+    let nextDiamonds = diamonds;
     if (frame.costType === 'coin') {
-      const next = coins - frame.cost;
-      setCoins(next);
-      localStorage.setItem('coins', String(next));
+      nextCoins = coins - frame.cost;
+      setCoins(nextCoins);
+      localStorage.setItem('coins', String(nextCoins));
     } else if (frame.costType === 'diamond') {
-      const next = diamonds - frame.cost;
-      setDiamonds(next);
-      localStorage.setItem('diamonds', String(next));
+      nextDiamonds = diamonds - frame.cost;
+      setDiamonds(nextDiamonds);
+      localStorage.setItem('diamonds', String(nextDiamonds));
     }
 
-    setUnlockedFrames(prev => {
-      const next = [...prev, frame.id];
-      const userScope = username.trim().toLowerCase();
-      localStorage.setItem(`unlockedFrames:${userScope}`, JSON.stringify(next));
-      if (user) {
-        const updated = { ...user, unlockedFrames: next };
-        setUser(updated);
-        localStorage.setItem('user', JSON.stringify(updated));
-      }
-      return next;
-    });
+    const nextFrames = Array.from(new Set([...unlockedFrames, frame.id]));
+    setUnlockedFrames(nextFrames);
+
+    const userScope = username.trim().toLowerCase();
+    localStorage.setItem(`unlockedFrames:${userScope}`, JSON.stringify(nextFrames));
+    localStorage.setItem('unlockedFrames', JSON.stringify(nextFrames));
+
+    const nextItems = Array.from(new Set([...unlockedItems, frame.id]));
+    setUnlockedItems(nextItems);
+    localStorage.setItem(`unlockedItems:${userScope}`, JSON.stringify(nextItems));
+    localStorage.setItem('unlockedItems', JSON.stringify(nextItems));
+
+    if (user) {
+      const updated = { ...user, unlockedFrames: nextFrames, unlockedItems: nextItems, coins: nextCoins, diamonds: nextDiamonds };
+      setUser(updated);
+      localStorage.setItem('user', JSON.stringify(updated));
+    }
+
+    syncUserStats(
+      undefined, undefined, undefined, undefined, undefined,
+      undefined, undefined, undefined, nextItems, nextFrames,
+      nextCoins, nextDiamonds
+    );
 
     triggerAudio('win');
     triggerReward(0, `Bingkai "${frame.name}" sukses dibeli! Pasang sekarang di menu Profil Anda.`, 'success_no_xp');
@@ -6027,6 +7622,9 @@ export default function App() {
     if (!isUnlocked) return;
 
     setSelectedFrame(frameId);
+    const userScope = username.trim().toLowerCase();
+    localStorage.setItem('selectedFrame', frameId);
+    localStorage.setItem(`selectedFrame:${userScope}`, frameId);
     if (user) {
       const updated = { ...user, selectedFrame: frameId };
       setUser(updated);
@@ -6038,6 +7636,7 @@ export default function App() {
       );
     }
     triggerAudio('move');
+    window.dispatchEvent(new Event('storage'));
   };
 
   // Daily login reward claiming
@@ -6063,6 +7662,16 @@ export default function App() {
     const streakBonusXp = streak * 10;
     const streakBonusCoins = streak * 25;
     const totalXpGain = reward.xp + (reward.bonusxp || 0) + streakBonusXp;
+
+    const baseDayXp = reward.xp + (reward.bonusxp || 0);
+    setLastClaimedDailyRewardSummary({
+      dayNumber: dailyIndex + 1,
+      baseXp: baseDayXp,
+      streakBonusXp,
+      totalXp: totalXpGain,
+      streakBonusCoins,
+      giftTitle: reward.desc
+    });
 
     // Apply XP
     setXp(prev => {
@@ -6105,6 +7714,7 @@ export default function App() {
     localStorage.setItem('lastClaimDate', today);
     localStorage.setItem(`lastClaimDate:${userScope}`, today);
     triggerAudio('win');
+    setIsStreakModalOpen(true);
     
     triggerReward(
       totalXpGain, 
@@ -6128,14 +7738,29 @@ export default function App() {
       />
 
       {/* HUD HEADER/TOP STATUS BAR (NATURAL TONES STYLED PANEL) */}
-      <nav id="hud-nav" className="sticky top-0 z-40 border-b border-[#3c3934] shadow-md select-none flex items-center pr-2 pl-0 sm:pr-4 sm:pl-0 bg-[#201b15] hover:bg-[#2b251e] transition-colors duration-300" style={{ minHeight: '4rem', paddingTop: '0.25rem', paddingBottom: '0.25rem', paddingLeft: '0px', marginLeft: '0px' }}>
-        <div className="w-full max-w-6xl mx-0 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 sm:gap-4 pl-0 ml-0" style={{ paddingLeft: '0px', marginLeft: '0px' }}>
+      <nav 
+        id="hud-nav" 
+        className={`sticky top-0 z-40 border-b shadow-md select-none flex items-center px-2 sm:px-4 transition-colors duration-300 w-full max-w-full overflow-hidden ${
+          prefTheme === 'light' 
+            ? 'bg-[#EDE4D3] text-[#201B15] border-[#C9B89A]' 
+            : 'bg-[#201b15] hover:bg-[#2b251e] border-[#3c3934]'
+        }`} 
+        style={{ 
+          minHeight: '3.75rem', 
+          paddingTop: '0.25rem', 
+          paddingBottom: '0.25rem', 
+          backgroundColor: prefTheme === 'light' ? '#EDE4D3' : undefined,
+          borderColor: prefTheme === 'light' ? '#C9B89A' : undefined,
+          color: prefTheme === 'light' ? '#201B15' : undefined
+        }}
+      >
+        <div className="w-full max-w-7xl mx-auto flex flex-col sm:flex-row sm:items-center justify-between gap-1.5 sm:gap-2 lg:gap-3">
           
           {/* Main Brand with Left alignment & Profile End alignment on mobile */}
-          <div className="flex items-center justify-between w-full sm:w-auto pl-0 ml-0" style={{ paddingLeft: '0px', marginLeft: '0px' }}>
-            <div className="min-w-0 shrink-0 flex items-center ml-0 pl-0 w-44 sm:w-64 md:w-72 lg:w-80 h-8 sm:h-10 md:h-11 lg:h-12 overflow-hidden rounded-lg relative top-[3px]" style={{ paddingLeft: '0px', marginLeft: '0px' }}>
+          <div className="flex items-center justify-between w-full sm:w-auto shrink-0">
+            <div className="min-w-0 shrink-0 flex items-center w-36 sm:w-44 md:w-52 lg:w-56 h-8 sm:h-9 md:h-10 overflow-hidden rounded-lg relative top-[1px]">
               <img 
-                src={palmateBannerHero} 
+                src={prefTheme === 'light' ? palmateBannerHeroLight : palmateBannerHero} 
                 alt="Pal Mate" 
                 className="w-full h-full object-cover object-center drop-shadow-sm"
                 referrerPolicy="no-referrer"
@@ -6152,7 +7777,12 @@ export default function App() {
                   localStorage.setItem('sound', String(updated));
                   if (updated) playSound('move');
                 }}
-                className="p-1 px-1.5 bg-[#262421] border border-[#3c3934] text-[#9babaf] hover:text-white rounded-lg cursor-pointer transition-colors shrink-0"
+                className={`p-1 px-1.5 border rounded-lg cursor-pointer transition-colors shrink-0 ${
+                  prefTheme === 'light'
+                    ? 'bg-[#F5EFE6] border-[#C9B89A] text-[#201B15] hover:text-[#81b64c]'
+                    : 'bg-[#262421] border-[#3c3934] text-[#9babaf] hover:text-white'
+                }`}
+                style={prefTheme === 'light' ? { backgroundColor: '#F5EFE6', borderColor: '#C9B89A', color: '#201B15' } : undefined}
                 title={soundEnabled ? "Matikan suara" : "Aktifkan suara"}
               >
                 {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5 text-red-500" />}
@@ -6160,7 +7790,7 @@ export default function App() {
 
               {/* Login / Profile on mobile */}
               {user ? (
-                <div className="flex items-center gap-1 pl-1 border-l border-[#3c3934] shrink-0">
+                <div className={`flex items-center gap-1 pl-1 border-l shrink-0 ${prefTheme === 'light' ? 'border-[#C9B89A]' : 'border-[#3c3934]'}`}>
                   <div 
                     onClick={() => { setShowProfileModal(true); triggerAudio('move'); }} 
                     className="cursor-pointer hover:scale-105 active:scale-95 transition-all shrink-0"
@@ -6174,58 +7804,7 @@ export default function App() {
                   </div>
                   <button
                     onClick={() => {
-                      isResettingRef.current = true;
-                      setUser(null);
-                      localStorage.removeItem('user');
-                      localStorage.removeItem('guild_has_owner');
-                      localStorage.removeItem('guild_members');
-                      localStorage.removeItem('guild_profile_data');
-                      localStorage.removeItem('guild_lvl');
-                      localStorage.removeItem('guild_treasury_gold');
-                      localStorage.removeItem('guild_logs');
-                      localStorage.removeItem('guild_join_requests');
-                      localStorage.removeItem('guild_action_history');
-                      localStorage.removeItem('guild_fragment_requests');
-                      localStorage.removeItem('guild_chat_messages');
-                      localStorage.removeItem('conquered_boards_list');
-                      localStorage.removeItem('clan_checked_in');
-                      localStorage.removeItem('clan_weekly_milestones');
-                      localStorage.removeItem('requested_fragment_skin');
-                      localStorage.removeItem('has_active_fragment_req');
-                      localStorage.removeItem('today_fragment_donation_count');
-                      setOnlineRating(400);
-                      localStorage.setItem('onlineRating', '400');
-                      setXp(0);
-                      localStorage.setItem('xp', '0');
-                      setCoins(500);
-                      localStorage.setItem('coins', '500');
-                      setDiamondsRaw(20);
-                      localStorage.setItem('diamonds', '20');
-                      setPassLevel(1);
-                      setPassXp(0);
-                      setPassStatus('free');
-                      setClaimedPassRewards([]);
-                      setClaimedRankRewards([]);
-                      setStarterPackClaimed(false);
-                      setUnlockedSkins(['standard']);
-                      setSelectedSkin('standard');
-                      setSelectedFrame('none');
-                      setUnlockedFrames(['none']);
-                      setUnlockedThemes(['classic']);
-                      localStorage.setItem('unlockedThemes', JSON.stringify(['classic']));
-                      setGuestMatchesPlayed(0);
-                      localStorage.setItem('guestMatchesPlayed', '0');
-                      setGuestMatchesWon(0);
-                      localStorage.setItem('guestMatchesWon', '0');
-                      setProfileEditingBio('Pecatur sejati pantang menyerah!');
-                      setClaimedAchievements([]);
-                      setMembershipStatus('free');
-                      localStorage.setItem('membershipStatus', 'free');
-
-                      const prevName = `Pecatur_${Math.random().toString(36).substring(2,6).toUpperCase()}`;
-                      setUsername(prevName);
-                      localStorage.setItem('username', prevName);
-                      loadUserScopedStats(prevName);
+                      resetUserSession();
                       triggerAudio('lose');
                     }}
                     className="p-1 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg cursor-pointer transition-colors shrink-0"
@@ -6254,7 +7833,12 @@ export default function App() {
                   setIsNavDrawerOpen(true);
                   triggerAudio('move');
                 }}
-                className="p-1 px-1.5 bg-[#262421] border border-[#3c3934] text-[#9babaf] hover:text-[#81b64c] rounded-lg cursor-pointer transition-colors shrink-0"
+                className={`p-1 px-1.5 border rounded-lg cursor-pointer transition-colors shrink-0 ${
+                  prefTheme === 'light'
+                    ? 'bg-[#F5EFE6] border-[#C9B89A] text-[#201B15] hover:text-[#81b64c]'
+                    : 'bg-[#262421] border-[#3c3934] text-[#9babaf] hover:text-[#81b64c]'
+                }`}
+                style={prefTheme === 'light' ? { backgroundColor: '#F5EFE6', borderColor: '#C9B89A', color: '#201B15' } : undefined}
                 title="Buka Navigasi"
               >
                 <Menu className="w-3.5 h-3.5" />
@@ -6263,16 +7847,28 @@ export default function App() {
           </div>
 
           {/* Top Bar Resources: Streak, Stamina, XP, Coin, Diamond */}
-          <div className="flex items-center justify-center sm:justify-between w-full sm:w-auto gap-1 sm:gap-4 border-t sm:border-t-0 border-[#3c3934]/30 pt-1.5 sm:pt-0">
-            <div className="flex items-center justify-center sm:justify-start w-full sm:w-auto gap-1 sm:gap-2.5">
+          <div className={`flex items-center justify-center sm:justify-between w-full sm:w-auto gap-1 sm:gap-2 shrink min-w-0 border-t sm:border-t-0 pt-1.5 sm:pt-0 ${
+            prefTheme === 'light' ? 'border-[#C9B89A]/50' : 'border-[#3c3934]/30'
+          }`}>
+            <div className="flex items-center justify-center sm:justify-start w-full sm:w-auto gap-1 sm:gap-1.5 md:gap-2 shrink min-w-0">
               
               {/* STREAK */}
-              <div className="flex items-center gap-0.5 sm:gap-1 bg-[#262421] px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-full border border-[#3c3934] shrink-0" title="Streak bermain">
-                <Flame className={`w-3.5 h-3.5 sm:w-4 sm:h-4 ${streak > 0 ? 'text-orange-500 fill-orange-500 animate-pulse' : 'text-[#55534e]'}`} />
-                <span className={`text-[10px] sm:text-xs font-black ${streak > 0 ? 'text-orange-400' : 'text-[#8a8883]'}`}>
-                  {streak}<span className="text-[8.5px] font-bold text-slate-400 hidden min-[400px]:inline"> Hari</span>
+              <button 
+                onClick={() => {
+                  triggerAudio('move');
+                  setIsStreakModalOpen(true);
+                }}
+                className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-full border shrink-0 hover:scale-105 active:scale-95 transition-all cursor-pointer ${
+                  prefTheme === 'light' ? 'bg-[#F5EFE6] border-[#C9B89A]' : 'bg-[#262421] border-[#3c3934]'
+                }`}
+                style={prefTheme === 'light' ? { backgroundColor: '#F5EFE6', borderColor: '#C9B89A' } : undefined}
+                title="Streak bermain - Ketuk untuk animasi check-in!"
+              >
+                <Flame className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-orange-500 animate-pulse fill-orange-500/10" />
+                <span className={`text-[10px] sm:text-xs font-black ${streak > 0 ? 'text-orange-400' : (prefTheme === 'light' ? 'text-[#5C4A32]' : 'text-[#8a8883]')}`}>
+                  {streak}<span className={`text-[8.5px] font-bold hidden min-[400px]:inline ${prefTheme === 'light' ? 'text-[#5C4A32]' : 'text-slate-400'}`}> Hari</span>
                 </span>
-              </div>
+              </button>
 
               {/* HEARTS */}
               <button 
@@ -6282,40 +7878,67 @@ export default function App() {
                     triggerAudio('move');
                   }
                 }}
-                className="flex items-center gap-0.5 sm:gap-1 bg-[#262421] px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-full border border-[#3c3934] hover:border-[#81b64c] cursor-pointer hover:scale-105 transition-all group shrink-0" 
+                className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-full border hover:border-[#81b64c] cursor-pointer hover:scale-105 transition-all group shrink-0 ${
+                  prefTheme === 'light' ? 'bg-[#F5EFE6] border-[#C9B89A]' : 'bg-[#262421] border-[#3c3934]'
+                }`}
+                style={prefTheme === 'light' ? { backgroundColor: '#F5EFE6', borderColor: '#C9B89A' } : undefined}
                 title="Nyawa analisis"
               >
                 <Heart className="w-3.5 h-3.5 text-red-500 fill-red-500" />
-                <span className="text-[10px] sm:text-xs font-black text-white">
-                  {hearts}<span className="text-[8px] text-[#8a8883]/80 font-normal">/5</span>
+                <span className={`text-[10px] sm:text-xs font-black ${prefTheme === 'light' ? 'text-[#201B15]' : 'text-white'}`}>
+                  {hearts}<span className={`text-[8px] font-normal ${prefTheme === 'light' ? 'text-[#5C4A32]' : 'text-[#8a8883]/80'}`}>/5</span>
                 </span>
               </button>
 
               {/* XP */}
               <div 
+                id="nav-xp-display"
                 onClick={() => { setMode('profile'); triggerAudio('move'); }}
-                className="flex items-center gap-0.5 sm:gap-1 bg-[#262421] hover:border-[#81b64c]/50 cursor-pointer px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-full border border-[#3c3934] shrink-0" 
+                className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-full border shrink-0 transition-all duration-200 ${
+                  isXpPulsing 
+                    ? 'scale-125 border-emerald-500 shadow-lg shadow-emerald-500/25 bg-emerald-950/20' 
+                    : (prefTheme === 'light' ? 'bg-[#F5EFE6] border-[#C9B89A]' : 'bg-[#262421] border-[#3c3934]')
+                }`} 
+                style={prefTheme === 'light' && !isXpPulsing ? { backgroundColor: '#F5EFE6', borderColor: '#C9B89A' } : undefined}
                 title={t('myXP')}
               >
                 <Sparkles className="w-3.5 h-3.5 text-[#FFC800]" />
-                <span className="text-[10px] sm:text-xs font-black text-white">
-                  {Math.floor(xp)}<span className="text-[8px] font-bold text-slate-400 hidden min-[400px]:inline"> XP</span>
+                <span className={`text-[10px] sm:text-xs font-black ${prefTheme === 'light' ? 'text-[#201B15]' : 'text-white'}`}>
+                  {Math.floor(xp)}<span className={`text-[8px] font-bold hidden min-[400px]:inline ${prefTheme === 'light' ? 'text-[#5C4A32]' : 'text-slate-400'}`}> XP</span>
                 </span>
               </div>
 
               {/* COINS */}
-              <div id="nav-coins-display" className={`flex items-center gap-0.5 sm:gap-1 bg-[#262421] px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-full border shrink-0 transition-all duration-200 ${isCoinsPulsing ? 'scale-125 border-yellow-500 shadow-lg shadow-yellow-500/25 bg-yellow-950/20' : 'border-[#3c3934]'} `} title="Koin Arena">
+              <div 
+                id="nav-coins-display" 
+                className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-full border shrink-0 transition-all duration-200 ${
+                  isCoinsPulsing 
+                    ? 'scale-125 border-yellow-500 shadow-lg shadow-yellow-500/25 bg-yellow-950/20' 
+                    : (prefTheme === 'light' ? 'bg-[#F5EFE6] border-[#C9B89A]' : 'bg-[#262421] border-[#3c3934]')
+                }`} 
+                style={prefTheme === 'light' && !isCoinsPulsing ? { backgroundColor: '#F5EFE6', borderColor: '#C9B89A' } : undefined}
+                title="Koin Arena"
+              >
                 <Coins className="w-3.5 h-3.5 text-[#81b64c]" />
-                <span className="text-[10px] sm:text-xs font-black text-white">
-                  {coins}<span className="text-[8px] font-bold text-slate-400 hidden min-[400px]:inline"> Koin</span>
+                <span className={`text-[10px] sm:text-xs font-black ${prefTheme === 'light' ? 'text-[#201B15]' : 'text-white'}`}>
+                  {coins}<span className={`text-[8px] font-bold hidden min-[400px]:inline ${prefTheme === 'light' ? 'text-[#5C4A32]' : 'text-slate-400'}`}> Koin</span>
                 </span>
               </div>
 
               {/* DIAMONDS */}
-              <div id="nav-diamonds-display" className={`flex items-center gap-0.5 sm:gap-1 bg-[#262421] px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-full border shrink-0 transition-all duration-200 ${isDiamondsPulsing ? 'scale-125 border-cyan-400 shadow-lg shadow-cyan-400/25 bg-cyan-950/20' : 'border-[#3c3934]'} `} title="Berlian Premium">
+              <div 
+                id="nav-diamonds-display" 
+                className={`flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 py-1 sm:py-1.5 rounded-full border shrink-0 transition-all duration-200 ${
+                  isDiamondsPulsing 
+                    ? 'scale-125 border-cyan-400 shadow-lg shadow-cyan-400/25 bg-cyan-950/20' 
+                    : (prefTheme === 'light' ? 'bg-[#F5EFE6] border-[#C9B89A]' : 'bg-[#262421] border-[#3c3934]')
+                }`} 
+                style={prefTheme === 'light' && !isDiamondsPulsing ? { backgroundColor: '#F5EFE6', borderColor: '#C9B89A' } : undefined}
+                title="Berlian Premium"
+              >
                 <Gem className="w-3.5 h-3.5 text-cyan-400" />
-                <span className="text-[10px] sm:text-xs font-black text-white">
-                  {diamonds}<span className="text-[8px] font-bold text-slate-400 hidden min-[400px]:inline"> Berlian</span>
+                <span className={`text-[10px] sm:text-xs font-black ${prefTheme === 'light' ? 'text-[#201B15]' : 'text-white'}`}>
+                  {diamonds}<span className={`text-[8px] font-bold hidden min-[400px]:inline ${prefTheme === 'light' ? 'text-[#5C4A32]' : 'text-slate-400'}`}> Berlian</span>
                 </span>
               </div>
 
@@ -6330,16 +7953,23 @@ export default function App() {
                     setInboxActiveTab('gifts');
                   }
                   setShowGiftInboxModal(true);
+                  setIsInboxRead(true);
+                  localStorage.setItem(`inbox_read_${username}`, 'true');
                   triggerAudio('move');
                 }}
-                className="flex items-center gap-1 bg-[#262421] hover:bg-[#312e2b] hover:border-amber-500 transition-all cursor-pointer px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-[#3c3934] shrink-0 relative font-sans focus:outline-none"
+                className={`flex items-center gap-1 hover:border-amber-500 transition-all cursor-pointer px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border shrink-0 relative font-sans focus:outline-none ${
+                  prefTheme === 'light'
+                    ? 'bg-[#F5EFE6] border-[#C9B89A] hover:bg-[#E2D7C3]'
+                    : 'bg-[#262421] border-[#3c3934] hover:bg-[#312e2b]'
+                }`}
+                style={prefTheme === 'light' ? { backgroundColor: '#F5EFE6', borderColor: '#C9B89A' } : undefined}
                 title="Kotak Masuk Surat"
               >
-                <Mail className={`w-3.5 h-3.5 text-amber-400 ${(receivedGifts.length + inboxMessages.length) > 0 ? 'animate-bounce' : ''}`} />
-                <span className="text-[10px] sm:text-xs font-black text-white hidden min-[400px]:inline">Surat</span>
-                {(receivedGifts.length + inboxMessages.length) > 0 && (
+                <Mail className={`w-3.5 h-3.5 text-amber-400 ${(!isInboxRead && inboxMessages.length > 0) ? 'animate-bounce' : ''}`} />
+                <span className={`text-[10px] sm:text-xs font-black hidden min-[400px]:inline ${prefTheme === 'light' ? 'text-[#201B15]' : 'text-white'}`}>Surat</span>
+                {(!isInboxRead && inboxMessages.length > 0) && (
                   <span className="absolute -top-1.5 -right-1 bg-red-600 text-white font-black text-[8px] px-1.5 py-0.5 rounded-full border border-[#1e1c1b] animate-pulse">
-                    {receivedGifts.length + inboxMessages.length}
+                    {inboxMessages.length}
                   </span>
                 )}
               </button>
@@ -6350,11 +7980,16 @@ export default function App() {
                   setShowFriendListModal(true);
                   triggerAudio('move');
                 }}
-                className="flex items-center gap-1 bg-[#262421] hover:bg-[#312e2b] hover:border-[#81b64c] transition-all cursor-pointer px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border border-[#3c3934] shrink-0 relative font-sans focus:outline-none"
+                className={`flex items-center gap-1 hover:border-[#81b64c] transition-all cursor-pointer px-2 sm:px-3 py-1 sm:py-1.5 rounded-full border shrink-0 relative font-sans focus:outline-none ${
+                  prefTheme === 'light'
+                    ? 'bg-[#F5EFE6] border-[#C9B89A] hover:bg-[#E2D7C3]'
+                    : 'bg-[#262421] border-[#3c3934] hover:bg-[#312e2b]'
+                }`}
+                style={prefTheme === 'light' ? { backgroundColor: '#F5EFE6', borderColor: '#C9B89A' } : undefined}
                 title="Daftar Teman"
               >
                 <Users className={`w-3.5 h-3.5 text-cyan-400 ${friendRequests.length > 0 ? 'animate-bounce' : ''}`} />
-                <span className="text-[10px] sm:text-xs font-black text-white hidden min-[400px]:inline">Teman</span>
+                <span className={`text-[10px] sm:text-xs font-black hidden min-[400px]:inline ${prefTheme === 'light' ? 'text-[#201B15]' : 'text-white'}`}>Teman</span>
                 {friendRequests.length > 0 && (
                   <span className="absolute -top-1.5 -right-1 bg-red-650 text-white font-black text-[8px] px-1.5 py-0.5 rounded-full border border-[#1e1c1b] animate-pulse">
                     {friendRequests.length}
@@ -6365,7 +8000,7 @@ export default function App() {
             </div>
 
             {/* Sound, Desktop Profile on Desktop right (hidden on mobile) */}
-            <div className="hidden sm:flex items-center gap-3 border-l border-[#3c3934] pl-4">
+            <div className={`hidden sm:flex items-center gap-1.5 md:gap-2.5 border-l pl-2 md:pl-3 shrink-0 ${prefTheme === 'light' ? 'border-[#C9B89A]' : 'border-[#3c3934]'}`}>
               <button
                 onClick={() => {
                   const updated = !soundEnabled;
@@ -6373,7 +8008,12 @@ export default function App() {
                   localStorage.setItem('sound', String(updated));
                   if (updated) playSound('move');
                 }}
-                className="p-1.5 text-[#9babaf] hover:text-white rounded-lg hover:bg-[#3c3934] cursor-pointer transition-colors shrink-0"
+                className={`p-1.5 rounded-lg cursor-pointer transition-colors shrink-0 ${
+                  prefTheme === 'light'
+                    ? 'text-[#201B15] hover:bg-[#E2D7C3]'
+                    : 'text-[#9babaf] hover:text-white hover:bg-[#3c3934]'
+                }`}
+                style={prefTheme === 'light' ? { color: '#201B15' } : undefined}
                 title={soundEnabled ? "Matikan Efek Suara" : "Aktifkan Efek Suara"}
               >
                 {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-red-500" />}
@@ -6383,7 +8023,9 @@ export default function App() {
                 <div id="profile-logged-in-desktop" className="flex items-center gap-2.5 shrink-0 min-w-0">
                   <div 
                     onClick={() => { setShowProfileModal(true); triggerAudio('move'); }} 
-                    className="flex items-center gap-2 cursor-pointer hover:bg-[#3c3934]/50 p-1 rounded-xl transition-all shrink-0 min-w-0"
+                    className={`flex items-center gap-2 cursor-pointer p-1 rounded-xl transition-all shrink-0 min-w-0 ${
+                      prefTheme === 'light' ? 'hover:bg-[#E2D7C3]' : 'hover:bg-[#3c3934]/50'
+                    }`}
                     title="Lihat Profil & Stats"
                   >
                     <AvatarWithFrame 
@@ -6392,13 +8034,17 @@ export default function App() {
                       size="md" 
                     />
                     <div className="flex flex-col text-right">
-                      <span className="text-white text-xs font-bold leading-tight truncate max-w-[124px] flex items-center justify-end gap-0.5">
+                      <span className={`text-xs font-bold leading-tight truncate max-w-[124px] flex items-center justify-end gap-0.5 ${
+                        prefTheme === 'light' ? 'text-[#201B15]' : 'text-white'
+                      }`}>
                         {membershipStatus === 'premium' && <Crown className="w-3 h-3 text-yellow-400 fill-yellow-400/10 inline" />}
                         {user.username}
                       </span>
-                      <span className="text-[9px] text-[#9babaf] font-semibold leading-none flex items-center justify-end gap-1 mt-0.5">
+                      <span className={`text-[9px] font-semibold leading-none flex items-center justify-end gap-1 mt-0.5 ${
+                        prefTheme === 'light' ? 'text-[#5C4A32]' : 'text-[#9babaf]'
+                      }`}>
                         {membershipStatus === 'premium' ? (
-                          <span className="px-1 bg-yellow-500/20 border border-yellow-500/40 text-yellow-400 text-[8px] font-black rounded uppercase tracking-wide">PREMIUM</span>
+                          <span className="px-1 bg-yellow-500/20 border border-yellow-500/40 text-yellow-500 text-[8px] font-black rounded uppercase tracking-wide">PREMIUM</span>
                         ) : (
                           <span className="flex items-center gap-0.5"><Swords className="w-3 h-3 text-yellow-500" /> {onlineRating} ELO</span>
                         )}
@@ -6407,58 +8053,7 @@ export default function App() {
                   </div>
                   <button
                     onClick={() => {
-                      isResettingRef.current = true;
-                      setUser(null);
-                      localStorage.removeItem('user');
-                      localStorage.removeItem('guild_has_owner');
-                      localStorage.removeItem('guild_members');
-                      localStorage.removeItem('guild_profile_data');
-                      localStorage.removeItem('guild_lvl');
-                      localStorage.removeItem('guild_treasury_gold');
-                      localStorage.removeItem('guild_logs');
-                      localStorage.removeItem('guild_join_requests');
-                      localStorage.removeItem('guild_action_history');
-                      localStorage.removeItem('guild_fragment_requests');
-                      localStorage.removeItem('guild_chat_messages');
-                      localStorage.removeItem('conquered_boards_list');
-                      localStorage.removeItem('clan_checked_in');
-                      localStorage.removeItem('clan_weekly_milestones');
-                      localStorage.removeItem('requested_fragment_skin');
-                      localStorage.removeItem('has_active_fragment_req');
-                      localStorage.removeItem('today_fragment_donation_count');
-                      setOnlineRating(400);
-                      localStorage.setItem('onlineRating', '400');
-                      setXp(0);
-                      localStorage.setItem('xp', '0');
-                      setCoins(500);
-                      localStorage.setItem('coins', '500');
-                      setDiamondsRaw(20);
-                      localStorage.setItem('diamonds', '20');
-                      setPassLevel(1);
-                      setPassXp(0);
-                      setPassStatus('free');
-                      setClaimedPassRewards([]);
-                      setClaimedRankRewards([]);
-                      setStarterPackClaimed(false);
-                      setUnlockedSkins(['standard']);
-                      setSelectedSkin('standard');
-                      setSelectedFrame('none');
-                      setUnlockedFrames(['none']);
-                      setUnlockedThemes(['classic']);
-                      localStorage.setItem('unlockedThemes', JSON.stringify(['classic']));
-                      setGuestMatchesPlayed(0);
-                      localStorage.setItem('guestMatchesPlayed', '0');
-                      setGuestMatchesWon(0);
-                      localStorage.setItem('guestMatchesWon', '0');
-                      setProfileEditingBio('Pecatur sejati pantang menyerah!');
-                      setClaimedAchievements([]);
-                      setMembershipStatus('free');
-                      localStorage.setItem('membershipStatus', 'free');
-
-                      const prevName = `Pecatur_${Math.random().toString(36).substring(2,6).toUpperCase()}`;
-                      setUsername(prevName);
-                      localStorage.setItem('username', prevName);
-                      loadUserScopedStats(prevName);
+                      resetUserSession();
                       triggerAudio('lose');
                     }}
                     className="p-1.5 bg-red-500/15 hover:bg-red-500/25 text-red-400 rounded-lg cursor-pointer transition-colors shrink-0"
@@ -6489,7 +8084,12 @@ export default function App() {
                   setIsNavDrawerOpen(true);
                   triggerAudio('move');
                 }}
-                className="p-1.5 bg-[#262421] border border-[#3c3934] text-[#9babaf] hover:text-[#81b64c] rounded-lg cursor-pointer transition-colors shrink-0 flex items-center gap-1 hover:border-[#81b64c]"
+                className={`p-1.5 border rounded-lg cursor-pointer transition-colors shrink-0 flex items-center gap-1 ${
+                  prefTheme === 'light'
+                    ? 'bg-[#F5EFE6] border-[#C9B89A] text-[#201B15] hover:border-[#81b64c]'
+                    : 'bg-[#262421] border-[#3c3934] text-[#9babaf] hover:text-[#81b64c] hover:border-[#81b64c]'
+                }`}
+                style={prefTheme === 'light' ? { backgroundColor: '#F5EFE6', borderColor: '#C9B89A', color: '#201B15' } : undefined}
                 title="Buka Navigasi"
               >
                 <Menu className="w-4 h-4 shrink-0" />
@@ -6629,6 +8229,90 @@ export default function App() {
         )}
       </AnimatePresence>
 
+      {/* STREAK CHECK-IN ANIMATION POPUP MODAL */}
+      <AnimatePresence>
+        {isStreakModalOpen && (
+          <div className="fixed inset-0 z-[99999] bg-black/80 backdrop-blur-md flex items-center justify-center p-4 select-none">
+            <motion.div
+              initial={{ scale: 0.8, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.8, opacity: 0, y: 20 }}
+              transition={{ type: 'spring', damping: 20, stiffness: 300 }}
+              className="relative w-full max-w-sm bg-[#182531] border-2 border-[#2c4052] rounded-3xl p-6 text-white text-center shadow-2xl overflow-hidden flex flex-col items-center space-y-5"
+            >
+              <button
+                onClick={() => setIsStreakModalOpen(false)}
+                className="absolute top-4 right-4 p-2 rounded-full bg-[#203344] hover:bg-[#2b445a] text-slate-400 hover:text-white transition-all cursor-pointer z-10"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* FIRE STREAK ANIMATED FLAME BADGE */}
+              <div className="relative w-36 h-36 md:w-44 md:h-44 flex items-center justify-center pt-2">
+                {/* Glowing Flame Aura */}
+                <div className="absolute inset-0 bg-gradient-to-t from-orange-600/50 via-amber-500/30 to-transparent rounded-full blur-2xl animate-pulse" />
+                <motion.div
+                  animate={{ scale: [1, 1.12, 1], rotate: [0, 4, -4, 0] }}
+                  transition={{ duration: 2.2, repeat: Infinity, ease: 'easeInOut' }}
+                  className="relative z-10 w-28 h-28 md:w-32 md:h-32 bg-gradient-to-br from-orange-500 via-amber-500 to-yellow-500 rounded-3xl flex items-center justify-center border-4 border-amber-300 shadow-[0_0_35px_rgba(249,115,22,0.6)]"
+                >
+                  <Flame className="w-16 h-16 md:w-20 md:h-20 text-white fill-white/30 drop-shadow-lg" />
+                </motion.div>
+              </div>
+
+              <div className="space-y-1.5">
+                <span className="text-[10px] font-mono font-black text-orange-400 uppercase tracking-widest bg-orange-500/10 border border-orange-500/20 px-3.5 py-1.5 rounded-full inline-block">
+                  {streak} HARI STREAK BERUNTUN! 
+                </span>
+                <h3 className="text-xl font-black text-white uppercase tracking-tight">
+                  Check-In Harian Berhasil!
+                </h3>
+                <p className="text-xs text-slate-300 font-semibold leading-relaxed max-w-xs">
+                  Semangat catur Anda membara! Lanjutkan absensi setiap hari untuk melipatgandakan bonus XP & Koin!
+                </p>
+              </div>
+
+              {/* REWARDS SUMMARY */}
+              <div className="bg-[#101b24] border border-[#233748] rounded-2xl p-3.5 w-full flex flex-col space-y-2 text-center">
+                <div className="flex items-center justify-between bg-[#172633] px-3 py-2 rounded-xl border border-[#263b4d]">
+                  <span className="text-[10px] text-slate-300 font-bold uppercase">
+                    Hari ke-{lastClaimedDailyRewardSummary.dayNumber} ({lastClaimedDailyRewardSummary.giftTitle})
+                  </span>
+                  <span className="text-xs font-black text-amber-400 font-mono">
+                    +{lastClaimedDailyRewardSummary.baseXp} XP
+                  </span>
+                </div>
+                {(lastClaimedDailyRewardSummary.streakBonusXp > 0 || lastClaimedDailyRewardSummary.streakBonusCoins > 0) && (
+                  <div className="flex items-center justify-between bg-[#172633] px-3 py-2 rounded-xl border border-[#263b4d]">
+                    <span className="text-[10px] text-orange-300 font-bold uppercase">
+                      Bonus Streak ({streak} Hari)
+                    </span>
+                    <span className="text-xs font-black text-yellow-300 font-mono">
+                      +{lastClaimedDailyRewardSummary.streakBonusXp} XP & +{lastClaimedDailyRewardSummary.streakBonusCoins} Koin
+                    </span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between bg-emerald-950/60 px-3 py-2 rounded-xl border border-emerald-500/30">
+                  <span className="text-[10px] text-emerald-300 font-black uppercase">
+                    TOTAL DITERIMA
+                  </span>
+                  <span className="text-xs font-black text-emerald-400 font-mono">
+                    +{lastClaimedDailyRewardSummary.totalXp} XP {lastClaimedDailyRewardSummary.streakBonusCoins > 0 ? `& +${lastClaimedDailyRewardSummary.streakBonusCoins} Koin` : ''}
+                  </span>
+                </div>
+              </div>
+
+              <button
+                onClick={() => setIsStreakModalOpen(false)}
+                className="w-full py-3.5 bg-[#58cc02] hover:bg-[#46a302] text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-[0_5px_0_0_#46a302] active:translate-y-1 active:shadow-none transition-all cursor-pointer"
+              >
+                Mantap! Lanjutkan Latihan
+              </button>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
       {/* DYNAMIC USER LOGIN / REGISTRATION MODAL */}
       <AnimatePresence>
         {showAuthModal && (
@@ -6690,10 +8374,43 @@ export default function App() {
                 setAuthLoading(true);
                 try {
                   const endpoint = authTab === 'login' ? '/api/auth/login' : '/api/auth/register';
+                  const parseJSON = (key: string, fallback: any) => {
+                    try {
+                      const item = localStorage.getItem(key);
+                      return item ? JSON.parse(item) : fallback;
+                    } catch (_) {
+                      return fallback;
+                    }
+                  };
+                  const authReqBody = authTab === 'login' 
+                    ? { username: authUsername, password: authPassword }
+                    : {
+                        username: authUsername,
+                        password: authPassword,
+                        elo: onlineRating || 400,
+                        xp: xp || 0,
+                        coins: coins || 500,
+                        diamonds: diamonds || 20,
+                        matchesPlayed: user ? (user.matchesPlayed || 0) : guestMatchesPlayed,
+                        matchesWon: user ? (user.matchesWon || 0) : guestMatchesWon,
+                        boardTheme: boardTheme || 'classic',
+                        unlockedThemes: unlockedThemes || ['classic'],
+                        selectedSkin: selectedSkin || 'standard',
+                        unlockedSkins: unlockedSkins || ['standard'],
+                        selectedFrame: selectedFrame || 'none',
+                        unlockedFrames: unlockedFrames || ['none'],
+                        onlineHistory: onlineHistory || [],
+                        pinned_medals_ids: parseJSON('pinned_medals_ids', []),
+                        seasonal_event_score: Number(localStorage.getItem('seasonal_event_score') || 0),
+                        seasonal_completed_quests: parseJSON('seasonal_completed_quests', []),
+                        seasonal_answered_quizzes: parseJSON('seasonal_answered_quizzes', []),
+                        seasonal_completed_milestones: parseJSON('seasonal_completed_milestones', []),
+                        blockedUsers: []
+                      };
                   const response = await fetchWithTimeout(endpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ username: authUsername, password: authPassword })
+                    body: JSON.stringify(authReqBody)
                   }, 1500);
                   const data = await response.json();
                   if (!response.ok || data.error) {
@@ -6706,18 +8423,29 @@ export default function App() {
                       coins: data.user.coins !== undefined ? data.user.coins : 500,
                       diamonds: data.user.diamonds !== undefined ? data.user.diamonds : 20,
                       unlockedThemes: data.user.unlockedThemes || ["classic"],
-                      matchesPlayed: data.user.matchesPlayed !== undefined ? data.user.matchesPlayed : 0,
-                      matchesWon: data.user.matchesWon !== undefined ? data.user.matchesWon : 0,
+                      matchesPlayed: data.user.matchesPlayed !== undefined ? data.user.matchesPlayed : (user ? (user.matchesPlayed || 0) : guestMatchesPlayed),
+                      matchesWon: data.user.matchesWon !== undefined ? data.user.matchesWon : (user ? (user.matchesWon || 0) : guestMatchesWon),
+                      pinned_medals_ids: data.user.pinned_medals_ids || [],
+                      blockedUsers: data.user.blockedUsers || [],
+                      streak: data.user.streak !== undefined ? data.user.streak : 0,
+                      peakXp: data.user.peakXp !== undefined ? data.user.peakXp : 0,
+                      winStreak: data.user.winStreak !== undefined ? data.user.winStreak : 0,
+                      longestDefense: data.user.longestDefense !== undefined ? data.user.longestDefense : 0,
                       profileAvatar: data.user.profileAvatar || martinAvatar,
                       profileBio: data.user.profileBio || "Pecatur sejati pantang menyerah!",
                       claimedAchievements: data.user.claimedAchievements || [],
                       membershipStatus: data.user.membershipStatus || 'free',
                       selectedFrame: data.user.selectedFrame || 'none',
                       unlockedFrames: data.user.unlockedFrames || ['none'],
+                      unlockedItems: data.user.unlockedItems || [],
+                      selectedSkin: data.user.selectedSkin || 'standard',
+                      equippedTitle: data.user.equippedTitle || 'Pecatur Perintis',
+                      equippedCheckmateEffect: data.user.equippedCheckmateEffect || 'none',
+                      customStatus: data.user.customStatus || 'Pantang menyerah sebelum raja digulingkan!',
                       isAdmin: !!data.user.isAdmin,
                       isStaff: !!data.user.isStaff,
-                      guild_has_owner: data.user.guild_has_owner,
-                      guild_profile_data: data.user.guild_profile_data,
+                      guild_has_owner: data.user.guild_has_owner !== undefined ? data.user.guild_has_owner : (localStorage.getItem('guild_has_owner') === 'true' && localStorage.getItem('guild_explicitly_left') !== 'true'),
+                      guild_profile_data: data.user.guild_profile_data || (localStorage.getItem('guild_has_owner') === 'true' && localStorage.getItem('guild_explicitly_left') !== 'true' && localStorage.getItem('guild_profile_data') ? JSON.parse(localStorage.getItem('guild_profile_data')!) : null),
                       guild_members: data.user.guild_members,
                       guild_lvl: data.user.guild_lvl,
                       guild_treasury_gold: data.user.guild_treasury_gold,
@@ -6732,7 +8460,16 @@ export default function App() {
                       clan_weekly_milestones: data.user.clan_weekly_milestones,
                       seasonal_event_score: data.user.seasonal_event_score !== undefined ? data.user.seasonal_event_score : 0,
                       seasonal_completed_quests: data.user.seasonal_completed_quests || [],
-                      seasonal_answered_quizzes: data.user.seasonal_answered_quizzes || []
+                      seasonal_answered_quizzes: data.user.seasonal_answered_quizzes || [],
+                      unlockedSkins: data.user.unlockedSkins || ['standard'],
+                      unlockedTitles: data.user.unlockedTitles || ['Pecatur Perintis'],
+                      unlockedCheckmateEffects: data.user.unlockedCheckmateEffects || ['none'],
+                      followers: Array.isArray(data.user.followers) ? data.user.followers : [],
+                      following: Array.isArray(data.user.following) ? data.user.following : [],
+                      likesCount: typeof data.user.likesCount === 'number' ? data.user.likesCount : (data.user.likes || 0),
+                      likedBy: Array.isArray(data.user.likedBy) ? data.user.likedBy : [],
+                      onlineHistory: data.user.onlineHistory || [],
+                      chess_transaction_history: data.user.chess_transaction_history || []
                     };
                     isResettingRef.current = true;
                     restoreGuildFromUser(authenticatedUser);
@@ -6775,8 +8512,18 @@ export default function App() {
                         profileBio: authenticatedUser.profileBio,
                         claimedAchievements: authenticatedUser.claimedAchievements,
                         membershipStatus: authenticatedUser.membershipStatus,
+                        selectedFrame: authenticatedUser.selectedFrame,
+                        unlockedFrames: authenticatedUser.unlockedFrames,
+                        unlockedItems: authenticatedUser.unlockedItems,
+                        selectedSkin: authenticatedUser.selectedSkin,
+                        equippedTitle: authenticatedUser.equippedTitle,
+                        equippedCheckmateEffect: authenticatedUser.equippedCheckmateEffect,
+                        customStatus: authenticatedUser.customStatus,
                         isAdmin: authenticatedUser.isAdmin,
-                        isStaff: authenticatedUser.isStaff
+                        isStaff: authenticatedUser.isStaff,
+                        unlockedSkins: authenticatedUser.unlockedSkins,
+                        unlockedTitles: authenticatedUser.unlockedTitles,
+                        unlockedCheckmateEffects: authenticatedUser.unlockedCheckmateEffects
                       };
                       if (userIdx !== -1) {
                         mockUsers[userIdx] = { ...mockUsers[userIdx], ...localUserObj };
@@ -6811,11 +8558,46 @@ export default function App() {
                       localStorage.removeItem(`lastStreakDate:${userScope}`);
                       localStorage.removeItem(`lastClaimDate:${userScope}`);
                       localStorage.setItem(`dailyIndex:${userScope}`, "0");
-                      localStorage.setItem(`unlockedSkins:${userScope}`, JSON.stringify(["standard"]));
-                      localStorage.setItem(`selectedSkin:${userScope}`, "standard");
+                      localStorage.setItem(`unlockedSkins:${userScope}`, JSON.stringify(authenticatedUser.unlockedSkins || ["standard"]));
+                      localStorage.setItem(`selectedSkin:${userScope}`, authenticatedUser.selectedSkin || "standard");
+                      localStorage.setItem(`unlockedThemes:${userScope}`, JSON.stringify(authenticatedUser.unlockedThemes || ["classic"]));
+                      localStorage.setItem(`unlockedFrames:${userScope}`, JSON.stringify(authenticatedUser.unlockedFrames || ["none"]));
+                      localStorage.setItem(`selectedFrame:${userScope}`, authenticatedUser.selectedFrame || "none");
+                      localStorage.setItem(`onlineRating:${userScope}`, String(authenticatedUser.elo));
+                      localStorage.setItem(`onlineHistory:${userScope}`, JSON.stringify(authenticatedUser.onlineHistory || []));
+                      localStorage.setItem(`blocked_users:${userScope}`, JSON.stringify(authenticatedUser.blockedUsers || []));
+                      localStorage.setItem('blocked_users', JSON.stringify(authenticatedUser.blockedUsers || []));
                     }
                     
-                    loadUserScopedStats(authenticatedUser.username, undefined, authenticatedUser.coins, authenticatedUser.diamonds);
+                    loadUserScopedStats(
+                      authenticatedUser.username, 
+                      undefined, 
+                      authenticatedUser.coins, 
+                      authenticatedUser.diamonds,
+                      authenticatedUser.unlockedItems,
+                      authenticatedUser.selectedFrame,
+                      authenticatedUser.unlockedFrames,
+                      authenticatedUser.selectedSkin,
+                      authenticatedUser.equippedTitle,
+                      authenticatedUser.equippedCheckmateEffect,
+                      authenticatedUser.customStatus,
+                      authenticatedUser.unlockedSkins,
+                      authenticatedUser.unlockedTitles,
+                      authenticatedUser.unlockedCheckmateEffects,
+                      authenticatedUser.unlockedThemes,
+                      authenticatedUser.elo,
+                      authenticatedUser.xp,
+                      authenticatedUser.onlineHistory,
+                      authenticatedUser.chess_transaction_history,
+                      authenticatedUser.pinned_medals_ids,
+                      authenticatedUser.blockedUsers,
+                      authenticatedUser.streak,
+                      authenticatedUser.peakXp,
+                      authenticatedUser.winStreak,
+                      authenticatedUser.longestDefense,
+                      authenticatedUser.likesCount,
+                      authenticatedUser.likedBy
+                    );
                     
                     setShowAuthModal(false);
                     setAuthUsername('');
@@ -6848,10 +8630,17 @@ export default function App() {
                         profileBio: match.profileBio || "Pecatur sejati (Akun Lokal Vercel)!",
                         claimedAchievements: match.claimedAchievements || [],
                         membershipStatus: match.membershipStatus || 'free',
+                        selectedFrame: match.selectedFrame || 'none',
+                        unlockedFrames: match.unlockedFrames || ['none'],
+                        unlockedItems: match.unlockedItems || [],
+                        selectedSkin: match.selectedSkin || 'standard',
+                        equippedTitle: match.equippedTitle || 'Pecatur Perintis',
+                        equippedCheckmateEffect: match.equippedCheckmateEffect || 'none',
+                        customStatus: match.customStatus || 'Pantang menyerah sebelum raja digulingkan!',
                         isAdmin: !!match.isAdmin,
                         isStaff: !!match.isStaff,
-                        guild_has_owner: match.guild_has_owner,
-                        guild_profile_data: match.guild_profile_data,
+                        guild_has_owner: match.guild_has_owner !== undefined ? match.guild_has_owner : (localStorage.getItem('guild_has_owner') === 'true' && localStorage.getItem('guild_explicitly_left') !== 'true'),
+                        guild_profile_data: match.guild_profile_data || (localStorage.getItem('guild_has_owner') === 'true' && localStorage.getItem('guild_explicitly_left') !== 'true' && localStorage.getItem('guild_profile_data') ? JSON.parse(localStorage.getItem('guild_profile_data')!) : null),
                         guild_members: match.guild_members,
                         guild_lvl: match.guild_lvl,
                         guild_treasury_gold: match.guild_treasury_gold,
@@ -6863,7 +8652,14 @@ export default function App() {
                         today_fragment_donation_count: match.today_fragment_donation_count,
                         conquered_boards_list: match.conquered_boards_list,
                         clan_checked_in: match.clan_checked_in,
-                        clan_weekly_milestones: match.clan_weekly_milestones
+                        clan_weekly_milestones: match.clan_weekly_milestones,
+                        unlockedSkins: match.unlockedSkins || ['standard'],
+                        unlockedTitles: match.unlockedTitles || ['Pecatur Perintis'],
+                        unlockedCheckmateEffects: match.unlockedCheckmateEffects || ['none'],
+                        followers: Array.isArray(match.followers) ? match.followers : [],
+                        following: Array.isArray(match.following) ? match.following : [],
+                        likesCount: typeof match.likesCount === 'number' ? match.likesCount : (match.likes || 0),
+                        likedBy: Array.isArray(match.likedBy) ? match.likedBy : []
                       };
                       isResettingRef.current = true;
                       restoreGuildFromUser(authenticatedUser);
@@ -6879,7 +8675,35 @@ export default function App() {
                       setMembershipStatus(authenticatedUser.membershipStatus as any);
                       localStorage.setItem('membershipStatus', authenticatedUser.membershipStatus);
                       
-                      loadUserScopedStats(authenticatedUser.username, undefined, authenticatedUser.coins, authenticatedUser.diamonds);
+                      loadUserScopedStats(
+                        authenticatedUser.username, 
+                        undefined, 
+                        authenticatedUser.coins, 
+                        authenticatedUser.diamonds,
+                        authenticatedUser.unlockedItems,
+                        authenticatedUser.selectedFrame,
+                        authenticatedUser.unlockedFrames,
+                        authenticatedUser.selectedSkin,
+                        authenticatedUser.equippedTitle,
+                        authenticatedUser.equippedCheckmateEffect,
+                        authenticatedUser.customStatus,
+                        authenticatedUser.unlockedSkins,
+                        authenticatedUser.unlockedTitles,
+                        authenticatedUser.unlockedCheckmateEffects,
+                        authenticatedUser.unlockedThemes,
+                        authenticatedUser.elo,
+                        authenticatedUser.xp,
+                        authenticatedUser.onlineHistory,
+                        authenticatedUser.chess_transaction_history,
+                        authenticatedUser.pinned_medals_ids,
+                        authenticatedUser.blockedUsers,
+                        authenticatedUser.streak,
+                        authenticatedUser.peakXp,
+                        authenticatedUser.winStreak,
+                        authenticatedUser.longestDefense,
+                        authenticatedUser.likesCount,
+                        authenticatedUser.likedBy
+                      );
 
                       setShowAuthModal(false);
                       setAuthUsername('');
@@ -6898,20 +8722,48 @@ export default function App() {
                     if (existsObj) {
                       setAuthError('Username telah digunakan (Akun Lokal)');
                     } else {
+                      const parseJSONOffline = (key: string, fallback: any) => {
+                        try {
+                          const item = localStorage.getItem(key);
+                          return item ? JSON.parse(item) : fallback;
+                        } catch (_) {
+                          return fallback;
+                        }
+                      };
                       const newMockUser = {
                         username: authUsername.trim(),
                         password: authPassword,
-                        elo: 400, 
-                        xp: 0,
-                        coins: 500,
-                        diamonds: 20,
-                        unlockedThemes: ["classic"],
-                        matchesPlayed: 0,
-                        matchesWon: 0,
+                        elo: onlineRating || 400, 
+                        xp: xp || 0,
+                        coins: coins || 500,
+                        diamonds: diamonds || 20,
+                        boardTheme: boardTheme || 'classic',
+                        unlockedThemes: unlockedThemes || ["classic"],
+                        matchesPlayed: user ? (user.matchesPlayed || 0) : guestMatchesPlayed,
+                        matchesWon: user ? (user.matchesWon || 0) : guestMatchesWon,
+                        pinned_medals_ids: [],
                         profileAvatar: martinAvatar,
                         profileBio: "Ayo bertanding catur! (Akun Lokal Vercel)",
                         claimedAchievements: [],
-                        membershipStatus: 'free'
+                        membershipStatus: 'free',
+                        selectedFrame: selectedFrame || 'none',
+                        unlockedFrames: unlockedFrames || ['none'],
+                        unlockedItems: [],
+                        selectedSkin: selectedSkin || 'standard',
+                        equippedTitle: 'Pecatur Perintis',
+                        equippedCheckmateEffect: 'none',
+                        customStatus: 'Pantang menyerah sebelum raja digulingkan!',
+                        unlockedSkins: unlockedSkins || ['standard'],
+                        unlockedTitles: ['Pecatur Perintis'],
+                        unlockedCheckmateEffects: ['none'],
+                        onlineHistory: onlineHistory || [],
+                        seasonal_event_score: Number(localStorage.getItem('seasonal_event_score') || 0),
+                        seasonal_completed_quests: parseJSONOffline('seasonal_completed_quests', []),
+                        seasonal_answered_quizzes: parseJSONOffline('seasonal_answered_quizzes', []),
+                        seasonal_completed_milestones: parseJSONOffline('seasonal_completed_milestones', []),
+                        blockedUsers: [],
+                        likesCount: 0,
+                        likedBy: []
                       };
                       mockUsers.push(newMockUser);
                       localStorage.setItem('mock_users', JSON.stringify(mockUsers));
@@ -6937,8 +8789,38 @@ export default function App() {
                       localStorage.setItem(`dailyIndex:${userScope}`, "0");
                       localStorage.setItem(`unlockedSkins:${userScope}`, JSON.stringify(["standard"]));
                       localStorage.setItem(`selectedSkin:${userScope}`, "standard");
+                      localStorage.setItem(`likesCount:${userScope}`, "0");
+                      localStorage.setItem(`likedBy:${userScope}`, "[]");
                       
-                      loadUserScopedStats(newMockUser.username, undefined, 500, 20);
+                      loadUserScopedStats(
+                        newMockUser.username, 
+                        undefined, 
+                        500, 
+                        20,
+                        [],
+                        'none',
+                        ['none'],
+                        'standard',
+                        'Pecatur Perintis',
+                        'none',
+                        'Pantang menyerah sebelum raja digulingkan!',
+                        ['standard'],
+                        ['Pecatur Perintis'],
+                        ['none'],
+                        ["classic"],
+                        newMockUser.elo,
+                        newMockUser.xp,
+                        undefined,
+                        undefined,
+                        undefined,
+                        undefined,
+                        0,
+                        newMockUser.xp,
+                        0,
+                        0,
+                        0,
+                        []
+                      );
                       
                       setShowAuthModal(false);
                       setAuthUsername('');
@@ -7024,87 +8906,9 @@ export default function App() {
                 </div>
                 <div>
                   <h2 className="text-base font-black text-white uppercase tracking-tight leading-none text-left">Pusat Surat & Kotak Masuk</h2>
-                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block mt-1 text-left">Kelola Hadiah Klan dan Duel Tantangan Aktif</span>
+                  <span className="text-[9px] text-slate-400 font-bold uppercase tracking-wider block mt-1 text-left">Kelola Undangan & Tantangan Duel Tanding Aktif</span>
                 </div>
               </div>
-
-              {/* TAB ROW SWITCHER */}
-              <div className="grid grid-cols-2 gap-2 p-1 bg-stone-950 rounded-xl border border-stone-900">
-                <button
-                  onClick={() => { setInboxActiveTab('gifts'); triggerAudio('move'); }}
-                  className={`py-2 text-[10px] font-black uppercase rounded-lg transition-all text-center cursor-pointer border-none flex items-center justify-center gap-1.5 ${
-                    inboxActiveTab === 'gifts'
-                      ? 'bg-stone-800 text-amber-400 shadow'
-                      : 'bg-transparent text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Surat Kado ({receivedGifts.length})
-                </button>
-                <button
-                  onClick={() => { setInboxActiveTab('invites'); triggerAudio('move'); }}
-                  className={`py-2 text-[10px] font-black uppercase rounded-lg transition-all text-center cursor-pointer border-none flex items-center justify-center gap-1.5 ${
-                    inboxActiveTab === 'invites'
-                      ? 'bg-stone-800 text-cyan-400 shadow'
-                      : 'bg-transparent text-slate-400 hover:text-white'
-                  }`}
-                >
-                  Undangan Duel ({inboxMessages.length})
-                </button>
-              </div>
-
-              {/* TAB 1: GIFTS CONTAINER */}
-              {inboxActiveTab === 'gifts' && (
-                <div>
-                  {receivedGifts.length === 0 ? (
-                    <div className="py-8 text-center text-stone-500 italic text-xs border border-dashed border-stone-800 rounded-xl">
-                      Kotak hadiah kosong. Belum ada kado yang dikirim untuk saat ini.
-                    </div>
-                  ) : (
-                    <div className="flex flex-col gap-4 max-h-[280px] overflow-y-auto pr-1">
-                      {receivedGifts.map((gift) => (
-                        <div key={gift.id} className="p-3.5 bg-stone-900 border border-stone-850 rounded-xl flex flex-col gap-3 text-left">
-                          <div className="flex justify-between items-start gap-2">
-                            <div>
-                              <span className="text-[9px] text-amber-400 font-bold uppercase font-mono">PENGIRIM: {gift.from}</span>
-                              <h4 className="text-xs font-black text-white">{gift.giftName}</h4>
-                            </div>
-                            {gift.isPremium && (
-                              <span className="text-[8px] bg-amber-500/10 text-amber-400 border border-amber-500/20 px-2 py-0.5 rounded font-black font-sans uppercase">Premium</span>
-                            )}
-                          </div>
-                          
-                          <p className="text-[11.5px] text-[#bab9b8] italic bg-[#1c1a19] p-2.5 rounded border border-stone-950 leading-relaxed font-semibold">
-                            "{gift.msg}"
-                          </p>
-
-                          <div className="flex flex-wrap gap-2 pt-1">
-                            <button
-                              onClick={() => handleCashOutGiftInApp(gift, 'coins')}
-                              className="px-2.5 py-1.5 text-[9px] font-black text-white bg-[#81b64c] hover:bg-green-500 cursor-pointer rounded-lg uppercase transition-all border-none font-sans"
-                            >
-                              Koin (+{gift.cashValueCoins || 50})
-                            </button>
-                            {gift.cashValueDiamonds > 0 && (
-                              <button
-                                onClick={() => handleCashOutGiftInApp(gift, 'diamonds')}
-                                className="px-2.5 py-1.5 text-[9px] font-black text-white bg-cyan-600 hover:bg-cyan-500 cursor-pointer rounded-lg uppercase transition-all border-none font-sans"
-                              >
-                                Berlian (+{gift.cashValueDiamonds})
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleOpenOrdinaryGiftInApp(gift)}
-                              className="px-2.5 py-1.5 text-[9px] font-black text-slate-300 bg-stone-800 hover:bg-stone-700 cursor-pointer rounded-lg uppercase transition-all border-none font-sans"
-                            >
-                              Afinitas (+{gift.affinityPoints || 100})
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              )}
 
               {/* TAB 2: DUEL CHALLENGES CONTAINER */}
               {inboxActiveTab === 'invites' && (
@@ -7354,12 +9158,12 @@ export default function App() {
       {/* DYNAMIC USER ACCONT PROFILE CARD & GAME STATS MODAL */}
       <AnimatePresence>
         {showProfileModal && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-xs overflow-y-auto">
+          <div className="fixed inset-0 z-[100] flex items-start sm:items-center justify-center p-4 pb-28 pt-6 bg-black/80 backdrop-blur-sm overflow-y-auto">
             <motion.div 
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-[#312e2b] rounded-2xl max-w-lg w-full p-6 text-center shadow-2xl border border-[#3c3934] relative max-h-[90vh] overflow-y-auto"
+              className="bg-[#312e2b] rounded-2xl max-w-lg w-full p-6 text-center shadow-2xl border border-[#3c3934] relative max-h-[82vh] overflow-y-auto my-auto shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
             >
               <button
                 id="close-profile-modal"
@@ -7376,18 +9180,16 @@ export default function App() {
                     <div className="space-y-6 text-left">
                       {/* MAIN AVATAR / EXP HEADER */}
                       <div className="p-5 md:p-6 bg-[#262421] rounded-2xl border border-[#3c3934] flex flex-col min-[450px]:flex-row items-center gap-5">
-                        <div className="relative w-20 h-20 rounded-full bg-gradient-to-tr from-[#81b64c] to-emerald-400 p-0.5 shadow-md">
-                          <img 
-                            src={profileDisplayUser.profileAvatar || profileDisplayUser.avatar || martinAvatar} 
-                            alt="Profile avatar image override" 
-                            referrerPolicy="no-referrer"
-                            className="w-full h-full rounded-full object-cover bg-[#312e2b]"
+                        <div className="shrink-0">
+                          <AvatarWithFrame
+                            src={profileDisplayUser.profileAvatar || profileDisplayUser.avatar || martinAvatar}
+                            frameId={
+                              (profileDisplayUser === user || profileDisplayUser?.username?.toLowerCase() === user?.username?.toLowerCase())
+                                ? (selectedFrame || user?.selectedFrame || 'none')
+                                : (profileDisplayUser?.selectedFrame || 'none')
+                            }
+                            size="xl"
                           />
-                          {(profileDisplayUser.membershipStatus === 'premium' || (profileDisplayUser === user && membershipStatus === 'premium')) && (
-                            <div className="absolute -top-1 -right-1 bg-yellow-500 text-[#312e2b] text-[10px] p-1 rounded-full border border-[#262421] shadow-md flex items-center justify-center font-black" title="Premium Member">
-                              <Crown className="w-3.5 h-3.5" />
-                            </div>
-                          )}
                         </div>
                         <div className="flex-1 text-center min-[450px]:text-left space-y-3">
                           <div className="flex items-center justify-center min-[450px]:justify-start gap-2 flex-wrap">
@@ -7395,8 +9197,8 @@ export default function App() {
                               {profileDisplayUser.username}
                             </span>
                             {(profileDisplayUser.membershipStatus === 'premium' || (profileDisplayUser === user && membershipStatus === 'premium')) && (
-                              <span className="px-2 py-0.5 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-[8px] font-extrabold rounded uppercase tracking-wider">
-                                PREMIUM
+                              <span className="px-2 py-0.5 bg-yellow-500/10 border border-yellow-500/20 text-yellow-400 text-[8px] font-extrabold rounded uppercase tracking-wider flex items-center gap-1">
+                                <Crown className="w-3 h-3 text-yellow-500 fill-yellow-400/20" /> PREMIUM
                               </span>
                             )}
                           </div>
@@ -7853,6 +9655,60 @@ export default function App() {
               </button>
             </div>
 
+            {/* SEASONAL EVENT BANNER (HORIZONTAL & DISMISSIBLE) */}
+            {showSeasonalBanner && (
+              <motion.div 
+                initial={{ opacity: 0, y: -10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, height: 0 }}
+                className="bg-gradient-to-r from-emerald-950 via-[#1f2d19] to-stone-900 rounded-2xl p-2.5 sm:p-3 border border-emerald-500/30 shadow-lg relative overflow-hidden flex flex-col md:flex-row items-center justify-between gap-2.5 cursor-pointer hover:border-emerald-500/50 transition-all group"
+                onClick={() => {
+                  setMode('season-events');
+                  triggerAudio('move');
+                }}
+              >
+                {/* Glowing decorative background item */}
+                <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl pointer-events-none" />
+                
+                <div className="flex items-center gap-2.5 z-10">
+                  <div className="w-8 h-8 bg-emerald-500/15 rounded-xl flex items-center justify-center border border-emerald-500/30 shrink-0 text-emerald-400">
+                    <Calendar className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="bg-[#81b64c]/20 text-[#a2e564] text-[7.5px] font-black tracking-wider px-2 py-0.5 rounded-md uppercase border border-[#81b64c]/30">
+                        Event Musiman Aktif
+                      </span>
+                      <h3 className="text-xs font-black text-white uppercase tracking-tight flex items-center gap-1">
+                        Gelar Musiman & Kuis Catur
+                      </h3>
+                    </div>
+                    <p className="text-slate-300 text-[10.5px] mt-0.5 font-medium leading-snug">
+                      Selesaikan kuis eksklusif, pasang Gelar maut & kumpulkan reward gratis!
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0 z-10 w-full md:w-auto justify-end">
+                  <span className="text-[9.5px] text-[#81b64c] font-black uppercase tracking-wider flex items-center gap-1 group-hover:underline">
+                    Buka Event <ChevronRight className="w-3.5 h-3.5" />
+                  </span>
+                  {/* Dismiss Button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowSeasonalBanner(false);
+                      triggerAudio('move');
+                    }}
+                    className="p-1 bg-black/20 hover:bg-black/40 text-slate-400 hover:text-white rounded-md border border-white/5 transition-all"
+                    title="Sembunyikan Banner"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </motion.div>
+            )}
+
             {/* QUOTE AND MINI STATS GRID */}
             <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
               {/* COMPONENT: QUOTE OF THE DAY */}
@@ -8124,17 +9980,16 @@ export default function App() {
                         localStorage.setItem('triviaAnswered', String(i));
                         localStorage.setItem('triviaResult', String(correct));
                         if (correct) {
+                          updateDailyQuestProgress('puzzle', 1);
                           const bonusXp = 15;
-                          setXp(p => {
-                            const n = p + bonusXp;
-                            localStorage.setItem('xp', String(n));
-                            if (user) {
-                              const updatedUser = { ...user, xp: n };
-                              localStorage.setItem('user', JSON.stringify(updatedUser));
-                              setUser(updatedUser);
-                            }
-                            return n;
-                          });
+                          const newXp = xp + bonusXp;
+                          setXp(newXp);
+                          localStorage.setItem('xp', String(newXp));
+                          if (user) {
+                            const updatedUser = { ...user, xp: newXp };
+                            localStorage.setItem('user', JSON.stringify(updatedUser));
+                            setUser(updatedUser);
+                          }
                           triggerAudio('win');
                         } else {
                           triggerAudio('error');
@@ -8179,13 +10034,8 @@ export default function App() {
                   {t('lobbyCoachTitle')}
                 </h3>
                 {/* Dynamic Coach Advisor Toggle Buttons */}
-                <div className="flex items-center gap-2 bg-[#2d2a27] p-1.5 rounded-2xl border border-[#3c3934]">
-                  {[
-                    { id: 'martin', elo: 250, name: 'Martin', avatar: martinAvatar },
-                    { id: 'nelson', elo: 1300, name: 'Nelson', avatar: nelsonAvatar },
-                    { id: 'wally', elo: 1800, name: 'Wally', avatar: wallyAvatar },
-                    { id: 'magnus', elo: 2850, name: 'Magnus', avatar: magnusAvatar }
-                  ].map((coach) => {
+                <div className="flex items-center gap-1.5 bg-[#2d2a27] p-1.5 rounded-2xl border border-[#3c3934] overflow-x-auto max-w-full no-scrollbar">
+                  {CHARACTERS.filter(coach => ['martin', 'nelson', 'wally', 'magnus'].includes(coach.id)).map((coach) => {
                     const isActive = dashboardCoachId === coach.id;
                     return (
                       <button
@@ -8195,7 +10045,7 @@ export default function App() {
                           setDashboardCoachId(coach.id as any);
                           triggerAudio('move');
                         }}
-                        className={`w-7 h-7 sm:w-8 sm:h-8 rounded-full overflow-hidden border-2 transition-all cursor-pointer ${isActive ? 'border-[#81b64c] scale-110 shadow-md' : 'border-transparent opacity-60 hover:opacity-100'}`}
+                        className={`w-8 h-8 rounded-full overflow-hidden border-2 transition-all cursor-pointer shrink-0 ${isActive ? 'border-[#81b64c] scale-110 shadow-md ring-2 ring-[#81b64c]/40' : 'border-transparent opacity-60 hover:opacity-100'}`}
                         title={prefLang === 'en' ? `Tip from ${coach.name}` : `Tip dari ${coach.name}`}
                       >
                         <img src={coach.avatar} alt={coach.name} className="w-full h-full object-cover" />
@@ -8216,6 +10066,38 @@ export default function App() {
                     tip_en: 'Controlling the center of the board with pawns during the opening phase gives your main pieces substantial maneuverability. Always secure your King with early castling before starting an attack!',
                     bg: 'border-amber-500/20'
                   },
+                  duo: {
+                    name: 'Duo Owl', elo: 400,
+                    role_id: 'Maskot Motivator Latihan Catur',
+                    role_en: 'Chess Practice Mascot',
+                    tip_id: 'Pertahankan streak latihan catur harianmu! Konsistensi menyelesaikan 1 puzzle catur setiap hari akan mempertajam insting taktis serta refleks membaca blunder lawan.',
+                    tip_en: 'Keep your daily chess streak alive! Solving at least 1 puzzle every day builds sharp tactical instincts and blunder detection reflexes.',
+                    bg: 'border-lime-500/20'
+                  },
+                  lily: {
+                    name: 'Lily', elo: 800,
+                    role_id: 'Analis Santai & Serangan Dingin',
+                    role_en: 'Chill Attack Analyst',
+                    tip_id: 'Jangan terburu-buru menyerang tanpa persiapan. Perhatikan perwira lawan yang tidak dikawal—bidak gantung adalah sasaran empuk favoritku.',
+                    tip_en: 'Don\'t rush into attacks blindly. Keep an eye out for undefended enemy pieces—hanging pieces are my favorite easy targets.',
+                    bg: 'border-purple-500/20'
+                  },
+                  oscar: {
+                    name: 'Oscar', elo: 1100,
+                    role_id: 'Master Estetika Taktis',
+                    role_en: 'Tactical Arts Master',
+                    tip_id: 'Catur adalah perpaduan seni dan harmonisasi posisi. Selalu aktifkan Gajah pada diagonal terbuka untuk menciptakan simfoni taktis yang memesona.',
+                    tip_en: 'Chess is an art of positional harmony. Always activate your Bishops on open diagonals to create a mesmerizing tactical symphony.',
+                    bg: 'border-pink-500/20'
+                  },
+                  eddy: {
+                    name: 'Eddy', elo: 1200,
+                    role_id: 'Pelatih Taktik Energi Tinggi',
+                    role_en: 'High Energy Fitness Coach',
+                    tip_id: 'Pacu ritme permainanmu! Mobilisasi perwira utama secepat mungkin dan pertahankan tekanan konstan di sayap raja lawan.',
+                    tip_en: 'Pace your game with high energy! Mobilize your key pieces swiftly and maintain constant offensive pressure on the enemy kingside.',
+                    bg: 'border-red-500/20'
+                  },
                   nelson: {
                     name: 'Nelson', elo: 1300,
                     role_id: 'Asisten Taktik Agresif',
@@ -8223,6 +10105,38 @@ export default function App() {
                     tip_id: 'Jangan panik jika lawan menyerang dengan Ratu terlalu awal. Amankan koordinat f7 dan f2 dengan baik, kemudian kembangkan perwira kecilmu untuk mengejar Ratu yang terlalu aktif.',
                     tip_en: 'Don\'t panic if your opponent attacks with the Queen too early. Defend the f7 and f2 squares diligently, then develop your minor pieces to chase their overactive Queen.',
                     bg: 'border-[#81b64c]/20'
+                  },
+                  bea: {
+                    name: 'Bea', elo: 1400,
+                    role_id: 'Analis Kalkulasi Presisi',
+                    role_en: 'Calculative Precision Analyst',
+                    tip_id: 'Kalkulasikan setidaknya 3 langkah respons sebelum mengeksekusi pengorbanan bidak. Pastikan pengorbananmu menghasilkan keunggulan tempo.',
+                    tip_en: 'Calculate at least 3 response moves before executing pawn sacrifices. Ensure your sacrifices yield a clear tempo advantage.',
+                    bg: 'border-teal-500/20'
+                  },
+                  zari: {
+                    name: 'Zari', elo: 1500,
+                    role_id: 'Kolektor Taktik Kilat',
+                    role_en: 'Blitz Tactics Enthusiast',
+                    tip_id: 'Gunakan serangan garpu (fork) ganda dengan Kuda atau Ratu! Ini adalah taktik tercepat untuk memenangkan perwira tinggi musuh.',
+                    tip_en: 'Master double fork tactics with Knights or Queens! It is the fastest shortcut to win high-value enemy pieces.',
+                    bg: 'border-fuchsia-500/20'
+                  },
+                  lin: {
+                    name: 'Lin', elo: 1600,
+                    role_id: 'Strategis Pertahanan Sayap',
+                    role_en: 'Flank Defense Strategist',
+                    tip_id: 'Jaga kerahasiaan rencana taktismu. Gunakan rokade panjang atau pendek untuk mengamankan Raja di sudut sebelum melancarkan gempuran.',
+                    tip_en: 'Keep your tactical plans guarded. Use long or short castling to lock your King safely in the corner before launching a breakthrough.',
+                    bg: 'border-sky-500/20'
+                  },
+                  falstaff: {
+                    name: 'Falstaff Bear', elo: 1750,
+                    role_id: 'Benteng Kokoh Beruang',
+                    role_en: 'Bear Fortress Specialist',
+                    tip_id: 'Kunci barisan pionmu agar membentuk pertahanan benteng yang tak tertembus. Biarkan musuh kehabisan ide sebelum kamu menyerang balik.',
+                    tip_en: 'Interlock your pawn chain into an unbreakable fortress. Let the enemy exhaust their ideas before you counter-strike.',
+                    bg: 'border-emerald-500/20'
                   },
                   wally: {
                     name: 'Wally', elo: 1800,
@@ -8242,19 +10156,14 @@ export default function App() {
                   }
                 };
 
-                const activeCoach = CO_TIPS[dashboardCoachId];
-                if (!activeCoach) return null;
+                const activeCoach = CO_TIPS[dashboardCoachId] || CO_TIPS['martin'];
+                const selectedCharObj = CHARACTERS.find(c => c.id === dashboardCoachId) || CHARACTERS[0];
 
                 return (
                    <div className={`p-4 bg-[#262421] rounded-2xl border ${activeCoach.bg} flex items-start gap-4`}>
                     <div className="w-12 h-12 rounded-full overflow-hidden border border-[#3c3934] shrink-0">
                       <img 
-                        src={
-                          dashboardCoachId === 'martin' ? martinAvatar :
-                          dashboardCoachId === 'nelson' ? nelsonAvatar :
-                          dashboardCoachId === 'wally' ? wallyAvatar :
-                          magnusAvatar
-                        } 
+                        src={selectedCharObj.avatar} 
                         alt={activeCoach.name} 
                         className="w-full h-full object-cover" 
                       />
@@ -8685,8 +10594,33 @@ export default function App() {
                       )}
                     </div>
                     <p className="text-xs text-[#9babaf] font-semibold leading-relaxed">
-                      {prefLang === 'en' ? 'Chess Motto:' : 'Slogan Catur:'} <span className="text-slate-350 italic">"{user.profileBio || (prefLang === 'en' ? 'A true player never yields!' : 'Pecatur sejati pantang menyerah!')}"</span>
+                      {prefLang === 'en' ? 'Chess Motto:' : 'Slogan Catur:'} <span className="text-slate-350 italic">"{user?.profileBio || (prefLang === 'en' ? 'A true player never yields!' : 'Pecatur sejati pantang menyerah!')}"</span>
                     </p>
+
+                    {/* REAL-TIME SOCIAL METRICS (Pengikut, Mengikuti, Suka) */}
+                    <div className="grid grid-cols-3 gap-1.5 sm:gap-2 w-full pt-1">
+                      <div className="flex items-center justify-center gap-1 sm:gap-1.5 bg-[#262421] px-1.5 sm:px-2.5 py-1.5 rounded-xl border border-[#3c3934] w-full min-w-0 text-center">
+                        <Users className="w-3.5 h-3.5 text-cyan-400 shrink-0" />
+                        <div className="flex items-center gap-1 min-w-0 truncate">
+                          <span className="text-[11px] font-black text-white">{user?.followers?.length || 0}</span>
+                          <span className="text-[9px] text-slate-400 font-bold uppercase truncate">{prefLang === 'en' ? 'Followers' : 'Pengikut'}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-center gap-1 sm:gap-1.5 bg-[#262421] px-1.5 sm:px-2.5 py-1.5 rounded-xl border border-[#3c3934] w-full min-w-0 text-center">
+                        <UserPlus className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+                        <div className="flex items-center gap-1 min-w-0 truncate">
+                          <span className="text-[11px] font-black text-white">{user?.following?.length || 0}</span>
+                          <span className="text-[9px] text-slate-400 font-bold uppercase truncate">{prefLang === 'en' ? 'Following' : 'Mengikuti'}</span>
+                        </div>
+                      </div>
+                      <div className="flex items-center justify-center gap-1 sm:gap-1.5 bg-[#262421] px-1.5 sm:px-2.5 py-1.5 rounded-xl border border-[#3c3934] w-full min-w-0 text-center">
+                        <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 shrink-0" />
+                        <div className="flex items-center gap-1 min-w-0 truncate">
+                          <span className="text-[11px] font-black text-white">{user?.likesCount || 0}</span>
+                          <span className="text-[9px] text-slate-400 font-bold uppercase truncate">{prefLang === 'en' ? 'Likes' : 'Suka'}</span>
+                        </div>
+                      </div>
+                    </div>
                     <div className="w-full bg-[#3c3934] h-2.5 rounded-full overflow-hidden mt-4 border border-[#4d4a44]">
                       <div className="bg-[#81b64c] h-full transition-all" style={{ width: `${Math.min(100, getLevelProgress(xp).percentage)}%` }} />
                     </div>
@@ -8700,9 +10634,9 @@ export default function App() {
                       <span className="text-[9px] font-black text-[#81b64c] tracking-wider uppercase block mb-1.5 font-mono">
                         {prefLang === 'en' ? 'Showcased Elite Medals:' : 'Medali Elit Terpajang:'}
                       </span>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="grid grid-cols-3 gap-1.5 sm:gap-2 w-full">
                         {(() => {
-                          const savedPinnedIds: string[] = JSON.parse(localStorage.getItem('pinned_medals_ids') || '["m3", "m4"]');
+                          const savedPinnedIds = pinnedMedalsIds;
                           const medalList = [
                             { id: 'm1', name: 'Pendekar Benteng', badge: 'SHD', rarity: 'Common' },
                             { id: 'm2', name: 'Penguasa Kavaleri Kuda', badge: 'KNT', rarity: 'Uncommon' },
@@ -8714,27 +10648,46 @@ export default function App() {
                           const pinnedMedalsList = medalList.filter(m => savedPinnedIds.includes(m.id));
 
                           if (pinnedMedalsList.length === 0) {
-                            return <span className="text-[10px] text-slate-500 font-semibold italic">{prefLang === 'en' ? 'No medals in active display. Pin a medal in the Medals tab!' : 'Belum ada medali yang dipajang. Sematkan medali di tab Medali!'}</span>;
+                            return <span className="text-[10px] text-slate-500 font-semibold italic col-span-3">{prefLang === 'en' ? 'No medals in active display. Pin a medal in the Medals tab!' : 'Belum ada medali yang dipajang. Sematkan medali di tab Medali!'}</span>;
                           }
 
                           return pinnedMedalsList.map(medal => {
-                            let ringColor = 'from-slate-400 to-slate-205';
-                            if (medal.id === 'm1') ringColor = 'from-amber-700 via-amber-600 to-amber-900';
-                            else if (medal.id === 'm2') ringColor = 'from-slate-400 via-slate-200 to-slate-500';
-                            else if (medal.id === 'm3') ringColor = 'from-amber-400 via-yellow-250 to-yellow-600';
-                            else if (medal.id === 'm4') ringColor = 'from-purple-500 via-pink-400 to-purple-800';
-                            else if (medal.id === 'm5') ringColor = 'from-yellow-400 via-amber-300 to-yellow-650 animate-pulse';
-                            else if (medal.id === 'm6') ringColor = 'from-indigo-600 via-purple-500 to-black animate-pulse';
+                            const medalLevel = userMedalsLevels[medal.id] || 1;
+                            let ringColor = 'from-amber-800 to-amber-950';
+                            let levelName = 'Perunggu';
+                            let badgeIconColor = 'text-amber-500';
+
+                            if (medalLevel === 1) {
+                              ringColor = 'from-amber-800 via-amber-700 to-amber-950';
+                              levelName = 'Perunggu';
+                              badgeIconColor = 'text-amber-500';
+                            } else if (medalLevel === 2) {
+                              ringColor = 'from-slate-400 via-slate-200 to-slate-500';
+                              levelName = 'Perak';
+                              badgeIconColor = 'text-slate-300';
+                            } else if (medalLevel === 3) {
+                              ringColor = 'from-yellow-500 via-amber-300 to-yellow-650';
+                              levelName = 'Emas';
+                              badgeIconColor = 'text-yellow-400';
+                            } else if (medalLevel === 4) {
+                              ringColor = 'from-pink-500 via-purple-400 to-indigo-600 animate-pulse';
+                              levelName = 'Neon';
+                              badgeIconColor = 'text-pink-400';
+                            } else if (medalLevel === 5) {
+                              ringColor = 'from-[#ff007f] via-[#7f00ff] to-[#00f0ff] animate-pulse';
+                              levelName = 'Dewa';
+                              badgeIconColor = 'text-cyan-400';
+                            }
 
                             return (
                               <div 
                                 key={medal.id} 
-                                className={`flex items-center gap-2 bg-[#262421] py-1.5 pr-2.5 pl-1.5 rounded-xl text-[10px] text-white font-black shadow-md hover:scale-105 transition-all outline outline-1 ${
+                                className={`w-full min-w-0 flex items-center gap-1 sm:gap-1.5 bg-[#262421] py-1.5 px-1.5 sm:px-2 rounded-xl text-[9px] sm:text-[10px] text-white font-black shadow-md hover:scale-[1.02] transition-all outline outline-1 ${
                                   medal.rarity === 'Mythic' ? 'outline-[#FFC800]' :
                                   medal.rarity === 'Legendary' ? 'outline-amber-500' :
                                   medal.rarity === 'Epic' ? 'outline-purple-500' : 'outline-[#3c3934]'
                                 }`}
-                                title={`${medal.name} (${medal.rarity})`}
+                                title={`${medal.name} (${medal.rarity}) - Level ${medalLevel} (${levelName})`}
                               >
                                 <div className="w-5 h-5 relative flex items-center justify-center shrink-0">
                                   <div className={`absolute inset-0 rounded-full bg-gradient-to-tr ${ringColor} p-[1.5px]`}>
@@ -8742,25 +10695,30 @@ export default function App() {
                                       {(() => {
                                         switch (medal.badge) {
                                           case 'SHD':
-                                            return <Shield className="w-3 h-3 text-cyan-400 z-2 relative drop-shadow" />;
+                                            return <Shield className={`w-3 h-3 ${badgeIconColor} z-2 relative drop-shadow`} />;
                                           case 'KNT':
-                                            return <Flame className="w-3 h-3 text-amber-500 z-2 relative drop-shadow" />;
+                                            return <Flame className={`w-3 h-3 ${badgeIconColor} z-2 relative drop-shadow`} />;
                                           case 'STR':
-                                            return <Star className="w-3 h-3 text-yellow-500 fill-yellow-500/20 z-2 relative drop-shadow" />;
+                                            return <Star className={`w-3 h-3 ${badgeIconColor} fill-current/20 z-2 relative drop-shadow`} />;
                                           case 'ZAP':
-                                            return <Sparkles className="w-3 h-3 text-purple-400 animate-pulse z-2 relative drop-shadow" />;
+                                            return <Sparkles className={`w-3 h-3 ${badgeIconColor} animate-pulse z-2 relative drop-shadow`} />;
                                           case 'CRN':
-                                            return <Crown className="w-3 h-3 text-yellow-400 fill-yellow-400/20 z-2 relative drop-shadow" />;
+                                            return <Crown className={`w-3 h-3 ${badgeIconColor} fill-current/20 z-2 relative drop-shadow`} />;
                                           case 'KEY':
-                                            return <Lock className="w-3 h-3 text-rose-500 z-2 relative drop-shadow" />;
+                                            return <Lock className={`w-3 h-3 ${badgeIconColor} z-2 relative drop-shadow`} />;
                                           default:
-                                            return <Award className="w-3 h-3 text-[#81b64c] z-2 relative drop-shadow" />;
+                                            return <Award className={`w-3 h-3 ${badgeIconColor} z-2 relative drop-shadow`} />;
                                         }
                                       })()}
                                     </div>
                                   </div>
                                 </div>
-                                <span className="truncate max-w-[90px] leading-none">{medal.name}</span>
+                                <span className="min-w-0 flex-1 leading-none flex flex-col items-start gap-0.5 truncate">
+                                  <span className="truncate w-full">{medal.name}</span>
+                                  <span className="text-[7px] text-[#9babaf] font-bold font-mono tracking-wide uppercase flex items-center gap-0.5 truncate w-full">
+                                    Lvl {medalLevel} ({medalLevel === 5 ? <>Dewa <Crown className="w-2 h-2 text-yellow-400 fill-yellow-400/20 inline shrink-0" /></> : levelName})
+                                  </span>
+                                </span>
                               </div>
                             );
                           });
@@ -8812,7 +10770,7 @@ export default function App() {
                                 ${(user?.username || username || 'PLAYER').toUpperCase()}
                               </text>
                               <text x="30" y="62" font-family="sans-serif" font-size="11" font-weight="900" fill="#81b64c">
-                                ★ ${titleVal.toUpperCase()}
+                                 ${titleVal.toUpperCase()}
                               </text>
                               ${membershipStatus === 'premium' ? `
                                 <rect x="290" y="28" width="80" height="18" rx="4" fill="#f59e0b" fill-opacity="0.1" stroke="#f59e0b" stroke-width="1"/>
@@ -8972,6 +10930,8 @@ export default function App() {
                   </div>
                 </div>
 
+
+
                 {/* SET AVATAR FRAMES PANEL */}
                 <div id="unlocked-frames-panel" className="p-6 bg-[#312e2b] rounded-3xl border border-[#3c3934] shadow-md space-y-4">
                   <div>
@@ -9065,20 +11025,28 @@ export default function App() {
                     {/* Total Match */}
                     <div className="bg-[#262421] border border-[#3b3834] p-4 rounded-2xl text-center">
                       <span className="text-[8px] uppercase tracking-wider font-extrabold text-[#9babaf] block">{prefLang === 'en' ? 'Total Matches' : 'Total Tanding'}</span>
-                      <div className="text-md sm:text-lg font-black text-slate-200 mt-1.5 font-mono">{user.matchesPlayed || 0} {prefLang === 'en' ? 'GAMES' : 'GAME'}</div>
+                      <div className="text-md sm:text-lg font-black text-slate-200 mt-1.5 font-mono">
+                        {user ? (user.matchesPlayed || 0) : guestMatchesPlayed} {prefLang === 'en' ? 'GAMES' : 'GAME'}
+                      </div>
                     </div>
 
                     {/* Win */}
                     <div className="bg-[#262421] border border-[#3b3834] p-4 rounded-2xl text-center">
                       <span className="text-[8px] uppercase tracking-wider font-extrabold text-[#9babaf] block">{prefLang === 'en' ? 'Victories' : 'Kemenangan'}</span>
-                      <div className="text-md sm:text-lg font-black text-[#81b64c] mt-1.5 font-mono">{user.matchesWon || 0} {prefLang === 'en' ? 'WON' : 'MENANG'}</div>
+                      <div className="text-md sm:text-lg font-black text-[#81b64c] mt-1.5 font-mono">
+                        {user ? (user.matchesWon || 0) : guestMatchesWon} {prefLang === 'en' ? 'WON' : 'MENANG'}
+                      </div>
                     </div>
 
                     {/* Win rate */}
                     <div className="bg-[#262421] border border-[#3b3834] p-4 rounded-2xl text-center">
                       <span className="text-[8px] uppercase tracking-wider font-extrabold text-[#9babaf] block">Win Rate</span>
                       <div className="text-md sm:text-lg font-black text-cyan-400 mt-1.5 font-mono">
-                        {user.matchesPlayed ? Math.round(((user.matchesWon || 0) / user.matchesPlayed) * 100) : 0}% RATIO
+                        {(() => {
+                          const played = user ? (user.matchesPlayed || 0) : guestMatchesPlayed;
+                          const won = user ? (user.matchesWon || 0) : guestMatchesWon;
+                          return played ? Math.round((won / played) * 100) : 0;
+                        })()}% RATIO
                       </div>
                     </div>
                   </div>
@@ -9315,7 +11283,7 @@ export default function App() {
                                   <span className="bg-[#3e5f27] text-[#9ee75c] text-[8px] font-black px-2 py-1 rounded-lg uppercase tracking-wider border border-[#5a863f]">{prefLang === 'en' ? 'Active' : 'Aktif'}</span>
                                 ) : isUnlocked ? (
                                   <button
-                                    onClick={() => { setSelectedSkin(skinItem.id); triggerAudio('move'); }}
+                                    onClick={() => { handleEquipSkin(skinItem.id); }}
                                     className="px-2.5 py-1.5 bg-[#81b64c] hover:bg-[#6c9c3e] text-white font-black rounded-lg text-[8px] uppercase tracking-wider cursor-pointer"
                                   >
                                     {prefLang === 'en' ? 'Use' : 'Gunakan'}
@@ -9412,7 +11380,7 @@ export default function App() {
                         }
 
                         return items.map(frameItem => {
-                          const isUnlocked = unlockedFrames.includes(frameItem.id) || frameItem.id === 'none' || membershipStatus === 'premium';
+                          const isUnlocked = unlockedFrames.includes(frameItem.id) || frameItem.id === 'none' || (membershipStatus === 'premium' && frameItem.isPremiumExclusive);
                           const isActive = selectedFrame === frameItem.id;
                           return (
                             <div key={frameItem.id} className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 ${isActive ? 'bg-[#262421] border-[#ffd700]' : 'bg-[#262421] border-[#3c3934]'}`}>
@@ -9594,54 +11562,53 @@ export default function App() {
             )}
 
             {/* PROFILE SUB-PAGES RENDER DIRECT FROM BUNDLE */}
-            {(profileActiveTab === 'replay' || profileActiveTab === 'social') && (
-              <div className="space-y-6">
-                <Features17to25
-                  subTab={profileActiveTab}
-                  coins={coins}
-                  setCoins={setCoins}
-                  diamonds={diamonds}
-                  setDiamonds={setDiamonds}
-                  xp={xp}
-                  setXp={setXp}
-                  membershipStatus={membershipStatus}
-                  onlineHistory={onlineHistory}
-                  setOnlineHistory={setOnlineHistory}
-                  onlineRating={onlineRating}
-                  setOnlineRating={setOnlineRating}
-                  triggerAudio={triggerAudio}
-                  triggerReward={triggerReward}
-                  user={user}
-                  syncUserStats={syncUserStats}
-                  passLevel={passLevel}
-                  setPassLevel={setPassLevel}
-                  passXp={passXp}
-                  setPassXp={setPassXp}
-                  passStatus={passStatus}
-                  setPassStatus={setPassStatus}
-                  claimedPassRewards={claimedPassRewards}
-                  setClaimedPassRewards={setClaimedPassRewards}
-                  claimedRankRewards={claimedRankRewards}
-                  setClaimedRankRewards={setClaimedRankRewards}
-                  diamondSavings={diamondSavings}
-                  setDiamondSavings={setDiamondSavings}
-                  friendsList={friendsList}
-                  setFriendsList={setFriendsList}
-                  prefLang={prefLang}
-                />
+            {profileActiveTab === 'replay' && (
+              <Features17to25
+                key={username}
+                subTab="replay"
+                coins={coins}
+                setCoins={setCoins}
+                diamonds={diamonds}
+                setDiamonds={setDiamonds}
+                xp={xp}
+                setXp={setXp}
+                membershipStatus={membershipStatus}
+                onlineHistory={onlineHistory}
+                setOnlineHistory={setOnlineHistory}
+                onlineRating={onlineRating}
+                setOnlineRating={setOnlineRating}
+                triggerAudio={triggerAudio}
+                triggerReward={triggerReward}
+                user={user}
+                syncUserStats={syncUserStats}
+                passLevel={passLevel}
+                setPassLevel={setPassLevel}
+                passXp={passXp}
+                setPassXp={setPassXp}
+                passStatus={passStatus}
+                setPassStatus={setPassStatus}
+                claimedPassRewards={claimedPassRewards}
+                setClaimedPassRewards={setClaimedPassRewards}
+                claimedRankRewards={claimedRankRewards}
+                setClaimedRankRewards={setClaimedRankRewards}
+                diamondSavings={diamondSavings}
+                setDiamondSavings={setDiamondSavings}
+                friendsList={friendsList}
+                setFriendsList={setFriendsList}
+                prefLang={prefLang}
+              />
+            )}
 
-                {profileActiveTab === 'social' && (
-                  <div className="mt-4">
-                    <SocialHub
-                      user={user}
-                      setUser={setUser}
-                      selectedFrame={selectedFrame}
-                      onlineRating={onlineRating}
-                      triggerAudio={triggerAudio}
-                      showLocalToast={(msg, type) => triggerReward(0, msg, type === 'error' ? 'info' : 'success_no_xp')}
-                    />
-                  </div>
-                )}
+            {profileActiveTab === 'social' && (
+              <div className="mt-2">
+                <SocialHub
+                  user={user}
+                  setUser={setUser}
+                  selectedFrame={selectedFrame}
+                  onlineRating={onlineRating}
+                  triggerAudio={triggerAudio}
+                  showLocalToast={(msg, type) => triggerReward(0, msg, type === 'error' ? 'info' : 'success_no_xp')}
+                />
               </div>
             )}
 
@@ -9676,6 +11643,7 @@ export default function App() {
                   setDiamondSavings={setDiamondSavings}
                   friendsList={friendsList}
                   prefLang={prefLang}
+                  onlineHistory={onlineHistory}
                 />
               </div>
             )}
@@ -9683,12 +11651,19 @@ export default function App() {
             {profileActiveTab === 'medals' && (
               <div className="animate-fade-in duration-300">
                 <Features41to50
+                  key={username}
                   coins={coins}
                   setCoins={setCoins}
                   diamonds={diamonds}
                   setDiamonds={setDiamonds}
                   xp={xp}
                   setXp={setXp}
+                  streak={streak}
+                  guestMatchesPlayed={guestMatchesPlayed}
+                  guestMatchesWon={guestMatchesWon}
+                  user={user}
+                  hearts={hearts}
+                  setHearts={setHearts}
                   membershipStatus={membershipStatus}
                   triggerAudio={triggerAudio}
                   triggerReward={triggerReward}
@@ -9714,12 +11689,19 @@ export default function App() {
             {profileActiveTab === 'fashion' && (
               <div className="animate-fade-in duration-300">
                 <Features41to50
+                  key={username}
                   coins={coins}
                   setCoins={setCoins}
                   diamonds={diamonds}
                   setDiamonds={setDiamonds}
                   xp={xp}
                   setXp={setXp}
+                  streak={streak}
+                  guestMatchesPlayed={guestMatchesPlayed}
+                  guestMatchesWon={guestMatchesWon}
+                  user={user}
+                  hearts={hearts}
+                  setHearts={setHearts}
                   membershipStatus={membershipStatus}
                   triggerAudio={triggerAudio}
                   triggerReward={triggerReward}
@@ -9745,12 +11727,19 @@ export default function App() {
             {profileActiveTab === 'blocked' && (
               <div className="animate-fade-in duration-300">
                 <Features41to50
+                  key={username}
                   coins={coins}
                   setCoins={setCoins}
                   diamonds={diamonds}
                   setDiamonds={setDiamonds}
                   xp={xp}
                   setXp={setXp}
+                  streak={streak}
+                  guestMatchesPlayed={guestMatchesPlayed}
+                  guestMatchesWon={guestMatchesWon}
+                  user={user}
+                  hearts={hearts}
+                  setHearts={setHearts}
                   membershipStatus={membershipStatus}
                   triggerAudio={triggerAudio}
                   triggerReward={triggerReward}
@@ -9782,7 +11771,7 @@ export default function App() {
             )}
 
             {profileActiveTab === 'transactions' && (
-              <TransactionHistoryTab prefLang={prefLang} triggerAudio={triggerAudio} />
+              <TransactionHistoryTab key={username} prefLang={prefLang} triggerAudio={triggerAudio} />
             )}
           </div>
         )}
@@ -9804,6 +11793,7 @@ export default function App() {
             </div>
 
             <Features17to25
+              key={username}
               subTab="rank"
               coins={coins}
               setCoins={setCoins}
@@ -9856,6 +11846,7 @@ export default function App() {
             </div>
 
             <Features17to25
+              key={username}
               subTab="pass"
               coins={coins}
               setCoins={setCoins}
@@ -10160,44 +12151,7 @@ export default function App() {
                   </div>
                 </div>
 
-                {/* PREFERENCES PREFS CARD */}
-                <div className="bg-[#312e2b] border border-[#3c3934] rounded-3xl p-6 shadow-md flex flex-col justify-between">
-                  <div>
-                    <h3 className="font-extrabold text-white text-md uppercase tracking-wide mb-1 flex items-center gap-1.5">
-                      {prefLang === 'en' ? 'Customization & Language Preferences' : 'Preferensi Kustomisasi & Bahasa'}
-                    </h3>
-                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider mb-4 pb-2 border-b border-[#3c3934]/65">
-                      {prefLang === 'en' ? 'Localization settings, visual effect customizations, and guild chess themes' : 'Konfigurasi lokalisasi bahasa, kustom efek visual dan tema catur klan'}
-                    </p>
-                  </div>
-                  <Features41to50
-                    coins={coins}
-                    setCoins={setCoins}
-                    diamonds={diamonds}
-                    setDiamonds={setDiamonds}
-                    xp={xp}
-                    setXp={setXp}
-                    membershipStatus={membershipStatus}
-                    triggerAudio={triggerAudio}
-                    triggerReward={triggerReward}
-                    unlockedSkins={unlockedSkins}
-                    setUnlockedSkins={setUnlockedSkins}
-                    unlockedThemes={unlockedThemes}
-                    setUnlockedThemes={setUnlockedThemes}
-                    unlockedFrames={unlockedFrames}
-                    setUnlockedFrames={setUnlockedFrames}
-                    username={username}
-                    onlineRating={onlineRating}
-                    hideHeaderAndTabs={true}
-                    forceTab="settings"
-                    settingsTheme={prefTheme}
-                    setSettingsTheme={setPrefTheme}
-                    settingsLang={prefLang}
-                    setSettingsLang={setPrefLang}
-                    onTriggerRestartTutorial={() => setShowTutorialTour(true)}
-                    starterPackClaimed={starterPackClaimed}
-                  />
-                </div>
+
 
               </div>
 
@@ -10205,27 +12159,374 @@ export default function App() {
             )}
 
             {settingsSubTab === 'help' && (
-              <div className="bg-[#312e2b] border border-[#3c3934] rounded-3xl p-6 shadow-md animate-fade-in duration-300 space-y-6">
-                <div>
-                  <h3 className="text-lg font-black text-white uppercase tracking-tight flex items-center gap-2">
-                    FAQ & Pusat Bantuan Bug <HelpCircle className="w-5 h-5 text-[#81b64c]" />
-                  </h3>
-                  <p className="text-[10px] text-slate-400 font-extrabold uppercase mt-1">Panduan umum bermain, pelaporan bug, dan sistem reward arena catur</p>
+              <div className="bg-[#312e2b] border border-[#3c3934] rounded-3xl p-6 shadow-md animate-fade-in duration-300 space-y-6 font-sans">
+                {/* Header & Sub-Tabs Navigation */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-[#3c3934] pb-4">
+                  <div>
+                    <h3 className="text-lg font-black text-white uppercase tracking-tight flex items-center gap-2">
+                      Pusat Dukungan & Bantuan <HelpCircle className="w-5 h-5 text-[#81b64c]" />
+                    </h3>
+                    <p className="text-[10px] text-slate-400 font-extrabold uppercase mt-1">Panduan bermain, konsultasi AI 24/7, dan pelaporan tiket error</p>
+                  </div>
+
+                  <div className="flex bg-[#262421] p-1 rounded-xl border border-[#3c3934]">
+                    <button
+                      onClick={() => { setHelpActiveTab('faq'); triggerAudio('move'); }}
+                      className={`px-3.5 py-1.5 text-xs font-black uppercase rounded-lg transition-all cursor-pointer border-none ${
+                        helpActiveTab === 'faq' ? 'bg-[#81b64c] text-white' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      FAQ
+                    </button>
+                    <button
+                      onClick={() => { setHelpActiveTab('ai'); triggerAudio('move'); }}
+                      className={`px-3.5 py-1.5 text-xs font-black uppercase rounded-lg transition-all cursor-pointer border-none ${
+                        helpActiveTab === 'ai' ? 'bg-purple-600 text-white' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Tanya AI
+                    </button>
+                    <button
+                      onClick={() => { setHelpActiveTab('tickets'); triggerAudio('move'); fetchClientTickets(); }}
+                      className={`px-3.5 py-1.5 text-xs font-black uppercase rounded-lg transition-all cursor-pointer border-none flex items-center gap-1 ${
+                        helpActiveTab === 'tickets' ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      Tiket Saya
+                      {supportTicketsList.filter(t => t.status === 'open').length > 0 && (
+                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse" />
+                      )}
+                    </button>
+                  </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="bg-[#262421] p-4.5 rounded-2xl border border-stone-800 space-y-2">
-                    <h4 className="text-xs font-black text-white uppercase">Bagaimana cara mendapatkan Koin & Berlian?</h4>
-                    <p className="text-slate-400 text-xs leading-relaxed">Anda bisa mendapatkan Koin (Coins) dan Berlian (Diamonds) dengan menyelesaikan quest harian, memecahkan Puzzles taktik catur harian, mempelajari materi Lessons, atau mengklaim bonus penayangan di Night Market.</p>
+
+                {/* TAB 1: FAQ AND KNOWLEDGE BASE */}
+                {helpActiveTab === 'faq' && (
+                  <div className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div className="bg-[#262421] p-4.5 rounded-2xl border border-stone-800 space-y-2">
+                        <h4 className="text-xs font-black text-white uppercase">Bagaimana cara mendapatkan Koin & Berlian?</h4>
+                        <p className="text-slate-400 text-xs leading-relaxed">Anda bisa mendapatkan Koin (Coins) dan Berlian (Diamonds) dengan menyelesaikan quest harian, memecahkan Puzzles taktik catur harian, mempelajari materi Lessons, atau mengklaim bonus penayangan di Night Market.</p>
+                      </div>
+                      <div className="bg-[#262421] p-4.5 rounded-2xl border border-stone-800 space-y-2">
+                        <h4 className="text-xs font-black text-white uppercase">Apa fungsi Bingkai/Frame Avatar?</h4>
+                        <p className="text-slate-400 text-xs leading-relaxed">Bingkai avatar (Avatar Frame) memberikan kesan eksklusif dan mewah pada profil Anda. Beberapa bingkai istimewa seperti Emas, Cyber Neon, dan Emerald memberikan lambang status khusus serta efek visual silsilah di arena.</p>
+                      </div>
+                      <div className="bg-[#262421] p-4.5 rounded-2xl border border-stone-800 space-y-2">
+                        <h4 className="text-xs font-black text-white uppercase">Bagaimana jika menemukan pelaku curang?</h4>
+                        <p className="text-slate-400 text-xs leading-relaxed">Gunakan fitur Lapor Pengguna di dinding profil mereka. Staff admin kami (Almaira & Nopal) secara berkala mengawasi portal peradilan moderator untuk menindak tegas akun nakal, spammer, atau pemain curang.</p>
+                      </div>
+                      <div className="bg-[#262421] p-4.5 rounded-2xl border border-stone-800 space-y-2">
+                        <h4 className="text-xs font-black text-white uppercase">Kehilangan data skin atau silsilah?</h4>
+                        <p className="text-slate-400 text-xs leading-relaxed">Database Pal Mate sinkron secara real-time. Jika Anda merasa data ter-reset, coba log-out lalu masuk kembali dengan username yang sama persis agar seluruh data silsilah, frames, koin, dan ELO Anda pulih seketika.</p>
+                      </div>
+                    </div>
+
+                    {/* Quick CTA panel to switch tabs */}
+                    <div className="bg-gradient-to-r from-purple-950/20 to-blue-950/20 border border-[#3c3934] rounded-2xl p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                        <h4 className="text-xs font-black text-white uppercase">Belum menemukan solusi?</h4>
+                        <p className="text-slate-400 text-xs mt-1">Gunakan layanan Asisten AI kami untuk konsultasi instan, atau kirimkan tiket laporan resmi kepada tim admin catur.</p>
+                      </div>
+                      <div className="flex gap-2.5 shrink-0">
+                        <button
+                          onClick={() => { setHelpActiveTab('ai'); triggerAudio('move'); }}
+                          className="px-4 py-2 bg-purple-700 hover:bg-purple-600 text-white text-xs font-black uppercase rounded-xl transition-all cursor-pointer border-none shadow-sm"
+                        >
+                          Tanya AI Asisten
+                        </button>
+                        <button
+                          onClick={() => { setHelpActiveTab('tickets'); triggerAudio('move'); fetchClientTickets(); }}
+                          className="px-4 py-2 bg-blue-700 hover:bg-blue-600 text-white text-xs font-black uppercase rounded-xl transition-all cursor-pointer border-none shadow-sm"
+                        >
+                          Kirim Tiket Laporan
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                  <div className="bg-[#262421] p-4.5 rounded-2xl border border-stone-800 space-y-2">
-                    <h4 className="text-xs font-black text-white uppercase">Apa fungsi Bingkai/Frame Avatar?</h4>
-                    <p className="text-slate-400 text-xs leading-relaxed">Bingkai avatar (Avatar Frame) memberikan kesan eksklusif dan mewah pada profil Anda. Beberapa bingkai istimewa seperti Emas, Cyber Neon, dan Emerald memberikan lambang status khusus serta efek visual silsilah di arena.</p>
+                )}
+
+                {/* TAB 2: AI CUSTOMER SUPPORT (GEMINI POWERED) */}
+                {helpActiveTab === 'ai' && (
+                  <div className="bg-[#262421] rounded-2xl border border-[#3c3934] p-4 flex flex-col h-[400px]">
+                    {/* Bot Header */}
+                    <div className="flex items-center gap-2 border-b border-[#3c3934] pb-3 mb-3">
+                      <div className="w-2.5 h-2.5 bg-green-500 rounded-full animate-pulse" />
+                      <span className="text-xs font-black text-white uppercase tracking-wider">AI Support Chatbot</span>
+                      <span className="text-[9px] bg-purple-500/10 text-purple-400 px-2 py-0.5 rounded-full border border-purple-500/20 uppercase font-black tracking-widest ml-auto">Gemini 1.5 Flash</span>
+                    </div>
+
+                    {/* Chat Messages Scrolling viewport */}
+                    <div className="flex-1 overflow-y-auto space-y-3 pr-1 pb-2 scrollbar-thin">
+                      {aiChatMessages.map((msg, i) => (
+                        <div key={i} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
+                          <div className={`max-w-[85%] rounded-2xl p-3.5 text-xs font-semibold leading-relaxed ${
+                            msg.role === 'user' 
+                              ? 'bg-purple-700 text-white rounded-br-none' 
+                              : 'bg-[#312e2b] text-slate-200 border border-[#3c3934] rounded-bl-none'
+                          }`}>
+                            <p className="whitespace-pre-line">{msg.text}</p>
+                          </div>
+                        </div>
+                      ))}
+                      {isAiResponding && (
+                        <div className="flex justify-start">
+                          <div className="bg-[#312e2b] border border-[#3c3934] text-slate-400 text-xs font-semibold rounded-2xl rounded-bl-none p-3.5 flex items-center gap-1.5 animate-pulse">
+                            <span>Asisten sedang menganalisis</span>
+                            <span className="flex gap-1">
+                              <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                              <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                              <span className="w-1.5 h-1.5 bg-purple-500 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                            </span>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Chat Input form */}
+                    <form onSubmit={handleSendAiMessage} className="mt-3 flex gap-2 border-t border-[#3c3934]/60 pt-3">
+                      <input
+                        type="text"
+                        value={aiChatInput}
+                        onChange={(e) => setAiChatInput(e.target.value)}
+                        placeholder="Tanyakan kendala Anda (contoh: 'Kenapa ELO saya ter-reset?')"
+                        className="flex-1 bg-[#312e2b] border border-[#3c3934] rounded-xl px-4 py-3 text-xs text-white placeholder-slate-500 outline-none focus:border-purple-500 transition-all font-semibold"
+                        disabled={isAiResponding}
+                      />
+                      <button
+                        type="submit"
+                        disabled={isAiResponding || !aiChatInput.trim()}
+                        className="px-4 bg-purple-700 hover:bg-purple-600 disabled:bg-purple-950/20 disabled:text-slate-600 text-white font-extrabold uppercase rounded-xl transition-all flex items-center justify-center cursor-pointer border-none"
+                      >
+                        <Send className="w-4 h-4" />
+                      </button>
+                    </form>
                   </div>
-                  <div className="bg-[#262421] p-4.5 rounded-2xl border border-stone-800 space-y-2">
-                    <h4 className="text-xs font-black text-white uppercase">Bagaimana jika menemukan pelaku curang?</h4>
-                    <p className="text-slate-400 text-xs leading-relaxed">Gunakan fitur Lapor Pengguna di dinding profil mereka. Staff admin kami (Almaira & Nopal) secara berkala mengawasi portal peradilan moderator untuk menindak tegas akun nakal, spammer, atau pemain curang.</p>
+                )}
+
+                {/* TAB 3: USER-FACING TICKET SUPPORT SYSTEM */}
+                {helpActiveTab === 'tickets' && (
+                  <div className="space-y-6">
+                    {/* Header Action: Kirim Tiket Baru */}
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-[#262421] p-4.5 rounded-2xl border border-[#3c3934]">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="text-xs font-black text-white uppercase">Sistem Tiket Laporan</h4>
+                        <p className="text-slate-400 text-[11px] mt-0.5 leading-relaxed">Kirimkan rincian keluhan bug / reset data langsung kepada Administrator Pal Mate.</p>
+                      </div>
+                      <button
+                        onClick={() => { setIsShowingCreateTicketForm(!isShowingCreateTicketForm); triggerAudio('move'); }}
+                        className={`shrink-0 whitespace-nowrap px-4 py-2.5 text-xs font-black uppercase rounded-xl transition-all cursor-pointer border-none shadow-md ${
+                          isShowingCreateTicketForm ? 'bg-red-700 hover:bg-red-600 text-white' : 'bg-blue-600 hover:bg-blue-500 text-white'
+                        }`}
+                      >
+                        {isShowingCreateTicketForm ? 'Batal' : 'Buat Tiket Laporan'}
+                      </button>
+                    </div>
+
+                    {/* 1. FORM TO CREATE A NEW SUPPORT TICKET */}
+                    {isShowingCreateTicketForm && (
+                      <form onSubmit={handleCreateTicket} className="bg-[#262421] rounded-2xl border border-[#3c3934] p-5 space-y-4 animate-fade-in">
+                        <h4 className="text-xs font-black text-white uppercase border-b border-[#3c3934] pb-2">Formulir Pengaduan Baru</h4>
+                        
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                          <div className="space-y-1 md:col-span-1">
+                            <label className="text-[10px] font-black uppercase text-slate-400">Kategori Keluhan</label>
+                            <select
+                              value={newTicketCategory}
+                              onChange={(e) => setNewTicketCategory(e.target.value)}
+                              className="w-full bg-[#312e2b] border border-[#3c3934] rounded-xl px-3 py-2.5 text-xs text-white font-semibold outline-none focus:border-blue-500"
+                            >
+                              <option value="Bug">Laporan Bug</option>
+                              <option value="Akun">Masalah Akun / Reset</option>
+                              <option value="Pembayaran">Kendala Transaksi</option>
+                              <option value="Saran">Saran & Masukan</option>
+                              <option value="Lainnya">Lain-lain</option>
+                            </select>
+                          </div>
+
+                          <div className="space-y-1 md:col-span-2">
+                            <label className="text-[10px] font-black uppercase text-slate-400">Judul Laporan</label>
+                            <input
+                              type="text"
+                              value={newTicketTitle}
+                              onChange={(e) => setNewTicketTitle(e.target.value)}
+                              placeholder="Gunakan kalimat singkat (Contoh: Reset frame avatar setelah login)"
+                              className="w-full bg-[#312e2b] border border-[#3c3934] rounded-xl px-3 py-2.5 text-xs text-white font-semibold placeholder-slate-500 outline-none focus:border-blue-500"
+                              required
+                            />
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-[10px] font-black uppercase text-slate-400">Deskripsi Lengkap Laporan Anda</label>
+                          <textarea
+                            value={newTicketDescription}
+                            onChange={(e) => setNewTicketDescription(e.target.value)}
+                            placeholder="Sebutkan langkah detail bug, nama item yang hilang, atau kronologi kendala Anda agar Admin bisa menindaklanjuti secara cepat."
+                            rows={4}
+                            className="w-full bg-[#312e2b] border border-[#3c3934] rounded-xl p-3 text-xs text-white font-semibold placeholder-slate-500 outline-none focus:border-blue-500 resize-none"
+                            required
+                          />
+                        </div>
+
+                        <div className="flex justify-end pt-2">
+                          <button
+                            type="submit"
+                            disabled={isCreatingTicket || !newTicketTitle.trim() || !newTicketDescription.trim()}
+                            className="px-5 py-2.5 bg-blue-700 hover:bg-blue-600 disabled:bg-blue-950/20 text-white text-xs font-black uppercase rounded-xl transition-all cursor-pointer border-none flex items-center gap-1.5 shadow-md"
+                          >
+                            {isCreatingTicket ? 'Mengirim...' : 'Kirim Tiket Resmi ke Staff Admin'}
+                          </button>
+                        </div>
+                      </form>
+                    )}
+
+                    {/* 2. TICKET LIST OR CURRENT ACTIVE DETAIL VIEW */}
+                    {selectedClientTicket ? (
+                      /* ACTIVE TICKET CHAT TIMELINE DETAIL VIEW */
+                      <div className="bg-[#262421] rounded-2xl border border-blue-500/30 p-5 space-y-4 animate-fade-in">
+                        <div className="flex items-center justify-between border-b border-[#3c3934] pb-3">
+                          <div>
+                            <button
+                              onClick={() => { setSelectedClientTicket(null); fetchClientTickets(); }}
+                              className="px-2.5 py-1.5 bg-[#312e2b] text-[#81b64c] hover:bg-[#3c3934] text-[10px] font-black uppercase rounded-lg border border-[#3c3934] transition-all cursor-pointer"
+                            >
+                               Kembali ke Daftar Tiket
+                            </button>
+                            <h4 className="text-xs font-black text-white uppercase mt-2.5 flex items-center gap-1.5">
+                              #{selectedClientTicket.id.substring(0, 8)}: {selectedClientTicket.title}
+                            </h4>
+                          </div>
+
+                          <div className="flex items-center gap-2 shrink-0">
+                            <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
+                              selectedClientTicket.category === 'Bug' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                              selectedClientTicket.category === 'Akun' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                              selectedClientTicket.category === 'Pembayaran' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                              'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                            }`}>
+                              {selectedClientTicket.category}
+                            </span>
+                            <span className={`text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full border ${
+                              selectedClientTicket.status === 'resolved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse'
+                            }`}>
+                              {selectedClientTicket.status === 'resolved' ? 'Selesai' : 'Sedang Ditinjau'}
+                            </span>
+                          </div>
+                        </div>
+
+                        {/* Message Threads Timeline */}
+                        <div className="space-y-3.5 max-h-[250px] overflow-y-auto pr-1 scrollbar-thin">
+                          {/* Original Complaint */}
+                          <div className="bg-[#312e2b] rounded-2xl p-4 border border-[#3c3934]">
+                            <div className="flex items-center justify-between text-[9px] text-slate-400 mb-2 font-black uppercase">
+                              <span>Saksi Pelapor: @{selectedClientTicket.username}</span>
+                              <span>{new Date(selectedClientTicket.createdAt).toLocaleString()}</span>
+                            </div>
+                            <p className="text-xs text-slate-200 font-semibold leading-relaxed whitespace-pre-line">{selectedClientTicket.description}</p>
+                          </div>
+
+                          {/* Message Log Timeline */}
+                          {selectedClientTicket.messages?.map((msg: any, i: number) => (
+                            <div 
+                              key={i} 
+                              className={`rounded-2xl p-4 border ${
+                                msg.sender === 'admin' 
+                                  ? 'bg-blue-950/10 border-blue-900/30 ml-6' 
+                                  : 'bg-[#312e2b]/50 border-[#3c3934] mr-6'
+                              }`}
+                            >
+                              <div className="flex items-center justify-between text-[9px] mb-2 font-black uppercase">
+                                <span className={msg.sender === 'admin' ? 'text-blue-400' : 'text-slate-400'}>
+                                  {msg.sender === 'admin' ? ' STAFF ADMIN (ALMAIRA/NOPAL)' : `@${selectedClientTicket.username}`}
+                                </span>
+                                <span className="text-slate-500">{new Date(msg.sentAt).toLocaleString()}</span>
+                              </div>
+                              <p className="text-xs text-slate-200 font-semibold leading-relaxed whitespace-pre-line">{msg.text}</p>
+                            </div>
+                          ))}
+                        </div>
+
+                        {/* Reply Form (if ticket is open/pending) */}
+                        {selectedClientTicket.status !== 'resolved' ? (
+                          <form onSubmit={handleSendClientReply} className="border-t border-[#3c3934]/60 pt-4 space-y-3">
+                            <label className="text-[10px] font-black uppercase text-slate-400">Tulis Balasan / Berikan Kronologi Tambahan</label>
+                            <div className="flex gap-2">
+                              <input
+                                type="text"
+                                value={clientTicketReplyText}
+                                onChange={(e) => setClientTicketReplyText(e.target.value)}
+                                placeholder="Balas ke Staff Admin..."
+                                className="flex-1 bg-[#312e2b] border border-[#3c3934] rounded-xl px-4 py-3 text-xs text-white font-semibold outline-none focus:border-blue-500"
+                                required
+                                disabled={isSendingClientReply}
+                              />
+                              <button
+                                type="submit"
+                                disabled={isSendingClientReply || !clientTicketReplyText.trim()}
+                                className="px-5 bg-blue-700 hover:bg-blue-600 disabled:bg-blue-950/20 text-white font-black text-xs uppercase rounded-xl transition-all cursor-pointer border-none flex items-center gap-1 shadow-md shrink-0"
+                              >
+                                {isSendingClientReply ? 'Mengirim' : 'Kirim Balasan'}
+                              </button>
+                            </div>
+                          </form>
+                        ) : (
+                          <div className="bg-emerald-950/20 border border-emerald-900/30 p-3 rounded-xl text-center text-emerald-400 text-xs font-semibold uppercase tracking-wide">
+                            Tiket ini telah diselesaikan oleh Admin. Jika Anda masih memiliki keluhan lain, silakan buat tiket pengaduan baru.
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      /* LIST OF SENT TICKETS */
+                      <div className="space-y-3">
+                        <h4 className="text-xs font-black text-white uppercase">Daftar Tiket Dukungan Anda</h4>
+                        
+                        {isLoadingSupportTickets ? (
+                          <div className="text-center py-6 text-slate-500 text-xs font-semibold uppercase tracking-wider">Memuat daftar tiket...</div>
+                        ) : supportTicketsList.length === 0 ? (
+                          <div className="text-center py-8 bg-[#262421] border border-[#3c3934] rounded-2xl text-slate-500 text-xs font-semibold">
+                            Anda belum pernah mengirim tiket pengaduan.
+                          </div>
+                        ) : (
+                          <div className="space-y-2.5">
+                            {supportTicketsList.map((ticket) => (
+                              <div
+                                key={ticket.id}
+                                onClick={() => { setSelectedClientTicket(ticket); triggerAudio('move'); }}
+                                className="bg-[#262421] hover:bg-[#312e2b] border border-[#3c3934] rounded-2xl p-4 flex items-center justify-between gap-4 cursor-pointer transition-all group"
+                              >
+                                <div>
+                                  <div className="flex items-center gap-2">
+                                    <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                                      ticket.category === 'Bug' ? 'bg-red-500/10 text-red-400 border-red-500/20' :
+                                      ticket.category === 'Akun' ? 'bg-blue-500/10 text-blue-400 border-blue-500/20' :
+                                      ticket.category === 'Pembayaran' ? 'bg-yellow-500/10 text-yellow-400 border-yellow-500/20' :
+                                      'bg-purple-500/10 text-purple-400 border-purple-500/20'
+                                    }`}>
+                                      {ticket.category}
+                                    </span>
+                                    <span className="text-[10px] text-slate-500 font-semibold font-mono">#{ticket.id.substring(0, 8)}</span>
+                                  </div>
+                                  <h4 className="text-xs font-black text-white mt-1.5 group-hover:text-[#81b64c] transition-all">{ticket.title}</h4>
+                                  <p className="text-[10px] text-slate-400 mt-0.5 truncate max-w-md font-semibold">{ticket.description}</p>
+                                </div>
+
+                                <div className="flex items-center gap-3 shrink-0">
+                                  <span className={`text-[9px] font-black uppercase px-2 py-0.5 rounded-full border ${
+                                    ticket.status === 'resolved' ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-amber-500/10 text-amber-400 border-amber-500/20 animate-pulse'
+                                  }`}>
+                                    {ticket.status === 'resolved' ? 'Selesai' : 'Ditinjau'}
+                                  </span>
+                                  <ChevronRight className="w-4 h-4 text-slate-500 group-hover:translate-x-1 transition-transform" />
+                                </div>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
               </div>
             )}
 
@@ -10408,6 +12709,26 @@ export default function App() {
                 </div>
               </div>
 
+              {/* CARD 5: INTERACTIVE TUTORIAL GUIDE HUB */}
+              <div 
+                onClick={() => {
+                  setMode('tutorials');
+                  triggerAudio('move');
+                }}
+                className="bg-[#312e2b] rounded-3xl p-6 border border-[#3c3934] hover:border-purple-500 hover:bg-[#3c3934] hover:shadow-xl transition-all cursor-pointer flex flex-col items-center text-center group font-sans"
+              >
+                <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-purple-500 to-indigo-600 text-white flex items-center justify-center mb-5 group-hover:scale-110 transition-transform">
+                  <Compass className="w-8 h-8 fill-white/20 stroke-white/80" />
+                </div>
+                <h3 className="text-lg font-extrabold text-white mb-2">{prefLang === 'en' ? 'Tutorial & Guide Hub' : 'Panduan & Hub Tutorial'}</h3>
+                <p className="text-[#9babaf] text-xs font-semibold leading-relaxed">
+                  {prefLang === 'en' ? 'Learn Platform mechanics, ELO rules, cosmetic setups, and trigger interactive walking tours.' : 'Pelajari mekanik platform, ELO catur, setup kosmetik, dan jalankan simulasi tur interaktif.'}
+                </p>
+                <div className="mt-5 flex items-center text-purple-400 font-black group-hover:translate-x-1.5 transition-transform text-xs uppercase tracking-wide gap-1">
+                  {prefLang === 'en' ? 'Open Guide' : 'Buka Panduan'} <ChevronRight className="w-4 h-4" />
+                </div>
+              </div>
+
             </div>
 
             {/* FEATURE: CLUB STATISTIK LEADERBOARD (PREMIUM DESIGNS, EMOTICON FREE) */}
@@ -10439,21 +12760,49 @@ export default function App() {
                   <tbody className="divide-y divide-[#3c3934]/35 text-xs text-slate-200">
                     {(() => {
                       const hasOwner = localStorage.getItem('guild_has_owner') === 'true';
-                      let userClub = null;
+                      let userClub: any = null;
+
+                      // Helper to calculate club activity
+                      const calcClubActivity = (mCount: number, totalContrib: number, logsCount: number = 0) => {
+                        const score = (mCount * 2) + (totalContrib > 1000 ? 5 : totalContrib > 300 ? 3 : totalContrib > 0 ? 1 : 0) + (logsCount * 2);
+                        if (score >= 12) return 'Sangat Aktif';
+                        if (score >= 6) return 'Aktif';
+                        if (score >= 2) return 'Sedang';
+                        return 'Kurang Aktif';
+                      };
+
                       if (hasOwner) {
                         try {
                           const profileSaved = localStorage.getItem('guild_profile_data');
                           const membersSaved = localStorage.getItem('guild_members');
+                          const logsSaved = localStorage.getItem('guild_logs');
                           const profile = profileSaved ? JSON.parse(profileSaved) : null;
-                          const members = membersSaved ? JSON.parse(membersSaved) : [];
-                          if (profile) {
+                          let members = membersSaved ? JSON.parse(membersSaved) : [];
+                          const logs = logsSaved ? JSON.parse(logsSaved) : [];
+
+                          if (!Array.isArray(members) || members.length === 0) {
+                            members = [{
+                              name: profile?.leader || user?.username || 'Pecatur Utama',
+                              role: 'Founder',
+                              rating: user?.onlineRating || 600,
+                              status: 'Online',
+                              contribution: 1250,
+                              level: 1
+                            }];
+                            localStorage.setItem('guild_members', JSON.stringify(members));
+                          }
+
+                          if (profile && profile.name) {
                             const totalElo = members.reduce((sum: number, m: any) => sum + (m.rating || 600), 0);
+                            const totalContrib = members.reduce((sum: number, m: any) => sum + (m.contribution || 0), 0);
                             userClub = {
-                              name: `${profile.name} (Klub Anda)`,
-                              members: `${members.length}/30`,
-                              eloVal: totalElo,
-                              elo: totalElo.toLocaleString('id-ID'),
-                              activity: 'Sangat Aktif',
+                              id: profile.id || profile.name,
+                              rawName: profile.name,
+                              name: profile.name,
+                              members: `${Math.max(1, members.length)}/30`,
+                              eloVal: totalElo || 1200,
+                              elo: (totalElo || 1200).toLocaleString('id-ID'),
+                              activity: calcClubActivity(members.length, totalContrib, logs.length),
                               isUser: true,
                               logo: profile.logo
                             };
@@ -10463,14 +12812,54 @@ export default function App() {
                         }
                       }
 
-                      let competitorClubs: any[] = [];
+                      const clubsMap: Record<string, any> = {};
 
-                      let allClubs = [...competitorClubs];
-                      if (userClub) {
-                        allClubs = allClubs.filter(c => c.name.toLowerCase() !== userClub.name.toLowerCase());
-                        allClubs.push(userClub);
+                      realGuildsLeaderboard.forEach((g: any) => {
+                        if (!g || !g.name) return;
+                        const key = g.name.trim().toLowerCase();
+                        const isUserOwned = user ? (g.ownerUsername === user.username) : false;
+                        const gMembers = Array.isArray(g.members) ? g.members : [];
+                        const mCount = Math.max(1, gMembers.length || g.membersCount || 1);
+                        const totalContrib = gMembers.reduce((sum: number, m: any) => sum + (m.contribution || 0), 0);
+                        const logsCount = Array.isArray(g.logs) ? g.logs.length : 0;
+
+                        clubsMap[key] = {
+                          id: g.id,
+                          rawName: g.name,
+                          name: isUserOwned && !g.name.includes('(Klub Anda)') ? `${g.name} (Klub Anda)` : g.name,
+                          members: `${mCount}/30`,
+                          eloVal: g.totalElo || 0,
+                          elo: (g.totalElo || 0).toLocaleString('id-ID'),
+                          activity: calcClubActivity(mCount, totalContrib, logsCount),
+                          isUser: isUserOwned,
+                          logo: g.logo
+                        };
+                      });
+
+                      if (userClub && userClub.rawName) {
+                        const userKey = userClub.rawName.trim().toLowerCase();
+                        if (!clubsMap[userKey]) {
+                          clubsMap[userKey] = {
+                            id: userClub.id,
+                            rawName: userClub.rawName,
+                            name: `${userClub.rawName} (Klub Anda)`,
+                            members: userClub.members,
+                            eloVal: userClub.eloVal,
+                            elo: userClub.elo,
+                            activity: userClub.activity,
+                            isUser: true,
+                            logo: userClub.logo
+                          };
+                        } else {
+                          clubsMap[userKey].isUser = true;
+                          clubsMap[userKey].activity = userClub.activity;
+                          if (!clubsMap[userKey].name.includes('(Klub Anda)')) {
+                            clubsMap[userKey].name = `${clubsMap[userKey].rawName} (Klub Anda)`;
+                          }
+                        }
                       }
 
+                      let allClubs = Object.values(clubsMap);
                       // Sort all clubs by ELO descending
                       allClubs.sort((a, b) => b.eloVal - a.eloVal);
 
@@ -11779,10 +14168,10 @@ export default function App() {
              4. PUZZLES SYSTEM (LIVES + XP HARVESTING)
            ========================================= */}
         {mode === 'puzzles' && (
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start">
+          <div className="space-y-6">
             
             {/* IN-GAME TOP LEFT BAR */}
-            <div className="md:col-span-12 flex items-center justify-between pb-4 border-b-2 border-[#E5E5E5]">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between pb-4 border-b-2 border-[#E5E5E5] gap-4">
               <div>
                 <button 
                   onClick={() => {
@@ -11793,7 +14182,7 @@ export default function App() {
                 >
                   <ArrowLeft className="w-4 h-4 text-[#81b64c]" /> Kembali ke Dashboard
                 </button>
-                <h2 className="text-2xl font-extrabold text-[#4B4B4B] tracking-tight">Teka-Teki Taktis Catur</h2>
+                <h2 className="text-2xl font-extrabold text-[#4B4B4B] tracking-tight">Kuis & Teka-Teki Taktis Catur</h2>
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-xs font-bold text-[#777777]">PUNYA NYAWA:</span>
@@ -11803,7 +14192,76 @@ export default function App() {
               </div>
             </div>
 
-              <>
+            {/* SUBTAB SWITCHER: ROADMAP QUIZ vs TACTICAL BOARD */}
+            <div className="flex items-center gap-2 bg-[#262421] p-1.5 rounded-2xl border border-[#3c3934]">
+              <button
+                onClick={() => {
+                  setPuzzlesSubTab('roadmap');
+                  triggerAudio('move');
+                }}
+                className={`flex-1 py-3 px-4 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  puzzlesSubTab === 'roadmap'
+                    ? 'bg-[#81b64c] text-white shadow-lg scale-[1.01]'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <BookOpen className="w-4 h-4" />
+                <span>Mode Kuis Pertanyaan (Teori)</span>
+              </button>
+              <button
+                onClick={() => {
+                  setPuzzlesSubTab('board');
+                  triggerAudio('move');
+                }}
+                className={`flex-1 py-3 px-4 rounded-xl font-extrabold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                  puzzlesSubTab === 'board'
+                    ? 'bg-[#81b64c] text-white shadow-lg scale-[1.01]'
+                    : 'text-slate-400 hover:text-white hover:bg-white/5'
+                }`}
+              >
+                <Sparkles className="w-4 h-4" />
+                <span>Mode Latihan Praktek (Board Taktis)</span>
+              </button>
+            </div>
+
+            {puzzlesSubTab === 'roadmap' ? (
+              <div className="animate-fade-in duration-300">
+                <Features41to50
+                  key={username}
+                  coins={coins}
+                  setCoins={setCoins}
+                  diamonds={diamonds}
+                  setDiamonds={setDiamonds}
+                  xp={xp}
+                  setXp={setXp}
+                  streak={streak}
+                  guestMatchesPlayed={guestMatchesPlayed}
+                  guestMatchesWon={guestMatchesWon}
+                  user={user}
+                  hearts={hearts}
+                  setHearts={setHearts}
+                  membershipStatus={membershipStatus}
+                  triggerAudio={triggerAudio}
+                  triggerReward={triggerReward}
+                  unlockedSkins={unlockedSkins}
+                  setUnlockedSkins={setUnlockedSkins}
+                  unlockedThemes={unlockedThemes}
+                  setUnlockedThemes={setUnlockedThemes}
+                  unlockedFrames={unlockedFrames}
+                  setUnlockedFrames={setUnlockedFrames}
+                  username={username}
+                  onlineRating={onlineRating}
+                  hideHeaderAndTabs={true}
+                  forceTab="quiz"
+                  diamondSavings={diamondSavings}
+                  setDiamondSavings={setDiamondSavings}
+                  starterPackClaimed={starterPackClaimed}
+                  settingsLang={prefLang}
+                  onPuzzleCompleted={() => updateDailyQuestProgress('puzzle', 1)}
+                />
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-start animate-fade-in duration-300">
                 {/* PUZZLE SELECTOR SIDE LIST */}
                 <div className="md:col-span-4 flex flex-col gap-4">
                   <h3 className="font-extrabold text-sm uppercase text-[#777777] tracking-wider">Tantangan Tersedia</h3>
@@ -11842,94 +14300,106 @@ export default function App() {
             {/* PUZZLE ACTIVE PLAY AREA */}
             <div className="md:col-span-8 flex flex-col items-center">
               {activePuzzle ? (
-                <div className="w-full flex flex-col items-center">
-                  <div className="w-full max-w-sm mb-4 bg-[#FFF4D1] border-2 border-[#FFC800] p-4 rounded-2xl text-center shadow-sm">
-                    <h3 className="font-extrabold text-[#AF7E00] text-sm uppercase tracking-wide mb-1">Target Misi:</h3>
-                    <p className="text-[#4B4B4B] font-bold text-xs leading-relaxed">{activePuzzle.description}</p>
-                  </div>
-
-                  {/* ACTIVE PUZZLE BOARD */}
-                  {renderCapturedList(getCapturedPieces().capturedByBlack, 'w')}
-                  <div className={`w-full max-w-md p-4 rounded-3xl border-4 ${activeThemeConfig.bgClass} shadow-xl relative`}>
-                    {renderChessboard()}
-                  </div>
-                  {renderCapturedList(getCapturedPieces().capturedByWhite, 'b')}
-
-                  {/* STATS CONTROL CARD FOR PUZZLE STATUS */}
-                  <div className="w-full max-w-sm mt-4 bg-white p-6 rounded-2xl border-2 border-[#E5E5E5] shadow-sm text-center">
-                    {puzzleStatus === 'playing' && (
-                      <div className="flex flex-col items-center justify-center">
-                        <span className="flex items-center gap-1.5 text-[#777777] font-extrabold text-xs uppercase tracking-wider animate-pulse mb-3">
-                          <span className="w-2.5 h-2.5 rounded-full bg-[#FFC800] inline-block shadow-xs" /> MENUNGGU LANGKAH TERBAIKMU...
+                <div className="w-full flex flex-col items-center space-y-4">
+                  
+                  {/* DUOLINGO STYLE ANIMATED MASCOT HEADER & SPEECH BUBBLE */}
+                  <DuolingoMascotHeader
+                    badgeText="TEKA-TEKI TAKTIS"
+                    titleText={activePuzzle.title}
+                    speechBubbleText={
+                      puzzleStatus === 'solved' ? (
+                        <span className="text-emerald-300 font-bold">
+                           Luar biasa! {activePuzzle.explanation}
                         </span>
+                      ) : puzzleStatus === 'failed' ? (
+                        <span className="text-red-300 font-bold">
+                          ️ Aduh, langkah itu kurang tepat! Coba hitung lagi pengorbanan perwiramu.
+                        </span>
+                      ) : showPuzzleHint ? (
+                        <span>
+                           <strong className="text-amber-300">Petunjuk Taktis:</strong> Coba gerakkan perwiramu dari petak <span className="px-1.5 py-0.5 bg-amber-400/20 text-amber-300 border border-amber-400/40 rounded font-mono font-black">{(activePuzzle.solution[puzzleMovesPlayed]?.substring(0, 2) || "??").toUpperCase()}</span>!
+                        </span>
+                      ) : (
+                        activePuzzle.description
+                      )
+                    }
+                    mascotType="cat"
+                    mascotState={
+                      puzzleStatus === 'solved' ? 'correct' : puzzleStatus === 'failed' ? 'wrong' : 'idle'
+                    }
+                    progressPercent={
+                      puzzleStatus === 'solved' ? 100 : Math.round((puzzleMovesPlayed / activePuzzle.solution.length) * 100)
+                    }
+                    energyCount={hearts}
+                    energyType="heart"
+                    onClose={() => {
+                      setActivePuzzle(null);
+                      setPuzzleStatus('playing');
+                      setShowPuzzleHint(false);
+                      triggerAudio('move');
+                    }}
+                  />
 
-                        {showPuzzleHint ? (
-                          <motion.div
-                            initial={{ scale: 0.95, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className="my-3 px-4 py-3 bg-amber-50/80 border border-amber-200 rounded-xl text-center shadow-xs w-full max-w-xs"
-                          >
-                            <span className="text-[10px] font-black text-amber-600 block uppercase tracking-wider flex items-center justify-center gap-1">
-                              Petunjuk Langkah
-                            </span>
-                            <p className="text-slate-700 font-bold text-xs mt-1 leading-normal">
-                              Coba gerakkan perwiramu dari petak <span className="bg-amber-100 px-1.5 py-0.5 font-mono font-black border border-amber-200 rounded text-amber-800">{(activePuzzle.solution[puzzleMovesPlayed]?.substring(0, 2) || "??").toUpperCase()}</span>!
-                            </p>
-                          </motion.div>
-                        ) : (
+                  {/* ACTIVE PUZZLE BOARD CONTAINER */}
+                  <div className="w-full bg-[#131f28] p-5 md:p-6 rounded-3xl border border-[#243542] shadow-2xl flex flex-col items-center">
+                    {renderCapturedList(getCapturedPieces().capturedByBlack, 'w')}
+                    <div className={`w-full max-w-md p-3 rounded-2xl border-2 ${activeThemeConfig.bgClass} shadow-xl relative my-2`}>
+                      {renderChessboard()}
+                    </div>
+                    {renderCapturedList(getCapturedPieces().capturedByWhite, 'b')}
+
+                    {/* DUOLINGO STYLE BOTTOM ACTION BAR */}
+                    <div className="w-full max-w-md mt-4 flex items-center gap-3">
+                      {puzzleStatus === 'playing' && (
+                        <>
                           <button
+                            type="button"
                             onClick={() => {
                               setShowPuzzleHint(true);
                               triggerAudio('move');
                             }}
-                            className="my-2 px-4 py-2 bg-amber-50 hover:bg-amber-100 border-2 border-amber-150 text-amber-700 font-extrabold text-xs rounded-xl flex items-center justify-center gap-1.5 shadow-[0_2px_0_0_#FEF3C7] active:translate-y-0.5 active:shadow-none transition-all cursor-pointer w-full max-w-[200px]"
+                            className={`p-3.5 rounded-2xl border flex items-center justify-center transition-all cursor-pointer shadow-md ${
+                              showPuzzleHint 
+                                ? 'bg-amber-500/20 border-amber-500/50 text-amber-300' 
+                                : 'bg-[#1c2c38] hover:bg-[#253947] border-[#2d4252] text-amber-400'
+                            }`}
+                            title="Tampilkan Petunjuk"
                           >
-                            <Lightbulb className="w-3.5 h-3.5 text-amber-500 fill-amber-300" /> Tampilkan Petunjuk
+                            <Lightbulb className="w-5 h-5 fill-amber-400/30 text-amber-400 animate-pulse" />
                           </button>
-                        )}
 
-                        <p className="text-[10px] text-[#777777] italic mt-2 font-semibold">Blunder atau salah jalan mengurangi 1 Nyawa!</p>
-                      </div>
-                    )}
+                          <div className="flex-1 bg-[#1c2c38] p-3 rounded-2xl border border-[#2d4252] text-center">
+                            <span className="text-[11px] font-extrabold text-slate-300 uppercase tracking-wider flex items-center justify-center gap-2">
+                              <span className="w-2 h-2 rounded-full bg-[#58cc02] animate-ping" />
+                              Geser perwira untuk mengeksekusi
+                            </span>
+                          </div>
+                        </>
+                      )}
 
-                    {puzzleStatus === 'solved' && (
-                      <div>
-                        <div className="w-12 h-12 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-3 border border-green-200 text-green-600 font-extrabold">
-                          
-                        </div>
-                        <h4 className="font-extrabold text-green-700 text-lg mb-1">Berhasil Memecahkan Masalah!</h4>
-                        <p className="text-[#777777] text-xs font-semibold mb-3">{activePuzzle.explanation}</p>
-                        <div className="py-1 px-3 bg-green-50 text-green-700 font-black tracking-wide uppercase text-xs rounded-xl inline-block border border-green-200">
-                          +{activePuzzle.points} XP Didapatkan!
-                        </div>
+                      {puzzleStatus === 'solved' && (
                         <button
                           onClick={() => {
                             setActivePuzzle(null);
                             setPuzzleStatus('playing');
-                            triggerAudio('move');
+                            setShowPuzzleHint(false);
+                            triggerAudio('win');
                           }}
-                          className="w-full mt-4 py-3 bg-[#58CC02] hover:bg-[#46A302] text-white font-extrabold rounded-2xl shadow-[0_4px_0_0_#46A302] active:translate-y-1 active:shadow-none text-xs uppercase cursor-pointer transition-colors"
+                          className="w-full py-4 bg-[#58cc02] hover:bg-[#46a302] text-white font-extrabold rounded-2xl shadow-[0_5px_0_0_#3b8701] active:translate-y-1 active:shadow-none text-sm uppercase tracking-wider cursor-pointer transition-colors"
                         >
-                          Selesai & Kembali ke Daftar
+                          LANJUTKAN (+{activePuzzle.points} XP)
                         </button>
-                      </div>
-                    )}
+                      )}
 
-                    {puzzleStatus === 'failed' && (
-                      <div>
-                        <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center mx-auto mb-3 border border-red-200 text-red-500 font-extrabold">
-                          
-                        </div>
-                        <h4 className="font-extrabold text-red-700 text-md mb-2">Aduh, Langkah Itu Salah!</h4>
-                        <p className="text-[#777777] text-xs font-semibold mb-4 leading-relaxed">Itu adalah langkah blunder! Coba pelajari taktik pertahanan.</p>
+                      {puzzleStatus === 'failed' && (
                         <button
                           onClick={() => handleSelectPuzzle(activePuzzle)}
-                          className="px-4 py-2.5 bg-white text-[#FF4B4B] border-2 border-[#E5E5E5] font-extrabold rounded-xl shadow-[0_4px_0_0_#E5E5E5] active:translate-y-1 active:shadow-none text-xs uppercase transition-colors cursor-pointer inline-flex items-center gap-1.5"
+                          className="w-full py-4 bg-[#ff4b4b] hover:bg-[#e03838] text-white font-extrabold rounded-2xl shadow-[0_5px_0_0_#b82323] active:translate-y-1 active:shadow-none text-sm uppercase tracking-wider cursor-pointer transition-colors"
                         >
-                          Coba Lagi
+                          COBA LAGI TANTANGAN
                         </button>
-                      </div>
-                    )}
+                      )}
+                    </div>
                   </div>
 
                 </div>
@@ -11943,11 +14413,11 @@ export default function App() {
                 </div>
               )}
             </div>
-
-              </>
-
           </div>
         )}
+
+      </div>
+    )}
 
         {/* =========================================
              5. LESSONS SYSTEM (STEP BY STEP)
@@ -11969,39 +14439,9 @@ export default function App() {
                 </button>
                 <h2 className="text-2xl font-extrabold text-[#4B4B4B] tracking-tight">Akademi Pembelajaran Chess</h2>
               </div>
-
-              {/* Sub-tabs to switch between Lessons Catalog & Openings Database */}
-              <div className="flex gap-2 bg-[#f1f1f1] p-1.5 rounded-2xl border border-stone-200 shrink-0">
-                <button
-                  onClick={() => { setLessonsActiveSubTab('lessons'); triggerAudio('move'); }}
-                  className={`px-4 py-2 text-xs font-black uppercase rounded-xl transition-all cursor-pointer border-none ${
-                    lessonsActiveSubTab === 'lessons'
-                      ? 'bg-[#81b64c] text-white'
-                      : 'text-[#4b4b4b] hover:bg-[#eaeaea]'
-                  }`}
-                >
-                  Materi Dasar & Latihan
-                </button>
-                <button
-                  onClick={() => { setLessonsActiveSubTab('openings'); triggerAudio('move'); }}
-                  className={`px-4 py-2 text-xs font-black uppercase rounded-xl transition-all cursor-pointer border-none ${
-                    lessonsActiveSubTab === 'openings'
-                      ? 'bg-[#81b64c] text-white'
-                      : 'text-[#4b4b4b] hover:bg-[#eaeaea]'
-                  }`}
-                >
-                  Database Pembukaan Catur
-                </button>
-              </div>
             </div>
 
-            {lessonsActiveSubTab === 'openings' ? (
-              <div className="md:col-span-12 animate-fade-in duration-300">
-                <ChessOpeningsDb />
-              </div>
-            ) : (
-              <>
-                {/* LESSONS LIST ON SIDEBAR */}
+            {/* LESSONS LIST ON SIDEBAR */}
                 <div className="md:col-span-4 flex flex-col gap-4">
                   <h3 className="font-extrabold text-sm uppercase text-[#777777] tracking-wider">Modul Belajar</h3>
                   <div className="space-y-3">
@@ -12061,14 +14501,23 @@ export default function App() {
                         })}
                       </div>
 
-                      {/* ACTIVE STEP DETAILS CARD */}
-                      <div className="w-full max-w-sm mb-4 bg-white border-2 border-[#E5E5E5] p-4 rounded-2xl text-center shadow-xs">
-                        <h3 className="font-extrabold text-[#4B4B4B] text-md uppercase tracking-wide mb-1">
-                          {activeLesson.steps[lessonStepIndex].title}
-                        </h3>
-                        <p className="text-[#777777] font-semibold text-xs leading-relaxed">
-                          {activeLesson.steps[lessonStepIndex].description}
-                        </p>
+                      {/* ACTIVE STEP DETAILS WITH CHESSCAT MASCOT */}
+                      <div className="w-full max-w-xl mb-4">
+                        <DuolingoMascotHeader
+                          badgeText={`MODUL MATERI: ${activeLesson.title.toUpperCase()}`}
+                          titleText={activeLesson.steps[lessonStepIndex].title}
+                          speechBubbleText={activeLesson.steps[lessonStepIndex].description}
+                          mascotType="chesscat"
+                          mascotState={lessonStatus === 'completed' ? 'correct' : 'idle'}
+                          progressPercent={((lessonStepIndex + 1) / activeLesson.steps.length) * 100}
+                          energyCount={24}
+                          energyType="zap"
+                          onClose={() => {
+                            setActiveLesson(null);
+                            setMode('menu');
+                            triggerAudio('move');
+                          }}
+                        />
                       </div>
 
                       {/* ACTIVE LESSON CHESSBOARD */}
@@ -12089,7 +14538,7 @@ export default function App() {
                         {lessonStatus === 'step-success' && (
                           <div>
                             <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-2 text-green-600 font-extrabold font-mono">
-                              ✓
+                              
                             </div>
                             <h4 className="font-extrabold text-green-700 text-sm mb-3">Langkah Ini Benar!</h4>
                             <button
@@ -12104,7 +14553,7 @@ export default function App() {
                         {lessonStatus === 'completed' && (
                           <div>
                             <div className="w-10 h-10 rounded-full bg-green-100 flex items-center justify-center mx-auto mb-2 text-green-600 font-extrabold font-mono">
-                              ✓
+                              
                             </div>
                             <h4 className="font-extrabold text-green-700 text-md mb-2">Hebat, Latihan Selesai!</h4>
                             <div className="py-1 px-3 bg-green-50 text-green-700 font-black tracking-wide uppercase text-xs rounded-xl inline-block border border-green-200">
@@ -12135,7 +14584,239 @@ export default function App() {
                     </div>
                   )}
                 </div>
-              </>
+          </div>
+        )}
+
+        {/* =========================================
+             4B. INTERACTIVE TUTORIAL GUIDE HUB
+           ========================================= */}
+        {mode === 'tutorials' && (
+          <div className="space-y-6 animate-fade-in duration-300 font-sans w-full">
+            <div className="flex flex-col lg:flex-row lg:items-center justify-between pb-4 border-b-2 border-[#E5E5E5]/10 gap-4">
+              <div>
+                <button 
+                  onClick={() => {
+                    setMode('menu');
+                    triggerAudio('move');
+                  }}
+                  className="mb-2 px-3.5 py-2 flex items-center gap-1.5 text-xs font-black text-white bg-[#312e2b] hover:bg-[#3c3934] border border-[#3c3934] rounded-xl transition-all uppercase tracking-wider cursor-pointer"
+                >
+                  <ArrowLeft className="w-4 h-4 text-[#81b64c]" /> Kembali ke Dashboard
+                </button>
+                <h2 className="text-2xl font-extrabold text-white tracking-tight uppercase">Hub Panduan & Daftar Tutorial</h2>
+                <p className="text-[#9babaf] text-xs font-bold uppercase mt-1">Kuasai seluruh mekanik, aturan ELO, toko kosmetik, klan, dan tur simulasi catur Pal Mate</p>
+              </div>
+
+              <button
+                onClick={() => {
+                  setMode('home');
+                  setShowTutorialTour(true);
+                  triggerAudio('win');
+                }}
+                className="px-5 py-3 bg-gradient-to-r from-purple-700 to-indigo-700 hover:from-purple-600 hover:to-indigo-600 text-white font-extrabold text-xs uppercase rounded-xl tracking-wider shadow-md transition-all shrink-0 flex items-center gap-1.5"
+              >
+                <Compass className="w-4 h-4 animate-spin-slow text-white" /> Mulai Tur Interaktif Lengkap
+              </button>
+            </div>
+
+            {/* GRID LAYOUT FOR THE CHESS TUTORIALS LIST */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              
+              {/* CARD 1 */}
+              <div className="bg-[#312e2b] rounded-3xl p-5 border border-[#3c3934] flex flex-col justify-between hover:border-purple-500 transition-all group">
+                <div>
+                  <div className="w-10 h-10 bg-purple-500/10 rounded-xl flex items-center justify-center text-purple-400 mb-4 border border-purple-500/20">
+                    <Compass className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-sm font-black text-white uppercase tracking-tight">1. Tur Onboarding Navigasi</h4>
+                  <p className="text-slate-400 text-xs mt-2 leading-relaxed font-semibold">
+                    Simulasi 7 langkah interaktif menyusuri dashboard Beranda, belanja kustomisasi, kuis catur maut, dan formasi Suku Catur.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setMode('home');
+                    setShowTutorialTour(true);
+                    triggerAudio('win');
+                  }}
+                  className="w-full mt-5 py-2.5 bg-purple-950/40 text-purple-400 hover:bg-purple-700 hover:text-white text-[10px] font-black uppercase rounded-xl border border-purple-500/30 transition-all cursor-pointer"
+                >
+                  Jalankan Tur Lengkap 
+                </button>
+              </div>
+
+              {/* CARD 2 */}
+              <div className="bg-[#312e2b] rounded-3xl p-5 border border-[#3c3934] flex flex-col justify-between hover:border-blue-500 transition-all group">
+                <div>
+                  <div className="w-10 h-10 bg-blue-500/10 rounded-xl flex items-center justify-center text-blue-400 mb-4 border border-blue-500/20">
+                    <Award className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-sm font-black text-white uppercase tracking-tight">2. Formula Kenaikan ELO</h4>
+                  <p className="text-slate-400 text-xs mt-2 leading-relaxed font-semibold">
+                    Kuasai bobot penilaian ELO, bonus winstreak, penalti kekalahan beruntun, dan cara merangkak ke puncak jajaran Grandmaster.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setActiveTutorialDetail('elo');
+                    triggerAudio('move');
+                  }}
+                  className="w-full mt-5 py-2.5 bg-blue-950/40 text-blue-400 hover:bg-blue-700 hover:text-white text-[10px] font-black uppercase rounded-xl border border-blue-500/30 transition-all cursor-pointer"
+                >
+                  Buka Aturan ELO 
+                </button>
+              </div>
+
+              {/* CARD 3 */}
+              <div className="bg-[#312e2b] rounded-3xl p-5 border border-[#3c3934] flex flex-col justify-between hover:border-emerald-500 transition-all group">
+                <div>
+                  <div className="w-10 h-10 bg-emerald-500/10 rounded-xl flex items-center justify-center text-emerald-400 mb-4 border border-emerald-500/20">
+                    <Shield className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-sm font-black text-white uppercase tracking-tight">3. Check-In Mingguan Suku</h4>
+                  <p className="text-slate-400 text-xs mt-2 leading-relaxed font-semibold">
+                    Mekanisme check-in tim harian demi mengakumulasikan skor maut klub, berkolaborasi di ruang chat, dan mengklaim Chest mingguan.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setMode('guild-suku');
+                    triggerAudio('move');
+                  }}
+                  className="w-full mt-5 py-2.5 bg-emerald-950/40 text-emerald-400 hover:bg-[#81b64c] hover:text-white text-[10px] font-black uppercase rounded-xl border border-emerald-500/30 transition-all cursor-pointer"
+                >
+                  Buka Suku Catur 
+                </button>
+              </div>
+
+              {/* CARD 4 */}
+              <div className="bg-[#312e2b] rounded-3xl p-5 border border-[#3c3934] flex flex-col justify-between hover:border-amber-500 transition-all group">
+                <div>
+                  <div className="w-10 h-10 bg-amber-500/10 rounded-xl flex items-center justify-center text-amber-400 mb-4 border border-amber-500/20">
+                    <ShoppingBag className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-sm font-black text-white uppercase tracking-tight">4. Berburu Skin & Toko Kosmetik</h4>
+                  <p className="text-slate-400 text-xs mt-2 leading-relaxed font-semibold">
+                    Panduan menukarkan koin emas & berlian Anda dengan skin papan eksklusif (anime, kayu), tema bidak, dan bingkai avatar maut.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setMode('store');
+                    triggerAudio('move');
+                  }}
+                  className="w-full mt-5 py-2.5 bg-amber-950/40 text-amber-400 hover:bg-amber-500 hover:text-white text-[10px] font-black uppercase rounded-xl border border-amber-500/30 transition-all cursor-pointer"
+                >
+                  Mulai Belanja 
+                </button>
+              </div>
+
+              {/* CARD 5 */}
+              <div className="bg-[#312e2b] rounded-3xl p-5 border border-[#3c3934] flex flex-col justify-between hover:border-teal-500 transition-all group">
+                <div>
+                  <div className="w-10 h-10 bg-teal-500/10 rounded-xl flex items-center justify-center text-teal-400 mb-4 border border-teal-500/20">
+                    <Calendar className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-sm font-black text-white uppercase tracking-tight">5. Event Kuis Terbatas</h4>
+                  <p className="text-slate-400 text-xs mt-2 leading-relaxed font-semibold">
+                    Cara menjawab kuis teori pembukaan catur di menu Event Musiman untuk memenangkan gelar maut (Gelar Musiman) berkelas dunia.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setMode('season-events');
+                    triggerAudio('move');
+                  }}
+                  className="w-full mt-5 py-2.5 bg-teal-950/40 text-teal-400 hover:bg-teal-500 hover:text-white text-[10px] font-black uppercase rounded-xl border border-teal-500/30 transition-all cursor-pointer"
+                >
+                  Buka Event Musiman 
+                </button>
+              </div>
+
+              {/* CARD 6 */}
+              <div className="bg-[#312e2b] rounded-3xl p-5 border border-[#3c3934] flex flex-col justify-between hover:border-rose-500 transition-all group">
+                <div>
+                  <div className="w-10 h-10 bg-[#ec4899]/10 rounded-xl flex items-center justify-center text-rose-400 mb-4 border border-[#ec4899]/20">
+                    <Users className="w-5 h-5" />
+                  </div>
+                  <h4 className="text-sm font-black text-white uppercase tracking-tight">6. AI Coach & Feed Sosial</h4>
+                  <p className="text-slate-400 text-xs mt-2 leading-relaxed font-semibold">
+                    Cara memposting taktik Anda di Social Feed, berinteraksi di buku tamu, serta berkonsultasi secara privat dengan pelatih catur bertenaga AI.
+                  </p>
+                </div>
+                <button
+                  onClick={() => {
+                    setMode('profile');
+                    setProfileActiveTab('social');
+                    triggerAudio('move');
+                  }}
+                  className="w-full mt-5 py-2.5 bg-rose-950/40 text-[#ec4899] hover:bg-[#ec4899] hover:text-white text-[10px] font-black uppercase rounded-xl border border-[#ec4899]/30 transition-all cursor-pointer"
+                >
+                  Buka Feed Sosial 
+                </button>
+              </div>
+
+            </div>
+
+            {/* POPUP DETAIL MODAL FOR TUTORIAL RULES */}
+            {activeTutorialDetail && (
+              <div className="fixed inset-0 z-55 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-fade-in">
+                <div className="bg-[#312e2b] border border-[#3c3934] rounded-3xl p-6 max-w-md w-full shadow-2xl relative space-y-4 font-sans">
+                  <div className="flex items-center justify-between border-b border-[#3c3934] pb-3">
+                    <h3 className="text-md font-black text-white uppercase flex items-center gap-1.5">
+                      <Award className="w-5 h-5 text-blue-400" /> Rumus ELO & Kompetisi
+                    </h3>
+                    <button
+                      onClick={() => {
+                        setActiveTutorialDetail(null);
+                        triggerAudio('move');
+                      }}
+                      className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-[#3c3934] transition-all cursor-pointer border-none"
+                    >
+                      <X className="w-5 h-5" />
+                    </button>
+                  </div>
+
+                  <div className="space-y-3.5 text-xs text-slate-300 leading-relaxed font-semibold">
+                    <p className="bg-blue-950/30 border border-blue-900/40 p-3 rounded-xl">
+                      Pal Mate menggunakan kalkulasi ELO catur berstandar internasional yang disesuaikan secara real-time untuk pertarungan online maupun simulasi taktis.
+                    </p>
+
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between bg-[#262421] p-2.5 rounded-xl border border-[#3c3934]">
+                        <span className="text-white font-extrabold uppercase text-[9px]">Menang Kompetitif</span>
+                        <span className="text-emerald-400 font-extrabold font-mono">+15 s.d +25 ELO</span>
+                      </div>
+                      <div className="flex items-center justify-between bg-[#262421] p-2.5 rounded-xl border border-[#3c3934]">
+                        <span className="text-white font-extrabold uppercase text-[9px]">Kalah Kompetitif</span>
+                        <span className="text-red-400 font-extrabold font-mono">-10 s.d -18 ELO</span>
+                      </div>
+                      <div className="flex items-center justify-between bg-[#262421] p-2.5 rounded-xl border border-[#3c3934]">
+                        <span className="text-white font-extrabold uppercase text-[9px]">Bonus Winstreak (3x)</span>
+                        <span className="text-yellow-400 font-extrabold font-mono">+5 ELO Tambahan</span>
+                      </div>
+                      <div className="flex items-center justify-between bg-[#262421] p-2.5 rounded-xl border border-[#3c3934]">
+                        <span className="text-white font-extrabold uppercase text-[9px]">Hasil Remis (Draw)</span>
+                        <span className="text-slate-400 font-extrabold font-mono">+0 ELO (Keseimbangan)</span>
+                      </div>
+                    </div>
+
+                    <p className="text-[10px] text-slate-500 italic mt-2 text-center">
+                      *Bermain melawan Bot tidak akan merubah nilai ELO resmi Anda, gunakan mode Online Matchmaking untuk bertanding ELO!
+                    </p>
+                  </div>
+
+                  <button
+                    onClick={() => {
+                      setActiveTutorialDetail(null);
+                      triggerAudio('move');
+                    }}
+                    className="w-full py-3 bg-[#81b64c] hover:bg-[#92ca5a] text-white font-extrabold text-xs uppercase rounded-xl tracking-wider shadow-md transition-all cursor-pointer border-none"
+                  >
+                    Saya Mengerti Aturan ELO
+                  </button>
+                </div>
+              </div>
             )}
 
           </div>
@@ -13385,7 +16066,7 @@ export default function App() {
                           }
                         }}
                         disabled={coins < 7500}
-                        className="px-6 py-3 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 disabled:opacity-40 text-slate-950 font-black text-xs uppercase rounded-xl shadow-[0_4px_0_0_#b38b00] active:translate-y-1 active:shadow-none cursor-pointer transition-all tracking-wider"
+                        className="px-3 py-1.5 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 disabled:opacity-40 text-slate-950 font-extrabold text-[11px] uppercase rounded-lg shadow-[0_2px_0_0_#b38b00] active:translate-y-0.5 active:shadow-none cursor-pointer transition-all tracking-wide whitespace-nowrap shrink-0"
                       >
                         {prefLang === 'en' ? 'Activate Now' : 'Aktifkan Sekarang'}
                       </button>
@@ -13616,8 +16297,7 @@ export default function App() {
                             ) : (
                               <button
                                 onClick={() => {
-                                  setSelectedSkin(skinItem.id);
-                                  triggerAudio('move');
+                                  handleEquipSkin(skinItem.id);
                                 }}
                                 className="px-3.5 py-1.5 bg-[#312e2b] hover:bg-[#3c3934] text-white font-extrabold text-[10px] uppercase rounded-lg border border-[#3c3934] shadow-[0_3px_0_0_#211f1d] active:translate-y-0.5 active:shadow-none cursor-pointer"
                               >
@@ -13781,12 +16461,19 @@ export default function App() {
             {storeActiveTab === 'gacha' && (
               <div className="animate-fade-in duration-300">
                 <Features41to50
+                  key={username}
                   coins={coins}
                   setCoins={setCoins}
                   diamonds={diamonds}
                   setDiamonds={setDiamonds}
                   xp={xp}
                   setXp={setXp}
+                  streak={streak}
+                  guestMatchesPlayed={guestMatchesPlayed}
+                  guestMatchesWon={guestMatchesWon}
+                  user={user}
+                  hearts={hearts}
+                  setHearts={setHearts}
                   membershipStatus={membershipStatus}
                   triggerAudio={triggerAudio}
                   triggerReward={triggerReward}
@@ -14034,12 +16721,19 @@ export default function App() {
               Lihat seluruh koleksi bidak, papan catur, bingkai avatar, dan efek visual yang terkumpul
             </p>
             <Features41to50
+              key={username}
               coins={coins}
               setCoins={setCoins}
               diamonds={diamonds}
               setDiamonds={setDiamonds}
               xp={xp}
               setXp={setXp}
+              streak={streak}
+              guestMatchesPlayed={guestMatchesPlayed}
+              guestMatchesWon={guestMatchesWon}
+              user={user}
+              hearts={hearts}
+              setHearts={setHearts}
               membershipStatus={membershipStatus}
               triggerAudio={triggerAudio}
               triggerReward={triggerReward}
@@ -14092,7 +16786,7 @@ export default function App() {
                 <div className="flex flex-col gap-1 items-start justify-center">
                   <div className="w-44 h-9 overflow-hidden rounded-lg relative flex items-center justify-start">
                     <img 
-                      src={palmateBannerHero} 
+                      src={prefTheme === 'light' ? palmateBannerHeroLight : palmateBannerHero} 
                       alt="Pal Mate" 
                       className="w-full h-full object-cover object-left drop-shadow-sm"
                       referrerPolicy="no-referrer"
@@ -14422,14 +17116,24 @@ export default function App() {
                       isActive: mode === 'profile' && profileActiveTab === 'blocked'
                     },
 
+                    // --- FAQ & BANTUAN ---
+                    {
+                      id: 'faq-help',
+                      label: prefLang === 'en' ? 'FAQ & Support' : 'FAQ & Pusat Bantuan',
+                      Icon: HelpCircle,
+                      action: () => { setMode('settings'); setSettingsSubTab('help'); },
+                      tags: ['faq', 'bantuan', 'support', 'help', 'bug', 'tiket', 'tanya ai', 'chat bot', 'asisten', 'lapor'],
+                      isActive: mode === 'settings' && settingsSubTab === 'help'
+                    },
+
                     // --- PENGATURAN ---
                     {
                       id: 'settings',
                       label: prefLang === 'en' ? 'Settings' : 'Pengaturan',
                       Icon: Settings,
-                      action: () => { setMode('settings'); },
+                      action: () => { setMode('settings'); setSettingsSubTab('preferences'); },
                       tags: ['pengaturan', 'settings', 'suara', 'bahasa', 'lang', 'audio', 'tema', 'tutorial'],
-                      isActive: mode === 'settings'
+                      isActive: mode === 'settings' && settingsSubTab !== 'help'
                     }
                   ];
 
@@ -14729,16 +17433,18 @@ export default function App() {
       </footer>
 
       {/* BOTTOM NAVIGATION FOR QUICK SHORTCUTS (ELEGANT DARK DOCK) */}
-      <div className="fixed bottom-0 left-0 right-0 z-50 bg-[#262421]/95 backdrop-blur-md border-t border-[#3c3934] h-16 shadow-2xl flex items-center justify-around px-2">
+      <div id="bottom-tab-bar" className="fixed bottom-0 left-0 right-0 z-50 bg-[#262421]/95 backdrop-blur-md border-t border-[#3c3934] h-16 shadow-2xl flex items-center justify-around px-2">
         {[
+          { id: 'store', label: 'Shop', Icon: ShoppingBag, action: () => { setMode('store'); setStoreActiveTab('shop'); } },
+          { id: 'guild-suku', label: 'Suku', Icon: Shield, action: () => { setMode('guild-suku'); } },
           { id: 'home', label: 'Beranda', Icon: Home, action: () => { setMode('home'); } },
-          { id: 'menu', label: 'Arena Utama', Icon: Play, action: () => { setMode('menu'); } },
-          { id: 'guild-suku', label: 'Suku Catur', Icon: Shield, action: () => { setMode('guild-suku'); } },
-          { id: 'season-events', label: 'Event Musiman', Icon: Calendar, action: () => { setMode('season-events'); } },
-          { id: 'profile', label: 'Inventori', Icon: Compass, action: () => { setMode('profile'); setProfileActiveTab('inventory'); } }
+          { id: 'menu', label: 'Arena', Icon: Play, action: () => { setMode('menu'); } },
+          { id: 'profile', label: 'Profil', Icon: User, action: () => { setMode('profile'); setProfileActiveTab('profile'); } }
         ].map(item => {
           const TabIcon = item.Icon;
-          const isSelected = mode === item.id;
+          const isSelected = mode === item.id || 
+            (item.id === 'menu' && ['menu', 'lessons', 'puzzles', 'select-character', 'online-match', 'tutorials', 'local-friend', 'analysis', 'tournament'].includes(mode)) ||
+            (item.id === 'store' && ['store', 'store-gacha', 'store-deals'].includes(mode));
           return (
             <button
               id={item.id}
@@ -14747,12 +17453,28 @@ export default function App() {
                 item.action();
                 triggerAudio('move');
               }}
-              className={`flex flex-col items-center justify-center flex-1 py-1.5 transition-all outline-none select-none cursor-pointer ${
-                isSelected ? 'text-[#81b64c] scale-105 font-extrabold' : 'text-slate-400 hover:text-white'
+              className={`relative flex flex-col items-center justify-center flex-1 py-1.5 transition-all outline-none select-none cursor-pointer ${
+                isSelected ? 'text-[#81b64c] font-black' : 'text-slate-400 hover:text-white'
               }`}
             >
-              <TabIcon className="w-5 h-5 mb-0.5" />
-              <span className="text-[9px] font-black tracking-tight">{item.label}</span>
+              {/* SMOOTH ACTIVE INDICATOR SLIDING PILL & CAPSULE BACKGROUND */}
+              {isSelected && (
+                <>
+                  <motion.div
+                    layoutId="active-bottom-pill"
+                    className="absolute inset-x-2 top-[-2px] bottom-[-2px] bg-[#81b64c]/15 rounded-lg border-2 border-[#81b64c]/45 shadow-[0_0_15px_rgba(129,182,76,0.25)] pointer-events-none"
+                    transition={{ type: 'spring', stiffness: 280, damping: 16, mass: 0.8 }}
+                    animate={{ scale: [0.95, 1] }}
+                  />
+                  <motion.div
+                    layoutId="active-bottom-dot"
+                    className="absolute bottom-0.5 w-8 h-1.5 bg-[#81b64c] rounded-full shadow-[0_0_10px_#81b64c,0_0_16px_#81b64c]"
+                    transition={{ type: 'spring', stiffness: 280, damping: 16, mass: 0.8 }}
+                  />
+                </>
+              )}
+              <TabIcon className={`w-5 h-5 mb-0.5 z-10 transition-transform duration-200 ${isSelected ? '-translate-y-1 scale-110' : ''}`} />
+              <span className="text-[9px] font-black tracking-tight z-10">{item.label}</span>
             </button>
           );
         })}
@@ -14761,57 +17483,60 @@ export default function App() {
       {/* FLYING PARTICLES PORTAL */}
       <div className="fixed inset-0 pointer-events-none z-55 overflow-hidden">
         {flyingParticles.map((p) => {
-          const target = p.type === 'diamond' ? targetCoords.diamond : targetCoords.coin;
           const isOut = p.direction === 'out';
           return (
             <motion.div
               key={p.id}
               initial={{ 
-                x: isOut ? target.x : window.innerWidth / 2, 
-                y: isOut ? target.y : window.innerHeight / 2, 
+                x: p.startX, 
+                y: p.startY, 
                 scale: isOut ? 1 : 0, 
                 opacity: isOut ? 1 : 0,
                 rotate: 0 
               }}
               animate={{ 
                 x: isOut ? [
-                  target.x,
-                  target.x + p.rx,
-                  target.x + p.rx * 1.5
+                  p.startX,
+                  p.startX + p.rx * 0.4,
+                  p.endX
                 ] : [
-                  window.innerWidth / 2,
-                  window.innerWidth / 2 + p.rx,
-                  target.x
+                  p.startX,
+                  p.startX + p.rx * 0.7,
+                  p.endX
                 ],
                 y: isOut ? [
-                  target.y,
-                  target.y + p.ry,
-                  target.y + p.ry * 1.5
+                  p.startY,
+                  p.startY + p.ry * 0.4,
+                  p.endY
                 ] : [
-                  window.innerHeight / 2,
-                  window.innerHeight / 2 + p.ry,
-                  target.y
+                  p.startY,
+                  p.startY + p.ry * 0.7,
+                  p.endY
                 ],
                 scale: isOut ? [1, 1.2, 0] : [0, 1.5, 0.8],
                 opacity: isOut ? [1, 0.8, 0] : [0, 1, 1, 0],
                 rotate: [0, p.rx * 2, p.rx * 6]
               }}
               transition={{ 
-                duration: 1.2, 
+                duration: 1.0, 
                 delay: p.delay,
-                ease: "easeInOut"
+                ease: "easeOut"
               }}
               className="absolute flex items-center justify-center filter drop-shadow-md"
             >
               {p.type === 'diamond' ? (
                 <Gem className="w-4 h-4 text-cyan-400 drop-shadow-[0_0_4px_rgba(34,211,238,0.8)] fill-cyan-400" />
+              ) : p.type === 'xp' ? (
+                <Sparkles className="w-4 h-4 text-[#81b64c] drop-shadow-[0_0_4px_rgba(129,182,76,0.8)] fill-emerald-500" />
               ) : (
-                <Coins className="w-4 h-4 text-[#81b64c] drop-shadow-[0_0_4px_rgba(129,182,76,0.8)] fill-[#81b64c]" />
+                <Coins className="w-4 h-4 text-amber-400 drop-shadow-[0_0_4px_rgba(245,158,11,0.8)] fill-amber-500" />
               )}
             </motion.div>
           );
         })}
       </div>
+
+      <PageLoadingScreen isVisible={isPageLoading} />
 
       <ConfirmationDialog
         isOpen={confirmState.isOpen}

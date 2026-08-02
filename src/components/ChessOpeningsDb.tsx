@@ -446,8 +446,8 @@ export const ChessOpeningsDb: React.FC = () => {
 
   // Map representation of pieces to high contrast characters
   const pieceSymbols: Record<string, string> = {
-    'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚', 'p': '♟',
-    'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔', 'P': '♙',
+    'r': '', 'n': '', 'b': '', 'q': '', 'k': '', 'p': '',
+    'R': '', 'N': '', 'B': '', 'Q': '', 'K': '', 'P': '',
     '.': ''
   };
 
