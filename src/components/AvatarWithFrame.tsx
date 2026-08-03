@@ -18,6 +18,17 @@ function VideoFrameCanvas({ src, className = '' }: VideoFrameCanvasProps) {
   const videoRef = React.useRef<HTMLVideoElement>(null);
   const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
+  const VIDEO_SOURCES = React.useMemo(() => [
+    src,
+    '/test.mp4',
+    '/Test.mp4',
+    '/TEST.mp4',
+    'test.mp4',
+  ], [src]);
+
+  const [srcIdx, setSrcIdx] = React.useState(0);
+  const currentVideoSrc = VIDEO_SOURCES[srcIdx] || '/test.mp4';
+
   React.useEffect(() => {
     let animationFrameId: number;
     const video = videoRef.current;
@@ -27,11 +38,22 @@ function VideoFrameCanvas({ src, className = '' }: VideoFrameCanvasProps) {
     const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
-    // Ensure video is playing
-    video.play().catch(() => {});
+    const attemptPlay = () => {
+      if (video && (video.paused || video.ended)) {
+        video.play().catch(() => {});
+      }
+    };
+
+    video.load();
+    attemptPlay();
+
+    video.addEventListener('canplay', attemptPlay);
+    video.addEventListener('pause', attemptPlay);
+    window.addEventListener('click', attemptPlay);
+    window.addEventListener('touchstart', attemptPlay);
 
     const render = () => {
-      if (video.readyState >= 2) {
+      if (video && video.readyState >= 2) {
         // High resolution 300x300 canvas rendering with high quality image smoothing
         const width = 300;
         const height = 300;
@@ -96,37 +118,34 @@ function VideoFrameCanvas({ src, className = '' }: VideoFrameCanvasProps) {
 
     return () => {
       cancelAnimationFrame(animationFrameId);
+      video.removeEventListener('canplay', attemptPlay);
+      video.removeEventListener('pause', attemptPlay);
+      window.removeEventListener('click', attemptPlay);
+      window.removeEventListener('touchstart', attemptPlay);
     };
-  }, [src]);
+  }, [currentVideoSrc]);
 
   return (
     <>
       <video
         ref={videoRef}
-        src={src}
+        src={currentVideoSrc}
         autoPlay
         loop
         muted
         playsInline
-        className="hidden"
-        onError={(e) => {
-          const v = e.currentTarget;
-          if (!v.dataset.tried1) {
-            v.dataset.tried1 = 'true';
-            v.src = '/test.mp4';
-            v.load();
-            v.play().catch(() => {});
-          } else if (!v.dataset.tried2) {
-            v.dataset.tried2 = 'true';
-            v.src = '/frames/test.mp4';
-            v.load();
-            v.play().catch(() => {});
-          } else if (!v.dataset.tried3) {
-            v.dataset.tried3 = 'true';
-            v.src = '/frames/avatar_border_test.mp4';
-            v.load();
-            v.play().catch(() => {});
-          }
+        preload="auto"
+        aria-hidden="true"
+        style={{
+          position: 'absolute',
+          width: '1px',
+          height: '1px',
+          opacity: 0.001,
+          pointerEvents: 'none',
+          zIndex: -9999,
+        }}
+        onError={() => {
+          setSrcIdx((prev) => (prev + 1) % VIDEO_SOURCES.length);
         }}
       />
       <canvas
@@ -169,8 +188,15 @@ export function AvatarWithFrame({ src, frameId = 'none', size = 'sm', className 
     avatar_border_test: '/test.mp4',
     test: '/test.mp4',
     'test.mp4': '/test.mp4',
+    '/test.mp4': '/test.mp4',
     neon_pulsar: '/test.mp4',
     'Neon Pulsar': '/test.mp4',
+    'Neon Pulsar Border': '/test.mp4',
+    'neon_pulsar_border': '/test.mp4',
+    'Bingkai Neon Pulsar': '/test.mp4',
+    'bingkai_neon_pulsar': '/test.mp4',
+    'Neon_Pulsar': '/test.mp4',
+    'NEON_PULSAR': '/test.mp4',
     data: '/test.mp4',
     'data.mp4': '/test.mp4',
     avatar_border_data: '/test.mp4',
@@ -213,57 +239,82 @@ export function AvatarWithFrame({ src, frameId = 'none', size = 'sm', className 
     src === 'pfp_knight' || 
     src === 'pfp_rook' || 
     src === 'pfp_queen' || 
-    src === 'pfp_grandmaster'
+    src === 'pfp_grandmaster' ||
+    src === 'pfp_cyber_samurai' ||
+    src === 'pfp_golden_dragon'
   );
 
   const renderSpecialPfp = () => {
     if (src === 'pfp_knight') {
       return (
-        <div className="w-full h-full bg-gradient-to-br from-slate-600 via-slate-700 to-slate-900 flex items-center justify-center relative overflow-hidden rounded-full">
-          <svg className="w-7 h-7 text-slate-100 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M19 21V19C19 16.5 17 14.5 14.5 14.5H9.5C7 14.5 5 16.5 5 19V21" />
-            <path d="M12 14V11.5" />
-            <path d="M12 9.5c0-1.5 1-2.5 2-3s2-2 2-3.5c-0.5 1-1.5 1.5-2.5 1.5s-2.5-1-3.5-1.5c-1 0.5-2 1.5-2 3s1 2.5 2 3.5v2.5" />
+        <div className="w-full h-full bg-gradient-to-br from-slate-900 via-sky-950 to-blue-950 flex items-center justify-center relative overflow-hidden rounded-full border border-sky-400/30">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(56,189,248,0.35),transparent_70%)] animate-pulse" />
+          <svg className="w-7 h-7 text-sky-300 relative z-10 drop-shadow-[0_0_8px_rgba(56,189,248,0.8)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+            <circle cx="12" cy="7" r="4" />
+            <path d="M12 3v3" stroke="currentColor" strokeWidth="2.5" />
+            <path d="M10 7h4" stroke="currentColor" strokeWidth="2.5" />
           </svg>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
         </div>
       );
     }
     if (src === 'pfp_rook') {
       return (
-        <div className="w-full h-full bg-gradient-to-br from-emerald-800 via-teal-900 to-slate-950 flex items-center justify-center relative overflow-hidden rounded-full">
-          <svg className="w-7 h-7 text-emerald-300 drop-shadow-[0_2px_4px_rgba(0,0,0,0.6)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4 21V9l3-3h10l3 3v12" />
-            <path d="M4 9h16" />
-            <path d="M7 6V4h2v2" />
-            <path d="M11 6V4h2v2" />
-            <path d="M15 6V4h2v2" />
-            <path d="M10 14h4v7h-4z" />
+        <div className="w-full h-full bg-gradient-to-br from-emerald-950 via-teal-900 to-slate-950 flex items-center justify-center relative overflow-hidden rounded-full border border-emerald-400/30">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(52,211,153,0.3),transparent_70%)]" />
+          <svg className="w-7 h-7 text-emerald-300 relative z-10 drop-shadow-[0_0_10px_rgba(52,211,153,0.7)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4 21h16V9l-3-3H7L4 9v12z" />
+            <path d="M9 3v3" />
+            <path d="M15 3v3" />
+            <path d="M12 3v3" />
+            <path d="M10 14h4v7h-4z" fill="currentColor" className="text-emerald-500/40" />
           </svg>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/45 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
         </div>
       );
     }
     if (src === 'pfp_queen') {
       return (
-        <div className="w-full h-full bg-gradient-to-br from-[#880d1e] via-[#4f000b] to-[#1a0003] flex items-center justify-center relative overflow-hidden rounded-full">
-          <svg className="w-7 h-7 text-rose-300 drop-shadow-[0_2px_5px_rgba(244,63,94,0.5)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z" />
-            <path d="M3 20h18" />
-            <circle cx="12" cy="14" r="2" fill="currentColor" className="text-rose-500" />
+        <div className="w-full h-full bg-gradient-to-br from-rose-950 via-red-950 to-purple-950 flex items-center justify-center relative overflow-hidden rounded-full border border-rose-500/30">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(244,63,94,0.4),transparent_70%)] animate-pulse" />
+          <svg className="w-7 h-7 text-rose-300 relative z-10 drop-shadow-[0_0_10px_rgba(244,63,94,0.8)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M2 4l3 12h14l3-12-6 7-4-7-4 7-6-7z" fill="currentColor" fillOpacity="0.2" />
+            <path d="M3 20h18" strokeWidth="2.5" />
+            <circle cx="12" cy="14" r="2.5" fill="currentColor" className="text-amber-400" />
           </svg>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
         </div>
       );
     }
     if (src === 'pfp_grandmaster') {
       return (
-        <div className="w-full h-full bg-gradient-to-br from-indigo-950 via-purple-900 to-pink-950 flex items-center justify-center relative overflow-hidden rounded-full">
-          <svg className="w-7 h-7 text-yellow-300 drop-shadow-[0_2px_6px_rgba(234,179,8,0.6)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" />
-            <circle cx="12" cy="11" r="1.5" fill="currentColor" className="text-yellow-400" />
+        <div className="w-full h-full bg-gradient-to-br from-amber-950 via-yellow-950 to-purple-950 flex items-center justify-center relative overflow-hidden rounded-full border border-amber-400/40">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_50%,rgba(251,191,36,0.4),transparent_75%)] animate-pulse" />
+          <svg className="w-7 h-7 text-yellow-300 relative z-10 drop-shadow-[0_0_12px_rgba(251,191,36,0.9)]" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5z" fill="currentColor" fillOpacity="0.25" />
+            <path d="M5 19h14" strokeWidth="2.5" />
+            <circle cx="12" cy="12" r="1.5" fill="currentColor" className="text-amber-200" />
           </svg>
-          <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+        </div>
+      );
+    }
+    if (src === 'pfp_cyber_samurai') {
+      return (
+        <div className="w-full h-full bg-gradient-to-br from-fuchsia-950 via-purple-950 to-indigo-950 flex items-center justify-center relative overflow-hidden rounded-full border border-fuchsia-400/40">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(217,70,239,0.4),transparent_70%)]" />
+          <Zap className="w-7 h-7 text-fuchsia-300 relative z-10 drop-shadow-[0_0_10px_rgba(217,70,239,0.9)]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
+        </div>
+      );
+    }
+    if (src === 'pfp_golden_dragon') {
+      return (
+        <div className="w-full h-full bg-gradient-to-br from-red-950 via-amber-950 to-yellow-950 flex items-center justify-center relative overflow-hidden rounded-full border border-amber-500/40">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_40%,rgba(245,158,11,0.45),transparent_70%)] animate-pulse" />
+          <Flame className="w-7 h-7 text-amber-300 relative z-10 drop-shadow-[0_0_12px_rgba(245,158,11,0.9)]" />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent pointer-events-none" />
         </div>
       );
     }

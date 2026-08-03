@@ -97,8 +97,8 @@
     "friendRequests": [],
     "matchesPlayed": 296,
     "elo": 2702,
-    "xp": 90325,
-    "selectedFrame": "avatar_border_test",
+    "xp": 93085,
+    "selectedFrame": "gold",
     "unlockedFrames": [
       "none",
       "bronze",
@@ -169,8 +169,8 @@
     },
     "isAdmin": true,
     "isStaff": false,
-    "coins": 50615,
-    "diamonds": 2083,
+    "coins": 53310,
+    "diamonds": 2143,
     "selectedSkin": "crystal",
     "unlockedSkins": [
       "standard",
@@ -292,6 +292,13 @@
       }
     ],
     "chess_transaction_history": [
+      {
+        "id": "tx-diamond-1785744877297-802",
+        "timestamp": 1785744877297,
+        "type": "diamond",
+        "amount": 30,
+        "desc": "Menerima Berlian"
+      },
       {
         "id": "tx-diamond-1785575617641-341",
         "timestamp": 1785575617641,
@@ -4073,7 +4080,7 @@
       "motto": "Markas para ksatria papan hitam putih taktis Indonesia!",
       "logo": "perisai",
       "treasury": 7250,
-      "updatedAt": "2026-08-01T09:48:15.691Z"
+      "updatedAt": "2026-08-03T12:53:55.923Z"
     },
     "guild_members": [
       {
@@ -4089,6 +4096,7 @@
     "guild_treasury_gold": 1250,
     "guild_blacklist_list": [],
     "guild_action_history": [
+      "Anggota nopal mengklaim tunjangan harian klan Level 6 (+2500 Koin, +25 Gem).",
       "nopal melakukan absensi harian klan catur dan memperoleh +100 Poin Kontribusi suku.",
       "Anggota nopal berkontribusi +100 Coin ke brankas klan.",
       "Anggota nopal mencairkan 1000 Coin dari brankas klan.",
@@ -4155,11 +4163,11 @@
       "PecaturToxic69",
       "BotsSpammer2024"
     ],
-    "streak": 10,
-    "peakXp": 0,
-    "winStreak": 0,
-    "longestDefense": 0,
-    "lastActiveAt": 1785577694989,
+    "streak": 12,
+    "peakXp": 75,
+    "winStreak": 3,
+    "longestDefense": 37,
+    "lastActiveAt": 1785745049806,
     "user_clan_contribution": 6500
   },
   "pal": {

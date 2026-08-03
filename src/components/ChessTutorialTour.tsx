@@ -273,6 +273,8 @@ export function ChessTutorialTour({
     }
     if (isLast) {
       // Claim initial tutor award & persist completion state
+      const activeUser = (localStorage.getItem('username') || 'guest').trim().toLowerCase();
+      localStorage.setItem(`chess_tutorial_completed_${activeUser}`, 'true');
       localStorage.setItem('chess_tutorial_completed_v2', 'true');
       
       // Auto award initial balance if newly completed
@@ -298,6 +300,8 @@ export function ChessTutorialTour({
 
   const handleSkip = () => {
     if (triggerAudio) triggerAudio('win');
+    const activeUser = (localStorage.getItem('username') || 'guest').trim().toLowerCase();
+    localStorage.setItem(`chess_tutorial_completed_${activeUser}`, 'true');
     localStorage.setItem('chess_tutorial_completed_v2', 'true');
     onClose();
   };

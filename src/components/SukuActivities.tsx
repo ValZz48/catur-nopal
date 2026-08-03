@@ -1192,6 +1192,39 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
         });
       }
 
+      // Record to Log Audit & Riwayat Transaksi
+      try {
+        const activeUser = (username || localStorage.getItem('username') || 'guest').trim().toLowerCase();
+        const userKey = `chess_transaction_history:${activeUser}`;
+        const saved = localStorage.getItem(userKey) || localStorage.getItem('chess_transaction_history');
+        const list = saved ? JSON.parse(saved) : [];
+        const now = Date.now();
+        const newCoinTx = {
+          id: `tx-coin-${now}-clan-milestone-${tier}`,
+          timestamp: now,
+          type: 'coin',
+          amount: finalCoins,
+          desc: `Hadiah Peti Milestone Klan (${label})`
+        };
+        let updatedList = [newCoinTx, ...list];
+        if (finalDiamonds > 0) {
+          const newGemTx = {
+            id: `tx-gem-${now}-clan-milestone-${tier}`,
+            timestamp: now + 1,
+            type: 'diamond',
+            amount: finalDiamonds,
+            desc: `Hadiah Peti Milestone Klan (${label})`
+          };
+          updatedList = [newGemTx, ...updatedList];
+        }
+        updatedList = updatedList.slice(0, 100);
+        localStorage.setItem('chess_transaction_history', JSON.stringify(updatedList));
+        localStorage.setItem(userKey, JSON.stringify(updatedList));
+        window.dispatchEvent(new Event('chess_transaction_update'));
+      } catch (e) {
+        console.error('Error logging clan milestone transaction:', e);
+      }
+
       const nextMilestones = [...claimedWeeklyMilestones, tier];
       setClaimedWeeklyMilestones(nextMilestones);
       localStorage.setItem('clan_weekly_milestones', JSON.stringify(nextMilestones));
@@ -1290,6 +1323,39 @@ export const SukuActivities: React.FC<SukuActivitiesProps> = ({
         localStorage.setItem('diamonds', String(next));
         return next;
       });
+    }
+
+    // Record to Log Audit & Riwayat Transaksi
+    try {
+      const activeUser = (username || localStorage.getItem('username') || 'guest').trim().toLowerCase();
+      const userKey = `chess_transaction_history:${activeUser}`;
+      const saved = localStorage.getItem(userKey) || localStorage.getItem('chess_transaction_history');
+      const list = saved ? JSON.parse(saved) : [];
+      const now = Date.now();
+      const newCoinTx = {
+        id: `tx-coin-${now}-clan-checkin`,
+        timestamp: now,
+        type: 'coin',
+        amount: currentReward.coins,
+        desc: `Tunjangan Absensi Harian Klan (Hari ke-${nextStreak})`
+      };
+      let updatedList = [newCoinTx, ...list];
+      if (currentReward.diamonds > 0) {
+        const newGemTx = {
+          id: `tx-gem-${now}-clan-checkin`,
+          timestamp: now + 1,
+          type: 'diamond',
+          amount: currentReward.diamonds,
+          desc: `Tunjangan Absensi Harian Klan (Hari ke-${nextStreak})`
+        };
+        updatedList = [newGemTx, ...updatedList];
+      }
+      updatedList = updatedList.slice(0, 100);
+      localStorage.setItem('chess_transaction_history', JSON.stringify(updatedList));
+      localStorage.setItem(userKey, JSON.stringify(updatedList));
+      window.dispatchEvent(new Event('chess_transaction_update'));
+    } catch (e) {
+      console.error('Error logging clan checkin transaction:', e);
     }
 
     setClanCheckedIn(true);

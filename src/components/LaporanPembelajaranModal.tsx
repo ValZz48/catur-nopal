@@ -2,6 +2,7 @@ import React from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Sparkles, Share2, Zap, Target, Clock } from 'lucide-react';
 import coolCatSvg from '../assets/images/cool cat.svg';
+import coolCatUnderscoreSvg from '../assets/images/cool_cat.svg';
 
 interface LaporanPembelajaranProps {
   isOpen: boolean;
@@ -24,6 +25,18 @@ export const LaporanPembelajaranModal: React.FC<LaporanPembelajaranProps> = ({
   onClaimXp,
   onShare,
 }) => {
+  const MASCOT_SOURCES = [
+    coolCatSvg,
+    coolCatUnderscoreSvg,
+    '/cool%20cat.svg',
+    '/cool_cat.svg',
+    '/cool cat.svg',
+    '/Cool%20Cat.svg',
+    '/Cool_Cat.svg',
+  ];
+
+  const [mascotIdx, setMascotIdx] = React.useState(0);
+
   if (!isOpen) return null;
 
   // Format seconds into MM:SS (e.g. 109 -> "1:49")
@@ -68,20 +81,10 @@ export const LaporanPembelajaranModal: React.FC<LaporanPembelajaranProps> = ({
 
             {/* Mascot Image with Float Motion */}
             <motion.img
-              src={coolCatSvg || '/cool cat.svg'}
+              src={MASCOT_SOURCES[mascotIdx] || coolCatSvg || '/cool_cat.svg'}
               alt="Mascot Cool Cat"
-              onError={(e) => {
-                const target = e.currentTarget;
-                if (!target.dataset.fallback1) {
-                  target.dataset.fallback1 = 'true';
-                  target.src = '/cool cat.svg';
-                } else if (!target.dataset.fallback2) {
-                  target.dataset.fallback2 = 'true';
-                  target.src = '/cool_cat.svg';
-                } else if (!target.dataset.fallback3) {
-                  target.dataset.fallback3 = 'true';
-                  target.src = 'cool cat.svg';
-                }
+              onError={() => {
+                setMascotIdx((prev) => (prev + 1) % MASCOT_SOURCES.length);
               }}
               initial={{ scale: 0.7, opacity: 0 }}
               animate={{ scale: 1, opacity: 1, y: [0, -8, 0] }}

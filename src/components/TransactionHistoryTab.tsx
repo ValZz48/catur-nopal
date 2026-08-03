@@ -7,12 +7,14 @@ interface TransactionHistoryTabProps {
 }
 
 export const TransactionHistoryTab: React.FC<TransactionHistoryTabProps> = ({ prefLang, triggerAudio }) => {
-  // Read transaction history from localStorage
+  // Read transaction history from localStorage (filtered to rolling 7-day window: 7 days ago to today)
   const [localHistory, setLocalHistory] = useState<any[]>(() => {
     try {
       const activeUser = (localStorage.getItem('username') || 'guest').trim().toLowerCase();
-      const saved = localStorage.getItem(`chess_transaction_history:${activeUser}`);
-      return saved ? JSON.parse(saved) : [];
+      const saved = localStorage.getItem(`chess_transaction_history:${activeUser}`) || localStorage.getItem('chess_transaction_history');
+      const list: any[] = saved ? JSON.parse(saved) : [];
+      const cutoff = Date.now() - (7 * 24 * 60 * 60 * 1000);
+      return list.filter(tx => !tx.timestamp || tx.timestamp >= cutoff);
     } catch (e) {
       return [];
     }
@@ -24,11 +26,13 @@ export const TransactionHistoryTab: React.FC<TransactionHistoryTabProps> = ({ pr
     const handleUpdate = () => {
       try {
         const activeUser = (localStorage.getItem('username') || 'guest').trim().toLowerCase();
-        const saved = localStorage.getItem(`chess_transaction_history:${activeUser}`);
-        const nextList = saved ? JSON.parse(saved) : [];
+        const saved = localStorage.getItem(`chess_transaction_history:${activeUser}`) || localStorage.getItem('chess_transaction_history');
+        const nextList: any[] = saved ? JSON.parse(saved) : [];
+        const cutoff = Date.now() - (7 * 24 * 60 * 60 * 1000);
+        const filtered = nextList.filter(tx => !tx.timestamp || tx.timestamp >= cutoff);
         setTimeout(() => {
           if (active) {
-            setLocalHistory(nextList);
+            setLocalHistory(filtered);
           }
         }, 0);
       } catch (e) {}
@@ -43,7 +47,10 @@ export const TransactionHistoryTab: React.FC<TransactionHistoryTabProps> = ({ pr
   const [currencyFilter, setCurrencyFilter] = useState<'all' | 'coin' | 'diamond'>('all');
   const [typeFilter, setTypeFilter] = useState<'all' | 'gain' | 'spend'>('all');
 
+  const cutoffTime = Date.now() - (7 * 24 * 60 * 60 * 1000);
+
   const filteredList = localHistory.filter(tx => {
+    if (tx.timestamp && typeof tx.timestamp === 'number' && tx.timestamp < cutoffTime) return false;
     if (currencyFilter !== 'all' && tx.type !== currencyFilter) return false;
     if (typeFilter === 'gain' && tx.amount <= 0) return false;
     if (typeFilter === 'spend' && tx.amount >= 0) return false;
@@ -59,10 +66,15 @@ export const TransactionHistoryTab: React.FC<TransactionHistoryTabProps> = ({ pr
               <History className="w-5 h-5 text-yellow-500" />
               {prefLang === 'en' ? 'Audit Logs & Transaction History' : 'Log Audit & Riwayat Transaksi'}
             </h3>
-            <p className="text-[#9babaf] text-xs font-semibold">
-              {prefLang === 'en' 
-                ? 'Verify all credit additions and subtractions of coins or diamonds on your account' 
-                : 'Verifikasi seluruh penambahan dan pengurangan kredit koin atau berlian pada akun Anda'}
+            <p className="text-[#9babaf] text-xs font-semibold flex items-center gap-2 flex-wrap mt-0.5">
+              <span>
+                {prefLang === 'en' 
+                  ? 'Showing transactions from the last 7 days (rolling 1-week window)' 
+                  : 'Menampilkan transaksi 7 hari terakhir (minggu lalu s/d hari ini)'}
+              </span>
+              <span className="bg-[#81b64c]/15 text-[#81b64c] text-[10px] font-black px-2 py-0.5 rounded-full border border-[#81b64c]/30 uppercase tracking-wide">
+                {prefLang === 'en' ? 'Last 7 Days' : '7 Hari Terakhir'}
+              </span>
             </p>
           </div>
 

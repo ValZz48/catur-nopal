@@ -98,6 +98,43 @@ export const SukuDashboard: React.FC<SukuDashboardProps> = ({
     localStorage.setItem(`clan_privilege_last_claim:${username}`, todayStr);
     setPrivilegeClaimedToday(true);
 
+    // Record to Log Audit & Riwayat Transaksi
+    try {
+      const activeUser = (username || localStorage.getItem('username') || 'guest').trim().toLowerCase();
+      const userKey = `chess_transaction_history:${activeUser}`;
+      const saved = localStorage.getItem(userKey) || localStorage.getItem('chess_transaction_history');
+      const list = saved ? JSON.parse(saved) : [];
+      
+      const now = Date.now();
+      const newCoinTx = {
+        id: `tx-coin-${now}-clan-privilege`,
+        timestamp: now,
+        type: 'coin',
+        amount: rewardCoins,
+        desc: `Tunjangan Harian Klan (Hak Istimewa Suku Level ${lvl})`
+      };
+      
+      let updatedList = [newCoinTx, ...list];
+
+      if (rewardGems > 0) {
+        const newGemTx = {
+          id: `tx-gem-${now}-clan-privilege`,
+          timestamp: now + 1,
+          type: 'diamond',
+          amount: rewardGems,
+          desc: `Tunjangan Harian Klan (Hak Istimewa Suku Level ${lvl})`
+        };
+        updatedList = [newGemTx, ...updatedList];
+      }
+
+      updatedList = updatedList.slice(0, 100);
+      localStorage.setItem('chess_transaction_history', JSON.stringify(updatedList));
+      localStorage.setItem(userKey, JSON.stringify(updatedList));
+      window.dispatchEvent(new Event('chess_transaction_update'));
+    } catch (e) {
+      console.error('Error logging clan privilege transaction:', e);
+    }
+
     const logMsg = `Anggota ${username} mengklaim tunjangan harian klan Level ${lvl} (+${rewardCoins} Koin${rewardGems > 0 ? `, +${rewardGems} Gem` : ''}).`;
     setGuildLogs(prev => [logMsg, ...(prev || [])]);
     localStorage.setItem('guild_action_history', JSON.stringify([logMsg, ...(guildLogs || [])]));

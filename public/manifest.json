@@ -1,0 +1,22 @@
+{
+  "short_name": "Pal Mate",
+  "name": "Pal Mate - Arena Catur Digital",
+  "description": "Aplikasi Arena Catur Digital & Komunitas Catur Pal Mate",
+  "icons": [
+    {
+      "src": "/assets/images/avatar_martin_1779709510230.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/assets/images/avatar_martin_1779709510230.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#121110",
+  "theme_color": "#81b64c",
+  "display": "standalone",
+  "orientation": "portrait"
+}

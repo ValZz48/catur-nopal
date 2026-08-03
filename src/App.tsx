@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Chess } from 'chess.js';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { auth } from './utils';
 import { 
   Flame, 
   Heart, 
@@ -86,6 +88,7 @@ import { ConfirmationDialog } from './components/ConfirmationDialog';
 import { ChessOpeningsDb } from './components/ChessOpeningsDb';
 import { TransactionHistoryTab } from './components/TransactionHistoryTab';
 import { PageLoadingScreen } from './components/PageLoadingScreen';
+import { DownloadAppModal } from './components/DownloadAppModal';
 
 // Diagnostic Logging Middleware for localStorage updates
 try {
@@ -331,10 +334,10 @@ const formatTime = (seconds: number): string => {
 const EVALUATION_LABELS: Record<string, { label: string; bg: string; text: string; icon: string }> = {
   brilliant: { label: 'Brilian', bg: 'bg-emerald-600 border-emerald-500', text: 'text-white font-extrabold', icon: '!!' },
   great: { label: 'Hebat', bg: 'bg-blue-600 border-blue-500', text: 'text-white font-extrabold', icon: '!' },
-  best: { label: 'Terbaik', bg: 'bg-[#81b64c] border-[#81b64c]', text: 'text-white font-extrabold', icon: '' },
-  excellent: { label: 'Sangat Baik', bg: 'bg-teal-600 border-teal-500', text: 'text-white font-bold', icon: '' },
-  good: { label: 'Baik', bg: 'bg-sky-600 border-sky-500', text: 'text-white font-semibold', icon: '' },
-  book: { label: 'Teori Buku', bg: 'bg-amber-600 border-amber-500', text: 'text-white font-semibold', icon: 'B' },
+  best: { label: 'Terbaik', bg: 'bg-[#81b64c] border-[#81b64c]', text: 'text-white font-extrabold', icon: '★' },
+  excellent: { label: 'Sangat Baik', bg: 'bg-teal-600 border-teal-500', text: 'text-white font-bold', icon: '✓✓' },
+  good: { label: 'Baik', bg: 'bg-sky-600 border-sky-500', text: 'text-white font-semibold', icon: '✓' },
+  book: { label: 'Teori Buku', bg: 'bg-amber-600 border-amber-500', text: 'text-white font-semibold', icon: '📖' },
   inaccuracy: { label: 'Kurang Tepat', bg: 'bg-zinc-650 border-zinc-500', text: 'text-white font-semibold', icon: '?!' },
   mistake: { label: 'Kesalahan', bg: 'bg-orange-600 border-orange-500', text: 'text-white font-extrabold', icon: '?' },
   blunder: { label: 'Blunder', bg: 'bg-red-600 border-red-500', text: 'text-white font-extrabold', icon: '??' }
@@ -644,17 +647,23 @@ export default function App() {
   const [isNavDrawerOpen, setIsNavDrawerOpen] = useState<boolean>(false);
   const [activeHubTab, setActiveHubTab] = useState<'replay' | 'social' | 'rank' | 'pass'>('replay');
   const [showTutorialTour, setShowTutorialTour] = useState<boolean>(() => {
-    return localStorage.getItem('chess_tutorial_completed_v2') !== 'true';
+    const activeUser = (localStorage.getItem('username') || 'guest').trim().toLowerCase();
+    const isGuest = activeUser.startsWith('pecatur_') || activeUser === 'guest' || !localStorage.getItem('user');
+    if (isGuest) {
+      return localStorage.getItem('chess_tutorial_completed_guest') !== 'true';
+    }
+    return localStorage.getItem(`chess_tutorial_completed_${activeUser}`) !== 'true';
   });
   const [mode, setMode] = useState<GameMode>(() => {
     return (localStorage.getItem('mode') as GameMode) || 'home';
   });
   const [isPageLoading, setIsPageLoading] = useState<boolean>(false);
+  const [showDownloadAppModal, setShowDownloadAppModal] = useState<boolean>(false);
   const prevModeRef = useRef<GameMode>(mode);
 
   useEffect(() => {
     if (prevModeRef.current !== mode) {
-      const GAMEPLAY_MODES: GameMode[] = ['play', 'online-match', 'local-friend', 'puzzles', 'lessons', 'tournament'];
+      const GAMEPLAY_MODES: GameMode[] = ['select-character', 'play', 'online-match', 'local-friend', 'puzzles', 'lessons', 'tournament'];
       const isEnteringGameMode = GAMEPLAY_MODES.includes(mode) && !GAMEPLAY_MODES.includes(prevModeRef.current);
       
       prevModeRef.current = mode;
@@ -1418,7 +1427,8 @@ export default function App() {
   const loadedUsernameRef = useRef<string>(getActiveUsername().toLowerCase().trim());
 
   const [hearts, setHearts] = useState<number>(() => {
-    const saved = localStorage.getItem('hearts');
+    const actUser = getActiveUsername().toLowerCase().trim();
+    const saved = localStorage.getItem(`hearts:${actUser}`) || localStorage.getItem('hearts');
     return saved !== null ? Number(saved) : 5;
   });
   const [streak, setStreak] = useState<number>(() => {
@@ -2830,6 +2840,15 @@ export default function App() {
     setXp(finalXp);
     localStorage.setItem('xp', String(finalXp));
     localStorage.setItem(`xp:${userScope}`, String(finalXp));
+
+    // Load stamina/hearts per user scope
+    const savedScopedHearts = localStorage.getItem(`hearts:${userScope}`);
+    const finalHearts = isGuest
+      ? (savedScopedHearts !== null ? Number(savedScopedHearts) : 5)
+      : (savedScopedHearts !== null ? Number(savedScopedHearts) : (Number(localStorage.getItem('hearts')) || 5));
+    setHearts(finalHearts);
+    localStorage.setItem('hearts', String(finalHearts));
+    localStorage.setItem(`hearts:${userScope}`, String(finalHearts));
 
     // Load season pass
     const savedPassLevel = localStorage.getItem(`seasonPassLevel:${userScope}`);
@@ -4266,6 +4285,7 @@ export default function App() {
     localStorage.setItem('unlockedFrames', JSON.stringify(unlockedFrames));
     localStorage.setItem(`unlockedFrames:${userScope}`, JSON.stringify(unlockedFrames));
     localStorage.setItem('hearts', String(hearts));
+    localStorage.setItem(`hearts:${userScope}`, String(hearts));
     localStorage.setItem('streak', String(streak));
     localStorage.setItem(`streak:${userScope}`, String(streak));
     localStorage.setItem('sound', String(soundEnabled));
@@ -7515,12 +7535,8 @@ export default function App() {
     }
     
     // Add currencies
-    const nextCoins = coins + reward.coins;
-    const nextDiamonds = diamonds + reward.diamonds;
-    setCoins(nextCoins);
-    setDiamonds(nextDiamonds);
-    localStorage.setItem('coins', String(nextCoins));
-    localStorage.setItem('diamonds', String(nextDiamonds));
+    setCoins(prev => prev + reward.coins);
+    setDiamonds(prev => prev + reward.diamonds, true);
     
     // Auto sync user metrics
     if (user) {
@@ -8354,6 +8370,155 @@ export default function App() {
                 >
                   Daftar Baru
                 </button>
+              </div>
+
+              {/* GOOGLE AUTH BUTTON */}
+              <button
+                type="button"
+                onClick={async () => {
+                  setAuthError('');
+                  setAuthLoading(true);
+                  try {
+                    const provider = new GoogleAuthProvider();
+                    const result = await signInWithPopup(auth, provider);
+                    const googleUser = result.user;
+                    if (!googleUser) {
+                      setAuthError('Gagal mendapatkan informasi dari Google Auth.');
+                      setAuthLoading(false);
+                      return;
+                    }
+
+                    const rawName = (googleUser.displayName || googleUser.email?.split('@')[0] || 'UserGoogle').replace(/[^a-zA-Z0-9_]/g, '');
+                    const googleAuthUsername = rawName || `GoogleUser_${googleUser.uid.substring(0, 5)}`;
+
+                    const isRegisterMode = authTab === 'register';
+                    const endpoint = isRegisterMode ? '/api/auth/register' : '/api/auth/login';
+                    const authReqBody = isRegisterMode 
+                      ? {
+                          username: googleAuthUsername,
+                          password: `google_${googleUser.uid}`,
+                          elo: onlineRating || 400,
+                          xp: xp || 0,
+                          coins: coins || 500,
+                          diamonds: diamonds || 20,
+                          matchesPlayed: user ? (user.matchesPlayed || 0) : guestMatchesPlayed,
+                          matchesWon: user ? (user.matchesWon || 0) : guestMatchesWon,
+                          boardTheme: boardTheme || 'classic',
+                          unlockedThemes: unlockedThemes || ['classic'],
+                          selectedSkin: selectedSkin || 'standard',
+                          unlockedSkins: unlockedSkins || ['standard'],
+                          selectedFrame: selectedFrame || 'none',
+                          unlockedFrames: unlockedFrames || ['none'],
+                          onlineHistory: onlineHistory || [],
+                          blockedUsers: []
+                        }
+                      : { username: googleAuthUsername, password: `google_${googleUser.uid}` };
+
+                    let response = await fetchWithTimeout(endpoint, {
+                      method: 'POST',
+                      headers: { 'Content-Type': 'application/json' },
+                      body: JSON.stringify(authReqBody)
+                    }, 1500).catch(() => null);
+
+                    let data: any = null;
+                    if (response && response.ok) {
+                      data = await response.json().catch(() => null);
+                    }
+
+                    let isNewAccount = isRegisterMode;
+                    if (!data || !data.success || !data.user) {
+                      if (!isRegisterMode) {
+                        isNewAccount = true;
+                        const regBody = {
+                          username: googleAuthUsername,
+                          password: `google_${googleUser.uid}`,
+                          elo: 400,
+                          xp: 0,
+                          coins: 500,
+                          diamonds: 20,
+                          matchesPlayed: 0,
+                          matchesWon: 0,
+                          boardTheme: 'classic',
+                          unlockedThemes: ['classic'],
+                          selectedSkin: 'standard',
+                          unlockedSkins: ['standard'],
+                          selectedFrame: 'none',
+                          unlockedFrames: ['none'],
+                          onlineHistory: [],
+                          blockedUsers: []
+                        };
+                        response = await fetchWithTimeout('/api/auth/register', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify(regBody)
+                        }, 1500).catch(() => null);
+                        if (response && response.ok) {
+                          data = await response.json().catch(() => null);
+                        }
+                      }
+                    }
+
+                    const authenticatedUser: any = {
+                      username: (data && data.user && data.user.username) ? data.user.username : googleAuthUsername,
+                      elo: (data && data.user && data.user.elo !== undefined) ? data.user.elo : 400,
+                      xp: (data && data.user && data.user.xp !== undefined) ? data.user.xp : 0,
+                      coins: (data && data.user && data.user.coins !== undefined) ? data.user.coins : 500,
+                      diamonds: (data && data.user && data.user.diamonds !== undefined) ? data.user.diamonds : 20,
+                      unlockedThemes: (data && data.user && data.user.unlockedThemes) || ["classic"],
+                      matchesPlayed: (data && data.user && data.user.matchesPlayed !== undefined) ? data.user.matchesPlayed : 0,
+                      matchesWon: (data && data.user && data.user.matchesWon !== undefined) ? data.user.matchesWon : 0,
+                      profileAvatar: googleUser.photoURL || martinAvatar,
+                      profileBio: "Member Google Auth Pal Mate!",
+                      claimedAchievements: [],
+                      membershipStatus: 'free',
+                      selectedFrame: 'none',
+                      unlockedFrames: ['none'],
+                      selectedSkin: 'standard',
+                      unlockedSkins: ['standard'],
+                      equippedTitle: 'Pecatur Perintis',
+                      customStatus: 'Pantang menyerah sebelum raja digulingkan!',
+                      chess_transaction_history: []
+                    };
+
+                    isResettingRef.current = true;
+                    setUser(authenticatedUser);
+                    setProfileEditingBio(authenticatedUser.profileBio);
+                    localStorage.setItem('user', JSON.stringify(authenticatedUser));
+
+                    if (isNewAccount) {
+                      const userScope = authenticatedUser.username.trim().toLowerCase();
+                      localStorage.removeItem(`chess_tutorial_completed_${userScope}`);
+                      setShowTutorialTour(true);
+                    }
+
+                    handleSaveUsername(authenticatedUser.username);
+                    setOnlineRating(authenticatedUser.elo);
+                    setXp(authenticatedUser.xp);
+                    setShowAuthModal(false);
+                    triggerReward(0, `Selamat Datang, ${authenticatedUser.username}! Berhasil masuk via Google.`, 'success_no_xp');
+                  } catch (err: any) {
+                    console.error("Google auth error:", err);
+                    setAuthError(err?.message || 'Gagal autentikasi via Google Auth. Silakan coba lagi.');
+                  } finally {
+                    setAuthLoading(false);
+                  }
+                }}
+                disabled={authLoading}
+                className="w-full mb-4 py-2.5 px-4 bg-white hover:bg-slate-100 text-slate-800 font-extrabold text-xs rounded-xl flex items-center justify-center gap-2.5 transition-all cursor-pointer shadow-md border border-slate-300 active:scale-[0.98]"
+              >
+                <svg className="w-4 h-4 shrink-0" viewBox="0 0 24 24">
+                  <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                  <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                  <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+                  <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+                </svg>
+                <span>{authTab === 'login' ? 'Masuk dengan Google Auth' : 'Daftar dengan Google Auth'}</span>
+              </button>
+
+              <div className="relative flex py-1 items-center mb-4">
+                <div className="flex-grow border-t border-[#3c3934]"></div>
+                <span className="flex-shrink mx-3 text-[9.5px] text-slate-400 font-extrabold uppercase tracking-widest">atau via Form Username</span>
+                <div className="flex-grow border-t border-[#3c3934]"></div>
               </div>
 
               {authError && (
@@ -11422,10 +11587,26 @@ export default function App() {
                     <div className="space-y-3 max-h-[500px] overflow-y-auto pr-1">
                       {(() => {
                         const items = [
-                          { id: 'pfp_knight', name: prefLang === 'en' ? 'Steel Knight' : 'Pecatur Kuda Baja', desc: prefLang === 'en' ? 'Steel armored knight portrait' : 'Lukisan potret ksatria catur berkuda.' },
-                          { id: 'pfp_rook', name: prefLang === 'en' ? 'Iron Fortress' : 'Benteng Kastil Besi', desc: prefLang === 'en' ? 'Strong medieval fortress' : 'Ilustrasi benteng kokoh bernuansa medieval.' },
+                          { id: martinAvatar, name: prefLang === 'en' ? 'Martin Bot' : 'Martin Bot', desc: prefLang === 'en' ? 'Friendly beginner chess tutor portrait' : 'Foto potret mentor tutor catur ramah Martin.' },
+                          { id: magnusAvatar, name: prefLang === 'en' ? 'Magnus Legend' : 'Magnus Sang Legenda', desc: prefLang === 'en' ? 'World Chess Champion portrait' : 'Foto avatar Juara Catur Dunia Magnus Carlsen.' },
+                          { id: nelsonAvatar, name: prefLang === 'en' ? 'Nelson Queen Rush' : 'Nelson Ratu Agresif', desc: prefLang === 'en' ? 'Aggressive early queen player avatar' : 'Avatar taktik penyerang ratu awal Nelson.' },
+                          { id: wallyAvatar, name: prefLang === 'en' ? 'Wally Strategist' : 'Wally Ahli Taktik', desc: prefLang === 'en' ? 'Calculative tactical Bot portrait' : 'Potret bot kalkulatif ahli taktik Wally.' },
+                          { id: duoAvatar, name: prefLang === 'en' ? 'Duo Chess Coach' : 'Duo Maskot Catur', desc: prefLang === 'en' ? 'Iconic owl chess coach avatar' : 'Avatar burung hantu pelatih catur Duo.' },
+                          { id: lilyAvatar, name: prefLang === 'en' ? 'Lily Prodigy' : 'Lily Sang Genius', desc: prefLang === 'en' ? 'Talented young chess master avatar' : 'Potret master muda berbakat Lily.' },
+                          { id: zariAvatar, name: prefLang === 'en' ? 'Zari Blitz Master' : 'Zari Ratu Kilat', desc: prefLang === 'en' ? 'Speed blitz specialist portrait' : 'Potret spesialis catur kilat Zari.' },
+                          { id: oscarAvatar, name: prefLang === 'en' ? 'Oscar Master' : 'Oscar Sang Master', desc: prefLang === 'en' ? 'Experienced chess tactician portrait' : 'Potret taktis veteran catur Oscar.' },
+                          { id: eddyAvatar, name: prefLang === 'en' ? 'Eddy Dynamo' : 'Eddy Dynamo', desc: prefLang === 'en' ? 'Energetic chess challenger avatar' : 'Avatar penantang catur energik Eddy.' },
+                          { id: juniorAvatar, name: prefLang === 'en' ? 'Junior Maestro' : 'Junior Sang Maestro', desc: prefLang === 'en' ? 'Creative chess enthusiast avatar' : 'Potret pengagum catur kreatif Junior.' },
+                          { id: linAvatar, name: prefLang === 'en' ? 'Lin Zen Master' : 'Lin Master Zen', desc: prefLang === 'en' ? 'Calm and focused chess player' : 'Potret ketenangan master catur Lin.' },
+                          { id: vikramAvatar, name: prefLang === 'en' ? 'Vikram Monarch' : 'Vikram Sang Raja', desc: prefLang === 'en' ? 'Royal grandmaster chess portrait' : 'Potret gaya raja master catur Vikram.' },
+                          { id: beaAvatar, name: prefLang === 'en' ? 'Bea Smart Gambit' : 'Bea Cerdas Taktik', desc: prefLang === 'en' ? 'Clever opening gambit strategist' : 'Potret pemikir pembukaan cerdas Bea.' },
+                          { id: falstaffAvatar, name: prefLang === 'en' ? 'Falstaff General' : 'Jenderal Falstaff', desc: prefLang === 'en' ? 'Venerable chess general avatar' : 'Potret jenderal catur senior Falstaff.' },
+                          { id: 'pfp_knight', name: prefLang === 'en' ? 'Steel Knight' : 'Pecatur Kuda Baja', desc: prefLang === 'en' ? 'Cyberpunk neon knight portrait' : 'Lukisan potret ksatria neon berkuda.' },
+                          { id: 'pfp_rook', name: prefLang === 'en' ? 'Emerald Fortress' : 'Benteng Zamrud', desc: prefLang === 'en' ? 'Strong emerald castle fortress' : 'Ilustrasi benteng zamrud kokoh.' },
                           { id: 'pfp_queen', name: prefLang === 'en' ? 'Ruby Queen' : 'Ratu Permata Merah', desc: prefLang === 'en' ? 'Queen silhouette with ruby crown' : 'Siluet ratu catur bertakhta mahkota ruby.' },
-                          { id: 'pfp_grandmaster', name: prefLang === 'en' ? 'Chess Overlord' : 'Chess Overlord', desc: prefLang === 'en' ? 'Highest chess master avatar' : 'Gelar ilustrasi tertinggi sang dewa master catur.' }
+                          { id: 'pfp_grandmaster', name: prefLang === 'en' ? 'Cosmic Overlord' : 'Penguasa Kosmik', desc: prefLang === 'en' ? 'Highest cosmic master avatar' : 'Gelar ilustrasi kosmik tertinggi master catur.' },
+                          { id: 'pfp_cyber_samurai', name: prefLang === 'en' ? 'Cyber Samurai' : 'Samurai Siber Neon', desc: prefLang === 'en' ? 'Futuristic samurai chess master' : 'Avatar samurai siber catur masa depan.' },
+                          { id: 'pfp_golden_dragon', name: prefLang === 'en' ? 'Golden Dragon' : 'Naga Emas Dewata', desc: prefLang === 'en' ? 'Mythic golden dragon sovereign' : 'Avatar naga emas bertuah penguasa papan.' }
                         ].filter(pfpItem => {
                           if (!inventorySearch) return true;
                           const s = inventorySearch.toLowerCase();
@@ -11443,7 +11624,7 @@ export default function App() {
                         const unlockedPfps = JSON.parse(localStorage.getItem('unlocked_pfp_items') || '[]');
 
                         return items.map(pfpItem => {
-                          const isUnlocked = unlockedPfps.includes(pfpItem.id) || pfpItem.id === 'pfp_knight' || membershipStatus === 'premium';
+                          const isUnlocked = unlockedPfps.includes(pfpItem.id) || pfpItem.id === 'pfp_knight' || pfpItem.id === martinAvatar || pfpItem.id.includes('/') || pfpItem.id.startsWith('data:') || membershipStatus === 'premium';
                           const isActive = (user?.profileAvatar || localStorage.getItem('guestAvatar') || 'pfp_knight') === pfpItem.id;
                           return (
                             <div key={pfpItem.id} className={`p-3 rounded-2xl border transition-all flex items-center justify-between gap-3 ${isActive ? 'bg-[#262421] border-[#ffd700]' : 'bg-[#262421] border-[#3c3934]'}`}>
@@ -13071,7 +13252,9 @@ export default function App() {
             </div>
 
             <div className="bg-[#1e1c1b] p-5 rounded-2xl border border-[#3c3934]/65 text-left space-y-3">
-              <h4 className="text-xs font-black text-white uppercase tracking-wider">Ritual Adat Pal Mate</h4>
+              <h4 className="text-xs font-black text-white uppercase tracking-wider">
+                {prefLang === 'en' ? 'Pre-Match Lucky Ritual' : 'Ritual Keberuntungan Sebelum Tanding'}
+              </h4>
               <p className="text-xs text-slate-400 leading-relaxed font-semibold">
                 Sebelum bidak digerakkan, jalani ritual keberuntungan untuk memperebutkan berkah klan tanding! Pilih tebakan jitu Anda. Jika tebakan Anda benar, Anda mendapatkan bonus 15 Koin Klan!
               </p>
