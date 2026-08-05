@@ -48,7 +48,6 @@ export const GACHA_ITEMS_POOL: GachaItem[] = [
   { id: 'magma', name: 'Bingkai Lava Vulkanik', category: 'frame', rarity: 'Epic', desc: 'Bara api lava menggelora di ujung bingkai.', color: 'border-orange-500 text-orange-400' },
   { id: 'gold', name: 'Bingkai Gladiator Emas', category: 'frame', rarity: 'Legendary', desc: 'Kemewahan emas murni dengan simbol mahkota. (Eksklusif Premium)', color: 'border-yellow-400 text-yellow-400 font-extrabold' },
   { id: 'cosmic', name: 'Bingkai Cahaya Kosmik', category: 'frame', rarity: 'Mythic', desc: 'Aura galaksi bertabur nebula gemerlap. (Eksklusif Premium)', color: 'border-fuchsia-500 text-fuchsia-400' },
-  { id: 'avatar_border_test', name: 'Bingkai Neon Pulsar', category: 'frame', rarity: 'Mythic', desc: 'Video animasi pulsa gelombang neon bergerak cepat.', color: 'border-cyan-400 text-cyan-300 font-bold' },
 
   // Custom SFX
   { id: 'sfx_robotic', name: 'SFX Robot Logam', category: 'sfx', rarity: 'Uncommon', desc: 'Suara gesekan robot setiap kali bidak melangkah.', color: 'border-slate-400 text-slate-300' },
@@ -847,7 +846,7 @@ export const Features26to30: React.FC<Features26to30Props> = ({
           <div className="bg-[#262421] rounded-2xl p-5 border border-[#3c3934] space-y-4">
             <div className="flex justify-between items-center bg-[#141212]/50 p-4 rounded-xl border border-[#3c3934]/40">
               <div>
-                <h5 className="text-xs font-black text-white">Misi Durasi Catur Premium</h5>
+                <h5 className="text-xs font-black text-white">Misi Durasi Tanding Catur</h5>
                 <p className="text-[10px] text-slate-400">Status pencatatan menit tanding aktif di turnamen/vs AI</p>
               </div>
               <span className="text-xs font-mono font-extrabold text-yellow-500 bg-yellow-500/10 px-2.5 py-1 rounded-lg">

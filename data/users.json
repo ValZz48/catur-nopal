@@ -97,7 +97,7 @@
     "friendRequests": [],
     "matchesPlayed": 296,
     "elo": 2702,
-    "xp": 93085,
+    "xp": 95500,
     "selectedFrame": "gold",
     "unlockedFrames": [
       "none",
@@ -169,7 +169,7 @@
     },
     "isAdmin": true,
     "isStaff": false,
-    "coins": 53310,
+    "coins": 55245,
     "diamonds": 2143,
     "selectedSkin": "crystal",
     "unlockedSkins": [
@@ -211,7 +211,8 @@
       "wooden",
       "avatar_border_data",
       "avatar_decoration",
-      "avatar_pendant"
+      "avatar_pendant",
+      "avatar_border_test"
     ],
     "equippedCheckmateEffect": "none",
     "unlockedCheckmateEffects": [
@@ -292,6 +293,167 @@
       }
     ],
     "chess_transaction_history": [
+      {
+        "id": "tx-coin-1785920726455-599",
+        "timestamp": 1785920726455,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-coin-1785920366516-317",
+        "timestamp": 1785920366516,
+        "type": "coin",
+        "amount": 195,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785918547034-52",
+        "timestamp": 1785918547034,
+        "type": "coin",
+        "amount": 210,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785917743920-562",
+        "timestamp": 1785917743920,
+        "type": "coin",
+        "amount": 210,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785917239248-975",
+        "timestamp": 1785917239248,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-diamond-1785917181278-221",
+        "timestamp": 1785917181278,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1785917181276-949",
+        "timestamp": 1785917181276,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785917176407-350",
+        "timestamp": 1785917176407,
+        "type": "coin",
+        "amount": 210,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785850708312-103",
+        "timestamp": 1785850708312,
+        "type": "coin",
+        "amount": 195,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785848758139-6",
+        "timestamp": 1785848758139,
+        "type": "diamond",
+        "amount": 7,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1785848758134-783",
+        "timestamp": 1785848758134,
+        "type": "coin",
+        "amount": 225,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785848750108-137",
+        "timestamp": 1785848750108,
+        "type": "diamond",
+        "amount": 12,
+        "desc": "Menabung Berlian (Brankas Piggy Bank)"
+      },
+      {
+        "id": "tx-coin-1785848750104-717",
+        "timestamp": 1785848750104,
+        "type": "coin",
+        "amount": 375,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785848744342-39",
+        "timestamp": 1785848744342,
+        "type": "coin",
+        "amount": 210,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-coin-1785848697760-156",
+        "timestamp": 1785848697760,
+        "type": "coin",
+        "amount": -500,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-diamond-1785848687495-171",
+        "timestamp": 1785848687495,
+        "type": "diamond",
+        "amount": 2123,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1785848687492-354",
+        "timestamp": 1785848687492,
+        "type": "coin",
+        "amount": 53245,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785848648010-697",
+        "timestamp": 1785848648010,
+        "type": "diamond",
+        "amount": 2123,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1785848648005-387",
+        "timestamp": 1785848648005,
+        "type": "coin",
+        "amount": 53245,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785848131983-795",
+        "timestamp": 1785848131983,
+        "type": "diamond",
+        "amount": 2123,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1785848131979-382",
+        "timestamp": 1785848131979,
+        "type": "coin",
+        "amount": 53245,
+        "desc": "Menerima Koin"
+      },
+      {
+        "id": "tx-diamond-1785847089324-586",
+        "timestamp": 1785847089324,
+        "type": "diamond",
+        "amount": 2123,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1785847089321-325",
+        "timestamp": 1785847089321,
+        "type": "coin",
+        "amount": 52245,
+        "desc": "Menerima Koin"
+      },
       {
         "id": "tx-diamond-1785744877297-802",
         "timestamp": 1785744877297,
@@ -4080,7 +4242,7 @@
       "motto": "Markas para ksatria papan hitam putih taktis Indonesia!",
       "logo": "perisai",
       "treasury": 7250,
-      "updatedAt": "2026-08-03T12:53:55.923Z"
+      "updatedAt": "2026-08-05T09:15:11.959Z"
     },
     "guild_members": [
       {
@@ -4163,7 +4325,7 @@
       "PecaturToxic69",
       "BotsSpammer2024"
     ],
-    "streak": 12,
+    "streak": 14,
     "peakXp": 75,
     "winStreak": 3,
     "longestDefense": 37,
@@ -4179,6 +4341,33 @@
         "text": "nopal mulai mengikuti Anda!",
         "sentAt": 1785145331102,
         "status": "read"
+      },
+      {
+        "id": "invite_afyq5vm",
+        "type": "game_invite",
+        "sender": "nopal",
+        "text": "nopal mengundang Anda berduel catur online!",
+        "roomCode": "PLAY_NOPA_5398",
+        "sentAt": 1785847136606,
+        "status": "pending"
+      },
+      {
+        "id": "invite_3405fi5",
+        "type": "game_invite",
+        "sender": "nopal",
+        "text": "nopal mengundang Anda berduel catur online!",
+        "roomCode": "PLAY_NOPA_2527",
+        "sentAt": 1785848009961,
+        "status": "pending"
+      },
+      {
+        "id": "invite_g311frg",
+        "type": "game_invite",
+        "sender": "nopal",
+        "text": "nopal mengundang Anda berduel catur online!",
+        "roomCode": "PLAY_NOPA_7340",
+        "sentAt": 1785848143461,
+        "status": "pending"
       }
     ],
     "unlockedThemes": [

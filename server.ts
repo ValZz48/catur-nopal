@@ -3724,6 +3724,54 @@ PANDUAN CHAT MANUSIA ALAMI (ANTI-ROBOTIK):
     }
   });
 
+  // Static file serving from public directory (ensures images, SVGs, MP4s like test.mp4 and cool_cat.svg are always accessible)
+  const publicPath = path.join(process.cwd(), 'public');
+
+  // Dedicated route for cool_cat SVG with immutable caching and multi-path file system lookup
+  app.get(['/cool_cat.svg', '/coolcat.svg', '/cool%20cat.svg', '/Cool_Cat.svg', '/Cool%20Cat.svg', '/assets/images/cool_cat.svg', '/assets/images/coolcat.svg'], (req, res) => {
+    const candidates = [
+      path.join(process.cwd(), 'public', 'cool_cat.svg'),
+      path.join(process.cwd(), 'public', 'cool cat.svg'),
+      path.join(process.cwd(), 'public', 'coolcat.svg'),
+      path.join(process.cwd(), 'src', 'assets', 'images', 'cool_cat.svg'),
+      path.join(process.cwd(), 'src', 'assets', 'images', 'cool cat.svg'),
+      path.join(process.cwd(), 'dist', 'cool_cat.svg'),
+      path.join(process.cwd(), 'dist', 'assets', 'images', 'cool_cat.svg'),
+    ];
+    for (const file of candidates) {
+      if (fs.existsSync(file)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        res.setHeader('Content-Type', 'image/svg+xml');
+        return res.sendFile(file);
+      }
+    }
+    return res.status(404).end();
+  });
+
+  // Dedicated route for test.mp4 video border with immutable caching and multi-path file system lookup
+  app.get(['/test.mp4', '/frames/test.mp4', '/avatar_border_test.mp4', '/Test.mp4', '/TEST.mp4', '/data.mp4', '/frames/data.mp4'], (req, res) => {
+    const candidates = [
+      path.join(process.cwd(), 'public', 'test.mp4'),
+      path.join(process.cwd(), 'public', 'frames', 'test.mp4'),
+      path.join(process.cwd(), 'public', 'avatar_border_test.mp4'),
+      path.join(process.cwd(), 'dist', 'test.mp4'),
+      path.join(process.cwd(), 'dist', 'frames', 'test.mp4'),
+    ];
+    for (const file of candidates) {
+      if (fs.existsSync(file)) {
+        res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+        res.setHeader('Content-Type', 'video/mp4');
+        return res.sendFile(file);
+      }
+    }
+    return res.status(404).end();
+  });
+
+  app.use('/public', express.static(publicPath));
+  app.use('/frames', express.static(path.join(publicPath, 'frames')));
+  app.use('/assets', express.static(path.join(publicPath, 'assets')));
+  app.use(express.static(publicPath));
+
   // Vite development middleware vs Static built production bundle
   if (process.env.NODE_ENV !== "production") {
     const vite = await createViteServer({

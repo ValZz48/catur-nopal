@@ -20,7 +20,7 @@ function hideSplash() {
                       if (document.readyState === 'complete') res(null);
                           else window.addEventListener('load', function(){ res(null); });
                             }),
-                              window.__splashReady || Promise.resolve()
+                              (window as any).__splashReady || Promise.resolve()
                               ]).then(function(){
                                 setTimeout(hideSplash, 250);
                                 });

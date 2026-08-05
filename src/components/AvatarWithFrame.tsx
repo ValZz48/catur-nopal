@@ -1,5 +1,6 @@
 import React from 'react';
-import { Crown, Sparkles, Flame, Trophy, Snowflake, Waves, Terminal, Zap, Gem } from 'lucide-react';
+import { Crown, Sparkles, Flame, Trophy, Snowflake, Waves, Terminal, Zap, Gem, Cpu } from 'lucide-react';
+import testMp4Asset from '../assets/images/test.mp4';
 
 interface AvatarWithFrameProps {
   src: string;
@@ -16,117 +17,25 @@ interface VideoFrameCanvasProps {
 
 function VideoFrameCanvas({ src, className = '' }: VideoFrameCanvasProps) {
   const videoRef = React.useRef<HTMLVideoElement>(null);
-  const canvasRef = React.useRef<HTMLCanvasElement>(null);
 
   const VIDEO_SOURCES = React.useMemo(() => [
-    src,
     '/test.mp4',
-    '/Test.mp4',
-    '/TEST.mp4',
-    'test.mp4',
-  ], [src]);
+    testMp4Asset,
+    src,
+  ].filter(Boolean), [src]);
 
   const [srcIdx, setSrcIdx] = React.useState(0);
-  const currentVideoSrc = VIDEO_SOURCES[srcIdx] || '/test.mp4';
+  const currentVideoSrc = '/test.mp4';
 
   React.useEffect(() => {
-    let animationFrameId: number;
     const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas) return;
-
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    if (!ctx) return;
-
-    const attemptPlay = () => {
-      if (video && (video.paused || video.ended)) {
-        video.play().catch(() => {});
-      }
-    };
-
-    video.load();
-    attemptPlay();
-
-    video.addEventListener('canplay', attemptPlay);
-    video.addEventListener('pause', attemptPlay);
-    window.addEventListener('click', attemptPlay);
-    window.addEventListener('touchstart', attemptPlay);
-
-    const render = () => {
-      if (video && video.readyState >= 2) {
-        // High resolution 300x300 canvas rendering with high quality image smoothing
-        const width = 300;
-        const height = 300;
-
-        ctx.imageSmoothingEnabled = true;
-        ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(video, 0, 0, width, height);
-
-        const frame = ctx.getImageData(0, 0, width, height);
-        const data = frame.data;
-
-        // Fast flood-fill to isolate white background/hole from the frame/jewels
-        const bgMask = new Uint8Array(width * height);
-        const queue: number[] = [0, 299, 299 * width, 299 * width + 299, 150 * width + 150];
-
-        let qHead = 0;
-        while (qHead < queue.length) {
-          const pos = queue[qHead++];
-          if (bgMask[pos]) continue;
-
-          const idx = pos * 4;
-          const r = data[idx];
-          const g = data[idx + 1];
-          const b = data[idx + 2];
-          const minC = Math.min(r, g, b);
-
-          if (minC > 200) {
-            bgMask[pos] = 1;
-            const x = pos % width;
-            const y = (pos / width) | 0;
-
-            if (x > 0 && !bgMask[pos - 1]) queue.push(pos - 1);
-            if (x < width - 1 && !bgMask[pos + 1]) queue.push(pos + 1);
-            if (y > 0 && !bgMask[pos - width]) queue.push(pos - width);
-            if (y < height - 1 && !bgMask[pos + width]) queue.push(pos + width);
-          }
-        }
-
-        // Apply transparency strictly to background/hole mask, preserving full frame color & opacity
-        const total = width * height;
-        for (let i = 0; i < total; i++) {
-          const idx = i * 4;
-          if (bgMask[i]) {
-            const minC = Math.min(data[idx], data[idx + 1], data[idx + 2]);
-            if (minC > 235) {
-              data[idx + 3] = 0;
-            } else {
-              data[idx + 3] = Math.floor(((235 - minC) / 35) * 255);
-            }
-          } else {
-            // Keep frame jewels, gold, and effects 100% vibrant & opaque!
-            data[idx + 3] = 255;
-          }
-        }
-
-        ctx.putImageData(frame, 0, 0);
-      }
-      animationFrameId = requestAnimationFrame(render);
-    };
-
-    render();
-
-    return () => {
-      cancelAnimationFrame(animationFrameId);
-      video.removeEventListener('canplay', attemptPlay);
-      video.removeEventListener('pause', attemptPlay);
-      window.removeEventListener('click', attemptPlay);
-      window.removeEventListener('touchstart', attemptPlay);
-    };
+    if (video) {
+      video.play().catch(() => {});
+    }
   }, [currentVideoSrc]);
 
   return (
-    <>
+    <div className={`absolute inset-0 w-full h-full flex items-center justify-center pointer-events-none z-10 ${className}`}>
       <video
         ref={videoRef}
         src={currentVideoSrc}
@@ -135,26 +44,12 @@ function VideoFrameCanvas({ src, className = '' }: VideoFrameCanvasProps) {
         muted
         playsInline
         preload="auto"
-        aria-hidden="true"
-        style={{
-          position: 'absolute',
-          width: '1px',
-          height: '1px',
-          opacity: 0.001,
-          pointerEvents: 'none',
-          zIndex: -9999,
-        }}
         onError={() => {
           setSrcIdx((prev) => (prev + 1) % VIDEO_SOURCES.length);
         }}
+        className="w-full h-full object-contain pointer-events-none block z-20 scale-110 rounded-full mix-blend-screen"
       />
-      <canvas
-        ref={canvasRef}
-        width={300}
-        height={300}
-        className={className}
-      />
-    </>
+    </div>
   );
 }
 
@@ -183,26 +78,23 @@ export function AvatarWithFrame({ src, frameId = 'none', size = 'sm', className 
     currentFrame = currentFrame.replace('frame_', '');
   }
 
-  // MP4 Animated Video Avatar Borders mapping using test.mp4
+  // MP4 Animated Video Avatar Borders mapping using /test.mp4
   const VIDEO_FRAMES: Record<string, string> = {
-    avatar_border_test: '/test.mp4',
     test: '/test.mp4',
     'test.mp4': '/test.mp4',
     '/test.mp4': '/test.mp4',
-    neon_pulsar: '/test.mp4',
-    'Neon Pulsar': '/test.mp4',
-    'Neon Pulsar Border': '/test.mp4',
-    'neon_pulsar_border': '/test.mp4',
-    'Bingkai Neon Pulsar': '/test.mp4',
-    'bingkai_neon_pulsar': '/test.mp4',
-    'Neon_Pulsar': '/test.mp4',
-    'NEON_PULSAR': '/test.mp4',
     data: '/test.mp4',
     'data.mp4': '/test.mp4',
     avatar_border_data: '/test.mp4',
   };
 
-  const videoSrc = VIDEO_FRAMES[currentFrame];
+  let videoSrc = VIDEO_FRAMES[currentFrame] || VIDEO_FRAMES[frameId || ''];
+  if (!videoSrc) {
+    const checkStr = (currentFrame + ' ' + (frameId || '')).toLowerCase();
+    if (checkStr.includes('test.mp4')) {
+      videoSrc = '/test.mp4';
+    }
+  }
 
   // Professional gradient and aura styling for the frames
   const frameStyles: Record<string, string> = {
@@ -223,16 +115,13 @@ export function AvatarWithFrame({ src, frameId = 'none', size = 'sm', className 
     wooden: 'bg-gradient-to-br from-amber-800 via-amber-600 via-yellow-700 to-amber-900 border border-amber-800/40 shadow-md shadow-amber-950/50',
     neon_glitch: 'bg-gradient-to-br from-fuchsia-500 via-indigo-600 via-cyan-400 to-purple-800 border border-fuchsia-400 shadow-xl shadow-fuchsia-500/30 animate-pulse duration-[1200ms]',
     gold_dragon: 'bg-gradient-to-br from-yellow-500 via-red-600 via-amber-400 to-red-800 border border-yellow-400/50 shadow-2xl shadow-red-500/25 animate-pulse duration-[3000ms]',
-    avatar_border_test: 'bg-cyan-950/40 border border-cyan-400/40 shadow-lg shadow-cyan-500/30',
   };
 
   const frameBgClass = frameStyles[currentFrame] || frameStyles['none'];
   const fId = currentFrame;
 
   // Frame-specific inner photo aperture sizing so profile photo fits perfectly
-  const innerPhotoSizes: Record<string, string> = {
-    avatar_border_test: 'w-[82%] h-[82%]',
-  };
+  const innerPhotoSizes: Record<string, string> = {};
   const photoSizeClass = innerPhotoSizes[fId] || 'w-[80%] h-[80%]';
 
   const isSpecialPfp = src && (
@@ -323,9 +212,31 @@ export function AvatarWithFrame({ src, frameId = 'none', size = 'sm', className 
 
   if (videoSrc) {
     return (
-      <div className={`relative select-none flex items-center justify-center shrink-0 ${sizeClass} ${className}`}>
-        {/* Inner Avatar Photo centered inside video frame inner aperture */}
-        <div className={`${photoSizeClass} rounded-full overflow-hidden flex items-center justify-center absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-0 bg-[#262421] shadow-inner`}>
+      <div className={`relative rounded-full select-none flex items-center justify-center shrink-0 ${sizeClass} ${className}`}>
+        {/* Neon Pulsar ambient glow aura ring */}
+        <div className="absolute -inset-1 rounded-full bg-cyan-500/30 blur-md animate-pulse pointer-events-none" />
+
+        {/* Video Frame Overlay playing test.mp4 */}
+        <div className="absolute inset-0 rounded-full overflow-hidden pointer-events-none z-10">
+          <video
+            id="neon-pulsar-video"
+            src="/test.mp4"
+            autoPlay
+            loop
+            muted
+            playsInline
+            preload="auto"
+            className="w-full h-full object-cover rounded-full scale-110 filter brightness-110 contrast-125 mix-blend-screen"
+            onError={(e) => {
+              if (testMp4Asset && e.currentTarget.src !== testMp4Asset) {
+                e.currentTarget.src = testMp4Asset;
+              }
+            }}
+          />
+        </div>
+
+        {/* Inner Avatar Photo centered inside video frame */}
+        <div className="w-full h-full rounded-full bg-[#262421] p-[2px] overflow-hidden flex items-center justify-center relative z-0">
           {isSpecialPfp ? (
             renderSpecialPfp()
           ) : (
@@ -337,12 +248,6 @@ export function AvatarWithFrame({ src, frameId = 'none', size = 'sm', className 
             />
           )}
         </div>
-
-        {/* Animated Video Frame Canvas Overlay (enlarged and thickened for Neon Pulsar) */}
-        <VideoFrameCanvas
-          src={videoSrc}
-          className="absolute inset-0 w-full h-full object-contain pointer-events-none z-10 scale-120 transform origin-center transition-transform"
-        />
       </div>
     );
   }
@@ -370,13 +275,13 @@ export function AvatarWithFrame({ src, frameId = 'none', size = 'sm', className 
             </div>
           )}
           {fId === 'cyber' && (
-            <div className="absolute -bottom-1 -right-1 bg-cyan-400 text-slate-900 p-[1.5px] rounded-full border border-[#262421] shadow-md flex items-center justify-center scale-90 z-20" title="Cyber Neon">
-              <Sparkles className="w-2.5 h-2.5 stroke-[2.5]" />
+            <div className="absolute -bottom-1 -right-1 bg-gradient-to-tr from-cyan-500 via-sky-400 to-indigo-500 text-slate-950 p-[1.5px] rounded-full border border-cyan-300/80 shadow-[0_0_8px_rgba(6,182,212,0.8)] flex items-center justify-center scale-90 z-20" title="Cyber Neon">
+              <Cpu className="w-2.5 h-2.5 stroke-[2.5]" />
             </div>
           )}
           {fId === 'magma' && (
-            <div className="absolute -bottom-1 -right-1 bg-red-500 text-white p-[1.5px] rounded-full border border-[#262421] shadow-md flex items-center justify-center scale-90 z-20" title="Magma">
-              <Flame className="w-2.5 h-2.5 stroke-[2.5] fill-white/10" />
+            <div className="absolute -bottom-1 -right-1 bg-gradient-to-tr from-red-600 via-orange-500 to-amber-400 text-white p-[1.5px] rounded-full border border-orange-300 shadow-[0_0_8px_rgba(239,68,68,0.8)] flex items-center justify-center scale-90 z-20" title="Magma">
+              <Flame className="w-2.5 h-2.5 stroke-[2.5] fill-amber-200/40" />
             </div>
           )}
           {fId === 'cosmic' && (
@@ -385,23 +290,29 @@ export function AvatarWithFrame({ src, frameId = 'none', size = 'sm', className 
             </div>
           )}
           {fId === 'golden_ketupat' && (
-            <div className="absolute -bottom-1 -right-1 bg-yellow-500 text-slate-900 p-[1.5px] rounded-full border border-[#262421] shadow-md flex items-center justify-center scale-90 z-20" title="Ketupat Emas">
-              <Sparkles className="w-2.5 h-2.5 stroke-[2.5]" />
+            <div className="absolute -bottom-1 -right-1 bg-gradient-to-br from-yellow-400 via-amber-300 to-yellow-500 text-amber-950 p-[1.5px] rounded-full border border-yellow-200 shadow-[0_0_8px_rgba(234,179,8,0.8)] flex items-center justify-center scale-90 z-20" title="Ketupat Emas">
+              <svg className="w-2.5 h-2.5 text-amber-950 fill-amber-950/20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <path d="M12 2L2 12l10 10 10-10L12 2z" />
+                <path d="M12 6l-6 6 6 6 6-6-6-6z" />
+              </svg>
             </div>
           )}
           {fId === 'red_lantern' && (
-            <div className="absolute -bottom-1 -right-1 bg-red-650 text-white p-[1.5px] rounded-full border border-[#262421] shadow-md flex items-center justify-center scale-90 z-20" title="Lentera Merah">
-              <Flame className="w-2.5 h-2.5 stroke-[2.5]" />
+            <div className="absolute -bottom-1 -right-1 bg-gradient-to-br from-red-600 via-rose-600 to-amber-500 text-amber-100 p-[1.5px] rounded-full border border-red-300 shadow-[0_0_8px_rgba(225,29,72,0.8)] flex items-center justify-center scale-90 z-20" title="Lentera Merah">
+              <svg className="w-2.5 h-2.5 text-amber-100" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <rect x="7" y="6" width="10" height="12" rx="2" fill="currentColor" fillOpacity="0.2" />
+                <path d="M12 2v4M12 18v4M8 10h8M8 14h8" />
+              </svg>
             </div>
           )}
           {fId === 'beach_wave' && (
-            <div className="absolute -bottom-1 -right-1 bg-sky-400 text-slate-900 p-[1.5px] rounded-full border border-[#262421] shadow-md flex items-center justify-center scale-90 z-20" title="Ombak Pantai">
+            <div className="absolute -bottom-1 -right-1 bg-gradient-to-tr from-teal-500 via-cyan-400 to-sky-300 text-cyan-950 p-[1.5px] rounded-full border border-cyan-200 shadow-[0_0_8px_rgba(34,211,238,0.8)] flex items-center justify-center scale-90 z-20" title="Ombak Pantai">
               <Waves className="w-2.5 h-2.5 stroke-[2.5]" />
             </div>
           )}
           {fId === 'blizzard_winter' && (
-            <div className="absolute -bottom-1 -right-1 bg-cyan-100 text-sky-850 p-[1.5px] rounded-full border border-[#262421] shadow-md flex items-center justify-center scale-90 z-20" title="Blizzard Winter">
-              <Snowflake className="w-2.5 h-2.5 stroke-[2.5]" />
+            <div className="absolute -bottom-1 -right-1 bg-gradient-to-tr from-sky-300 via-cyan-200 to-blue-100 text-cyan-950 p-[1.5px] rounded-full border border-white/90 shadow-[0_0_8px_rgba(186,230,253,0.9)] flex items-center justify-center scale-90 z-20" title="Blizzard Winter">
+              <Snowflake className="w-2.5 h-2.5 stroke-[2.5] text-cyan-900" />
             </div>
           )}
           {fId === 'wooden' && (

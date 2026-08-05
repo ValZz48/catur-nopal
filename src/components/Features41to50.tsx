@@ -3518,8 +3518,7 @@ export const Features41to50: React.FC<Features41to50Props> = ({
             { id: 'golden_ketupat', name: 'Ketupat Emas', name_en: 'Golden Ketupat Border', type: 'Bingkai', rarity: 'Epic', desc: 'Kemeriahan hari raya fitri berselimut tenunan ketupat kuning keemasan.' },
             { id: 'red_lantern', name: 'Lentera Merah', name_en: 'Red Lantern Border', type: 'Bingkai', rarity: 'Epic', desc: 'Kehangatan cahaya lampion merah oriental bersinar penuh berkah.' },
             { id: 'beach_wave', name: 'Ombak Pantai', name_en: 'Beach Wave Border', type: 'Bingkai', rarity: 'Epic', desc: 'Gulungan ombak laut biru jernih menyegarkan di pesisir pasir putih.' },
-            { id: 'blizzard_winter', name: 'Blizzard Winter', name_en: 'Blizzard Winter Border', type: 'Bingkai', rarity: 'Epic', desc: 'Sentuhan butiran salju beku hasil badai salju es arktik.' },
-            { id: 'avatar_border_test', name: 'Neon Pulsar', name_en: 'Neon Pulsar', type: 'Bingkai', rarity: 'Mythic', desc: 'Video animasi pulsa gelombang neon bergerak cepat.' }
+            { id: 'blizzard_winter', name: 'Blizzard Winter', name_en: 'Blizzard Winter Border', type: 'Bingkai', rarity: 'Epic', desc: 'Sentuhan butiran salju beku hasil badai salju es arktik.' }
           ];
 
           const checkDexOwned = (itemId: string, itemType: string) => {
@@ -4008,6 +4007,7 @@ export const Features41to50: React.FC<Features41to50Props> = ({
           comboCount={quizMaxCombo}
           xpEarned={Math.max(25, quizScore * 10 + quizMaxCombo * 5)}
           elapsedSeconds={quizElapsedSeconds || 10}
+          onClose={() => setIsLearningReportOpen(false)}
           onClaimXp={() => {
             const earnedXp = Math.max(25, quizScore * 10 + quizMaxCombo * 5);
             const earnedCoins = quizScore * 15 + 60;

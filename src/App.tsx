@@ -17,6 +17,8 @@ import {
   Home, 
   ShoppingBag, 
   Lock, 
+  QrCode,
+  Share2,
   CheckCircle2, 
   XCircle, 
   AlertCircle, 
@@ -54,6 +56,7 @@ import {
   Coins,
   Gem,
   Activity,
+  KeyRound,
   Menu,
   X,
   Play,
@@ -89,6 +92,8 @@ import { ChessOpeningsDb } from './components/ChessOpeningsDb';
 import { TransactionHistoryTab } from './components/TransactionHistoryTab';
 import { PageLoadingScreen } from './components/PageLoadingScreen';
 import { DownloadAppModal } from './components/DownloadAppModal';
+import { ShareRoomModal } from './components/ShareRoomModal';
+import { ShopPurchaseChoiceModal, ShopItem } from './components/ShopPurchaseChoiceModal';
 
 // Diagnostic Logging Middleware for localStorage updates
 try {
@@ -292,17 +297,6 @@ const AVATAR_FRAMES: AvatarFrame[] = [
     themeColor: 'text-sky-200',
     description: 'Sentuhan butiran salju beku hasil badai salju es arktik yang dingin bersinar.',
     description_en: 'Chilly Arctic ice storm snow crystals shining with frost.'
-  },
-  {
-    id: 'avatar_border_test',
-    name: 'Neon Pulsar',
-    name_en: 'Neon Pulsar Border',
-    costType: 'coin',
-    cost: 300,
-    isPremiumExclusive: false,
-    themeColor: 'text-cyan-300',
-    description: 'Bingkai video bergerak animasi gelombang pulsar neon futuristik.',
-    description_en: 'Exclusive animated fast neon wave pulsar video avatar border.'
   }
 ];
 
@@ -659,6 +653,7 @@ export default function App() {
   });
   const [isPageLoading, setIsPageLoading] = useState<boolean>(false);
   const [showDownloadAppModal, setShowDownloadAppModal] = useState<boolean>(false);
+  const [showShareRoomModal, setShowShareRoomModal] = useState<boolean>(false);
   const prevModeRef = useRef<GameMode>(mode);
 
   useEffect(() => {
@@ -1505,7 +1500,7 @@ export default function App() {
   const [unlockedFrames, setUnlockedFrames] = useState<string[]>(() => {
     const actUser = getActiveUsername();
     const saved = localStorage.getItem(`unlockedFrames:${actUser}`);
-    const mp4Frames = ['avatar_border_test'];
+    const mp4Frames: string[] = [];
     if (!saved) return ['none', ...mp4Frames];
     try {
       const parsed = JSON.parse(saved);
@@ -2447,10 +2442,7 @@ export default function App() {
         const ach = ACHIEVEMENTS.find(a => a.id === id);
         if (ach) {
           triggerAudio('win');
-          setToastMessage(prefLang === 'en' ? `[ACHIEVEMENT] Unlocked: ${ach.title}!` : `[PRESTASI] Terbuka: ${ach.title}!`);
-          setTimeout(() => {
-            setToastMessage(null);
-          }, 4500);
+          // [PRESTASI] Toast notification pop up removed per user request
         }
       });
       prevUnlockedRef.current = unlockedAchievementIdsList;
@@ -2566,6 +2558,48 @@ export default function App() {
   const [isInboxRead, setIsInboxRead] = useState<boolean>(() => {
     return localStorage.getItem(`inbox_read_${username}`) === 'true';
   });
+
+  const [pendingPurchaseItem, setPendingPurchaseItem] = useState<ShopItem | null>(null);
+
+  const handleSendShopGift = (targetUsername: string, item: ShopItem) => {
+    if (item.costType === 'coin') {
+      if (coins < item.cost) {
+        triggerAudio('error');
+        triggerReward(0, `Koin tidak cukup untuk mengirim hadiah ${item.name}!`, 'info');
+        return;
+      }
+      setCoins(prev => {
+        const next = prev - item.cost;
+        localStorage.setItem('coins', String(next));
+        return next;
+      });
+    } else {
+      if (diamonds < item.cost) {
+        triggerAudio('error');
+        triggerReward(0, `Berlian tidak cukup untuk mengirim hadiah ${item.name}!`, 'info');
+        return;
+      }
+      setDiamonds(prev => {
+        const next = prev - item.cost;
+        localStorage.setItem('diamonds', String(next));
+        return next;
+      });
+    }
+
+    const newGiftEntry = {
+      id: `gift_item_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`,
+      from: username || (user ? user.username : 'Pemain_Catur'),
+      giftName: item.name,
+      cashValueCoins: item.costType === 'coin' ? Math.floor(item.cost * 0.8) : 0,
+      cashValueDiamonds: item.costType === 'diamond' ? Math.floor(item.cost * 0.8) : 0,
+      affinityPoints: 50,
+      date: new Date().toLocaleDateString('id-ID')
+    };
+
+    setReceivedGifts(prev => [newGiftEntry, ...prev]);
+    triggerAudio('win');
+    triggerReward(0, `🎁 Berhasil mengirimkan hadiah "${item.name}" kepada @${targetUsername}!`, 'success_no_xp');
+  };
 
   // Gifting transaction cashout action
   const handleCashOutGiftInApp = (gift: any, cashType: 'coins' | 'diamonds') => {
@@ -3415,11 +3449,11 @@ export default function App() {
     // Categorize
     const themes = items.filter(id => ['classic', 'forest', 'cosmic', 'magma_lava', 'ice_freeze'].includes(id));
     const skins = items.filter(id => ['standard', 'wood', 'neon', 'gold', 'anime', 'cyberpunk', 'crystal', 'emerald_wood', 'golden_ketupat_skin', 'red_dragon_skin', 'beach_sun_skin', 'blizzard_wood'].includes(id));
-    const frames = items.filter(id => ['none', 'bronze', 'silver', 'gold', 'cyber', 'magma', 'cosmic', 'embed_emerald', 'golden_ketupat', 'red_lantern', 'beach_wave', 'blizzard_winter', 'avatar_border_test'].includes(id));
+    const frames = items.filter(id => ['none', 'bronze', 'silver', 'gold', 'cyber', 'magma', 'cosmic', 'embed_emerald', 'golden_ketupat', 'red_lantern', 'beach_wave', 'blizzard_winter'].includes(id));
     const effects = items.filter(id => ['none', 'dragon_flare', 'cosmic_nebula', 'lightning_strike', 'cyber_glitch'].includes(id));
     const titles = items.filter(id => !['classic', 'forest', 'cosmic', 'magma_lava', 'ice_freeze',
                                           'standard', 'wood', 'neon', 'gold', 'anime', 'cyberpunk', 'crystal', 'emerald_wood', 'golden_ketupat_skin', 'red_dragon_skin', 'beach_sun_skin', 'blizzard_wood',
-                                          'none', 'bronze', 'silver', 'gold', 'cyber', 'magma', 'cosmic', 'embed_emerald', 'golden_ketupat', 'red_lantern', 'beach_wave', 'blizzard_winter', 'avatar_border_test',
+                                          'none', 'bronze', 'silver', 'gold', 'cyber', 'magma', 'cosmic', 'embed_emerald', 'golden_ketupat', 'red_lantern', 'beach_wave', 'blizzard_winter',
                                           'dragon_flare', 'cosmic_nebula', 'lightning_strike', 'cyber_glitch'].includes(id));
     
     if (themes.length > 0) {
@@ -4189,7 +4223,7 @@ export default function App() {
     if (!user) return;
     setSocialError(null);
     setSocialSuccess(null);
-    const generatedCode = `PLAY_${username.substring(0,4).toUpperCase().replace(/[^A-Z0-9]/g, '')}_${Math.floor(1000 + Math.random()*9000)}`;
+    const generatedCode = Math.floor(100000 + Math.random() * 900000).toString();
     try {
       const res = await fetch('/api/social/invite/send', {
         method: 'POST',
@@ -4792,6 +4826,16 @@ export default function App() {
 
       // Parse shared profile query parameter
       const params = new URLSearchParams(window.location.search);
+      const roomParam = params.get('room') || params.get('roomCode') || params.get('join');
+      if (roomParam) {
+        const cleanRoomCode = roomParam.trim().replace(/[^0-9]/g, '');
+        if (cleanRoomCode) {
+          setFriendRoomCode(cleanRoomCode);
+          setMode('online-match');
+          setOnlineStatus('searching');
+        }
+      }
+
       const sharedProfile = params.get('profile');
       if (sharedProfile) {
         // Fetch target profile statistics via our new endpoint
@@ -5588,8 +5632,9 @@ export default function App() {
       case 'excellent':
         return (
           <div className={`flex items-center justify-center rounded-full bg-teal-500 text-white font-extrabold shrink-0 select-none ${className}`} title="Sangat Baik">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-[64%] h-[64%] stroke-white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="20 6 9 17 4 12" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-[72%] h-[72%] stroke-white" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
+              <polyline points="15 6 7.5 16 3 11" />
+              <polyline points="21 6 13.5 16 10 12" />
             </svg>
           </div>
         );
@@ -5604,28 +5649,35 @@ export default function App() {
       case 'book':
         return (
           <div className={`flex items-center justify-center rounded-full bg-amber-600 text-white font-extrabold shrink-0 select-none ${className}`} title="Teori Buku">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-[64%] h-[64%] stroke-white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M4 19.5V15a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v4.5M4 19.5A2.5 2.5 0 0 1 6.5 17H20M4 19.5V5a2 2 0 0 1 2-2h12a2 2 0 0 1 2 2v14.5" />
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-[66%] h-[66%] stroke-white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+              <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
             </svg>
           </div>
         );
       case 'inaccuracy':
         return (
           <div className={`flex items-center justify-center rounded-full bg-zinc-500 text-white font-extrabold shrink-0 select-none ${className}`} title="Inakurasi (?!)">
-            <span className="text-[14px] font-sans font-black leading-none">?!</span>
+            <svg viewBox="0 0 24 24" className="w-[70%] h-[70%] text-white fill-current">
+              <text x="12" y="17.5" textAnchor="middle" fontSize="16" fontWeight="900" fontFamily="sans-serif">?!</text>
+            </svg>
           </div>
         );
       case 'mistake':
         return (
           <div className={`flex items-center justify-center rounded-full bg-orange-500 text-white font-extrabold shrink-0 select-none ${className}`} title="Kesalahan (?)">
-            <span className="text-[14px] font-sans font-black leading-none">?</span>
+            <svg viewBox="0 0 24 24" className="w-[70%] h-[70%] text-white fill-current">
+              <text x="12" y="17.5" textAnchor="middle" fontSize="18" fontWeight="900" fontFamily="sans-serif">?</text>
+            </svg>
           </div>
         );
       case 'blunder':
         return (
-          <div className={`relative flex items-center justify-center rounded-full bg-red-650 text-white font-extrabold shrink-0 select-none ${className}`} title="Blunder Fatal (??)!!">
+          <div className={`relative flex items-center justify-center rounded-full bg-red-600 text-white font-extrabold shrink-0 select-none ${className}`} title="Blunder Fatal (??)!!">
             <code className="absolute inset-x-0 inset-y-0 rounded-full animate-pulse bg-red-500 opacity-60 pointer-events-none" />
-            <span className="text-[13px] font-sans font-black leading-none tracking-tighter relative z-10">??</span>
+            <svg viewBox="0 0 24 24" className="w-[70%] h-[70%] text-white fill-current relative z-10">
+              <text x="12" y="17.5" textAnchor="middle" fontSize="15" fontWeight="900" fontFamily="sans-serif">??</text>
+            </svg>
           </div>
         );
       default:
@@ -6065,8 +6117,17 @@ export default function App() {
             triggerAudio('move');
           }
 
-          // Fetch fresh sassy speech commentary from Gemini or local fallback!
-          await fetchCharacterReply(char, playerMove, result.san, chess.fen());
+          // Unblock thinking state IMMEDIATELY after move is complete on the board!
+          setIsAiThinking(false);
+
+          // Update checkout states for game over
+          if (chess.isGameOver() && !chess.isCheckmate()) {
+            setGameResult('draw');
+          }
+
+          // Fetch fresh sassy speech commentary in background without blocking player
+          fetchCharacterReply(char, playerMove, result.san, chess.fen()).catch(() => {});
+          return;
 
         } catch (error) {
           console.error('Computer move error:', error);
@@ -6551,28 +6612,8 @@ export default function App() {
 
                   {/* Chess Move Evaluation mini bubble badge */}
                   {lastMove && lastMove.to === squareName && lastMove.type && (
-                    <div 
-                      className={`absolute top-0.5 right-0.5 w-4 h-4 rounded-full flex items-center justify-center text-[9px] font-black z-20 shadow-md transition-all select-none ${
-                        lastMove.type === 'brilliant' ? 'bg-emerald-500 text-white animate-bounce' :
-                        lastMove.type === 'great' ? 'bg-blue-500 text-white' :
-                        lastMove.type === 'best' ? 'bg-[#81b64c] text-white' :
-                        lastMove.type === 'excellent' ? 'bg-teal-500 text-white' :
-                        lastMove.type === 'good' ? 'bg-sky-500 text-white' :
-                        lastMove.type === 'book' ? 'bg-amber-500 text-white' :
-                        lastMove.type === 'inaccuracy' ? 'bg-zinc-500 text-white' :
-                        lastMove.type === 'mistake' ? 'bg-orange-500 text-white' :
-                        'bg-red-500 text-white animate-pulse'
-                      }`}
-                      title={EVALUATION_LABELS[lastMove.type]?.label || lastMove.type}
-                    >
-                      {lastMove.type === 'book' ? (
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-[66%] h-[66%] stroke-white animate-pulse" strokeWidth="3.5" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
-                          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
-                        </svg>
-                      ) : (
-                        EVALUATION_LABELS[lastMove.type]?.icon || ''
-                      )}
+                    <div className="absolute top-0.5 right-0.5 z-20 pointer-events-none">
+                      {getEvaluationBadge(lastMove.type, "w-4 h-4 shadow-sm")}
                     </div>
                   )}
 
@@ -7125,8 +7166,28 @@ export default function App() {
     const chess = chessRef.current;
     chess.undo(); // Undo AI move
     chess.undo(); // Undo Player move
-    setBoardWithTracking(chess.board());
+
+    // Truncate move history
     setMoveHistory(prev => prev.slice(0, -2));
+
+    // Update analysis history and sync last move state
+    setAnalysisHistory(aprev => {
+      const nextAnalysis = aprev.slice(0, -2);
+      if (nextAnalysis.length > 0) {
+        const prevMove = nextAnalysis[nextAnalysis.length - 1];
+        setLastMove({
+          from: prevMove.from,
+          to: prevMove.to,
+          type: prevMove.type
+        });
+        setBoardWithTracking(chess.board(), prevMove.from, prevMove.to);
+      } else {
+        setLastMove(null);
+        setBoardWithTracking(chess.board());
+      }
+      return nextAnalysis;
+    });
+
     setSelectedSquare(null);
     triggerAudio('move');
     if (selectedCharacter) {
@@ -7462,14 +7523,14 @@ export default function App() {
 
   // Refilling hearts
   const buyHeartRefill = () => {
-    if (coins >= 50) {
-      setCoins(prev => prev - 50);
+    if (coins >= 500) {
+      setCoins(prev => prev - 500);
       setHearts(5);
       triggerAudio('win');
-      triggerReward(0, "Stamina Analisis berhasil diisi ulang menjadi penuh seharga 50 Koin!", 'success_no_xp');
+      triggerReward(0, "Stamina Analisis berhasil diisi ulang menjadi penuh seharga 500 Koin!", 'success_no_xp');
     } else {
       triggerAudio('error');
-      triggerReward(0, "Koin tidak cukup untuk membeli isi ulang stamina (50 Koin)!", 'info');
+      triggerReward(0, "Koin tidak cukup untuk membeli isi ulang stamina (500 Koin)!", 'info');
     }
   };
 
@@ -7746,6 +7807,12 @@ export default function App() {
       <ChessTutorialTour
         isOpen={showTutorialTour}
         onClose={() => setShowTutorialTour(false)}
+        onComplete={(coinsAward, xpAward) => {
+          setCoins(prev => prev + coinsAward);
+          setXp(prev => prev + xpAward);
+          setShowTutorialTour(false);
+          setMode('menu');
+        }}
         mode={mode}
         setMode={setMode}
         setProfileActiveTab={setProfileActiveTab}
@@ -8146,7 +8213,7 @@ export default function App() {
                   <p className="text-xs text-yellow-500 font-bold tracking-wide uppercase mb-4">Fitur Khusus Klub Premium</p>
                   
                   <div className="bg-yellow-950/25 border border-yellow-900/35 rounded-xl py-3 px-4 mb-6 text-xs text-yellow-400/90 font-semibold">
-                    Tingkatkan ke Anggota Premium untuk membuka semua Robot Legendaris, Desain Eksklusif, dan Papan Catur Kustom!
+                    Tingkatkan ke Anggota Pro untuk membuka semua Robot Legendaris, Desain Eksklusif, dan Papan Catur Kustom!
                   </div>
                 </>
               )}
@@ -9736,33 +9803,81 @@ export default function App() {
                   </div>
 
                   <div>
-                    <label className="block text-[10px] font-bold text-[#9babaf] uppercase tracking-widest mb-1.5">Kode Kamar Kustom (PIN)</label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="text-[10px] font-bold text-[#9babaf] uppercase tracking-widest">Kode Kamar Kustom (PIN Angka)</label>
+                      <button
+                        onClick={() => {
+                          const randomPin = Math.floor(100000 + Math.random() * 900000).toString();
+                          setFriendRoomCode(randomPin);
+                          triggerAudio('move');
+                        }}
+                        className="text-[10px] font-extrabold text-cyan-400 hover:text-cyan-300 underline cursor-pointer"
+                      >
+                        Acak PIN Baru
+                      </button>
+                    </div>
                     <input
                       type="text"
                       value={friendRoomCode}
-                      onChange={(e) => setFriendRoomCode(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ''))}
-                      placeholder="CONTOH PIN: MABAR99"
-                      maxLength={8}
+                      onChange={(e) => setFriendRoomCode(e.target.value.replace(/[^0-9]/g, ''))}
+                      placeholder="CONTOH PIN: 123456"
+                      maxLength={6}
                       className="w-full bg-[#262421] border border-[#3c3934] rounded-lg px-3 py-2.5 text-white text-sm font-semibold focus:outline-none focus:border-cyan-500 font-mono tracking-widest text-center"
                     />
                   </div>
 
-                  <button
-                    onClick={() => {
-                      if (!friendRoomCode.trim()) {
-                        alert('Silakan isi PIN Kamar terlebih dahulu!');
-                        return;
-                      }
-                      setFriendLobbyType(null);
-                      setMode('online-match');
-                      // Initialize matchmaking state with forced private roomCode and search immediately
-                      setOnlineStatus('searching');
-                      triggerAudio('move');
-                    }}
-                    className="w-full py-3 bg-[#81b64c] hover:bg-[#6c9c3e] border border-emerald-500/20 text-white font-extrabold text-sm rounded-xl cursor-pointer hover:scale-[1.02] transform transition-all uppercase tracking-wider shadow-md"
-                  >
-                    Buat / Gabung Kamar Online
-                  </button>
+                  {/* ACTION BUTTONS FOR ROOM CREATION */}
+                  <div className="space-y-2">
+                    <button
+                      onClick={() => {
+                        const newPin = friendRoomCode.trim() || Math.floor(100000 + Math.random() * 900000).toString();
+                        setFriendRoomCode(newPin);
+                        setFriendLobbyType(null);
+                        setMode('online-match');
+                        setOnlineStatus('searching');
+                        setShowShareRoomModal(true);
+                        triggerAudio('win');
+                      }}
+                      className="w-full py-3 bg-[#81b64c] hover:bg-[#6c9c3e] border border-emerald-500/20 text-white font-extrabold text-xs sm:text-sm rounded-xl cursor-pointer hover:scale-[1.01] transform transition-all uppercase tracking-wider shadow-md flex items-center justify-center gap-2"
+                    >
+                      <Sparkles className="w-4 h-4 text-amber-300" />
+                      Buat Room Baru & Bagikan QR
+                    </button>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                      <button
+                        onClick={() => {
+                          if (!friendRoomCode.trim()) {
+                            alert('Silakan isi PIN Kamar (Angka) terlebih dahulu!');
+                            return;
+                          }
+                          setFriendLobbyType(null);
+                          setMode('online-match');
+                          setOnlineStatus('searching');
+                          triggerAudio('move');
+                        }}
+                        className="w-full py-2.5 bg-[#312e2b] hover:bg-[#3c3934] border border-[#3c3934] text-white font-extrabold text-xs rounded-xl cursor-pointer transition-all uppercase tracking-wider shadow-sm flex items-center justify-center gap-1.5"
+                      >
+                        <Swords className="w-4 h-4 text-[#81b64c]" />
+                        Gabung PIN Room
+                      </button>
+
+                      <button
+                        onClick={() => {
+                          if (!friendRoomCode.trim()) {
+                            const newPin = Math.floor(100000 + Math.random() * 900000).toString();
+                            setFriendRoomCode(newPin);
+                          }
+                          setShowShareRoomModal(true);
+                          triggerAudio('move');
+                        }}
+                        className="w-full py-2.5 bg-[#262421] hover:bg-[#322f2b] border border-cyan-500/40 text-cyan-300 font-extrabold text-xs rounded-xl cursor-pointer transition-all uppercase tracking-wider shadow-sm flex items-center justify-center gap-1.5"
+                      >
+                        <QrCode className="w-4 h-4 text-cyan-400" />
+                        Tampilkan QR
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </motion.div>
@@ -15071,7 +15186,7 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* FIND OPPONENT HERO CALLOUT */}
+                  {/* FIND OPPONENT & CREATE ROOM HERO PANEL */}
                   <div className="bg-[#FFF4D1] p-6 rounded-3xl border-2 border-[#FFC800] text-center shadow-xs flex flex-col items-center gap-4">
                     <div className="w-12 h-12 rounded-full bg-white flex items-center justify-center border border-[#FFC800] shrink-0">
                       <Sparkles className="w-6 h-6 text-[#AF7E00]" />
@@ -15079,18 +15194,52 @@ export default function App() {
                     <div>
                       <h3 className="font-extrabold text-lg text-[#AF7E00] uppercase tracking-wide">Siap Menantang Pemain Lain?</h3>
                       <p className="text-slate-600 font-semibold text-xs max-w-md mt-1 mx-auto leading-relaxed">
-                        Kami akan mencocokkan Anda dengan pemain tangguh dengan ELO serupa secara real-time. Siapkan pertahanan Caro-Kann atau serangan Sisilia terbaik Anda!
+                        Cari lawan otomatis dengan ELO seimbang atau buat Kamar Room PIN khusus untuk mabar catur bersama kawan!
                       </p>
                     </div>
-                    <button
-                      onClick={() => {
-                        setOnlineStatus('searching');
-                        triggerAudio('move');
-                      }}
-                      className="w-full max-w-xs py-3.5 bg-[#58CC02] hover:bg-[#46A302] text-white font-extrabold rounded-2xl shadow-[0_4px_0_0_#46A302] active:translate-y-1 active:shadow-none transition-all uppercase tracking-wider text-sm cursor-pointer"
-                    >
-                      Cari Lawan Catur Sekarang 
-                    </button>
+
+                    <div className="w-full max-w-md space-y-2.5">
+                      <button
+                        onClick={() => {
+                          setOnlineStatus('searching');
+                          triggerAudio('move');
+                        }}
+                        className="w-full px-4 py-3.5 bg-[#58CC02] hover:bg-[#46A302] text-white font-extrabold rounded-2xl shadow-[0_4px_0_0_#46A302] active:translate-y-1 active:shadow-none transition-all uppercase tracking-wider text-sm cursor-pointer flex items-center justify-center gap-2 overflow-hidden"
+                      >
+                        <Swords className="w-5 h-5 text-white shrink-0" />
+                        <span>Cari Lawan Acak (Random Matchmaking)</span>
+                      </button>
+
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                        <button
+                          onClick={() => {
+                            const newPin = Math.floor(100000 + Math.random() * 900000).toString();
+                            setFriendRoomCode(newPin);
+                            setFriendLobbyType(null);
+                            setMode('online-match');
+                            setOnlineStatus('searching');
+                            setShowShareRoomModal(true);
+                            triggerAudio('win');
+                          }}
+                          className="w-full py-3 bg-[#1CB0F6] hover:bg-[#1499d8] text-white font-extrabold text-xs rounded-xl shadow-[0_3px_0_0_#0f7ab0] active:translate-y-0.5 active:shadow-none transition-all uppercase tracking-wider cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <QrCode className="w-4 h-4 text-white" />
+                          Buat Room Baru & QR
+                        </button>
+
+                        <button
+                          onClick={() => {
+                            setFriendLobbyType('online-room');
+                            triggerAudio('move');
+                          }}
+                          className="w-full py-3 bg-[#FF9600] hover:bg-[#e08400] text-white font-extrabold text-xs rounded-xl shadow-[0_3px_0_0_#b86c00] active:translate-y-0.5 active:shadow-none transition-all uppercase tracking-wider cursor-pointer flex items-center justify-center gap-1.5"
+                        >
+                          <KeyRound className="w-4 h-4 text-white" />
+                          Masuk PIN Room
+                        </button>
+                      </div>
+                    </div>
+
                     <div className="flex items-center gap-1 text-[10px] text-slate-500 font-bold uppercase tracking-wider mt-1">
                       <span className="w-2 h-2 bg-green-500 rounded-full animate-ping" />
                       Server: 0.0.0.0:3000 Online Aktif
@@ -15429,8 +15578,18 @@ export default function App() {
                       <p className="text-slate-500 font-semibold text-xs leading-relaxed">
                         Menunggu teman bergabung menggunakan PIN Kamar:
                       </p>
-                      <div className="my-2.5 px-4 py-2 bg-cyan-50 text-cyan-600 border-2 border-cyan-200 font-mono text-lg font-black tracking-widest rounded-xl inline-block shadow-xs animate-pulse">
-                        {friendRoomCode}
+                      <div className="my-2.5 flex flex-col items-center gap-2">
+                        <div className="px-4 py-2 bg-cyan-50 text-cyan-600 border-2 border-cyan-200 font-mono text-lg font-black tracking-widest rounded-xl inline-block shadow-xs animate-pulse">
+                          {friendRoomCode}
+                        </div>
+
+                        <button
+                          onClick={() => setShowShareRoomModal(true)}
+                          className="py-2 px-4 bg-cyan-600 hover:bg-cyan-700 text-white font-black text-xs uppercase tracking-wider rounded-xl shadow-md flex items-center gap-1.5 transition-transform hover:scale-105 cursor-pointer"
+                        >
+                          <QrCode className="w-4 h-4 text-white" />
+                          Bagikan QR Code & Tautan
+                        </button>
                       </div>
                       <p className="text-slate-400 font-medium text-[11px] leading-snug max-w-sm mx-auto">
                         Bagikan kode PIN di atas kepada teman tanding Anda agar mereka dapat dimasukkan ke kamar tanding yang sama secara instan!
@@ -16034,11 +16193,20 @@ export default function App() {
                   </div>
                   <div className="text-center sm:text-right shrink-0">
                     <span className="block font-extrabold text-[#81b64c] font-mono text-lg mb-2 flex items-center justify-center sm:justify-end gap-1">
-                      <Coins className="w-5 h-5 text-[#81b64c]" /> 50 {prefLang === 'en' ? 'Coins' : 'Koin'}
+                      <Coins className="w-5 h-5 text-[#81b64c]" /> 500 {prefLang === 'en' ? 'Coins' : 'Koin'}
                     </span>
                     <button 
-                      onClick={buyHeartRefill}
-                      disabled={coins < 50 || hearts >= 5}
+                      onClick={() => {
+                        setPendingPurchaseItem({
+                          id: 'heart_refill',
+                          name: prefLang === 'en' ? 'Refill Analysis Stamina' : 'Refill Stamina Analisis',
+                          cost: 500,
+                          costType: 'coin',
+                          itemCategory: 'heart',
+                          onBuySelf: buyHeartRefill
+                        });
+                      }}
+                      disabled={coins < 500 || hearts >= 5}
                       className="px-6 py-2.5 bg-[#81b64c] hover:bg-[#92ca5a] disabled:opacity-50 text-white font-extrabold text-xs uppercase rounded-xl shadow-[0_4px_0_0_#5d8a32] active:translate-y-1 active:shadow-none cursor-pointer transition-all"
                     >
                       {hearts >= 5 
@@ -16117,7 +16285,16 @@ export default function App() {
                       </span>
                     ) : (
                       <button 
-                        onClick={buyStarterPack}
+                        onClick={() => {
+                          setPendingPurchaseItem({
+                            id: 'starter_pack',
+                            name: prefLang === 'en' ? 'Beginner Starter Pack' : 'Starter Pack Pemula',
+                            cost: 1250,
+                            costType: 'coin',
+                            itemCategory: 'starter',
+                            onBuySelf: buyStarterPack
+                          });
+                        }}
                         disabled={coins < 1250}
                         className="px-5 py-2.5 bg-[#81b64c] hover:bg-[#92ca5a] disabled:opacity-40 text-slate-950 font-black text-xs uppercase rounded-xl shadow-[0_4px_0_0_#5d8a32] active:translate-y-1 active:shadow-none cursor-pointer transition-all tracking-wider"
                       >
@@ -16226,27 +16403,34 @@ export default function App() {
                     ) : (
                       <button 
                         onClick={() => {
-                          if (coins >= 7500) {
-                            askConfirmation({
-                              title: prefLang === 'en' ? 'Activate Premium Membership?' : 'Aktivasi Keanggotaan Premium?',
-                              message: prefLang === 'en' 
-                                ? 'Are you sure you want to spend coins to activate your Premium Elite Membership? You will gain unlimited analysis stamina, a gold crown badge, exclusive bot access, and unlock all visual cosmetics!'
-                                : 'Apakah Anda yakin ingin membelanjakan koin Anda untuk mengaktifkan Keanggotaan Premium Klub Pal Mate? Anda akan memperoleh Stamina Analisis Tanpa Batas, lencana Mahkota Emas, akses bot eksklusif, serta pembuka seluruh kosmetik visual!',
-                              confirmText: prefLang === 'en' ? 'Buy Premium' : 'Beli Premium',
-                              cancelText: prefLang === 'en' ? 'Back' : 'Kembali',
-                              severity: 'success',
-                              cost: { amount: 7500, type: 'coin' },
-                              onConfirm: () => {
-                                const nextCoins = coins - 7500;
-                                setCoins(nextCoins);
-                                localStorage.setItem('coins', String(nextCoins));
-                                setMembershipStatus('premium');
-                                localStorage.setItem('membershipStatus', 'premium');
-                                triggerAudio('win');
-                                triggerReward(0, prefLang === 'en' ? "Congratulations! You are officially a Premium Elite Member of Pal Mate Club! Enjoy all premium benefits!" : "Selamat! Anda resmi menjadi Anggota Premium Klub Pal Mate! Nikmati semua fitur istimewa!", 'success_no_xp');
-                              }
-                            });
-                          }
+                          setPendingPurchaseItem({
+                            id: 'premium_membership',
+                            name: prefLang === 'en' ? 'Premium Elite Membership' : 'Keanggotaan Premium Elite',
+                            cost: 7500,
+                            costType: 'coin',
+                            itemCategory: 'premium',
+                            onBuySelf: () => {
+                              askConfirmation({
+                                title: prefLang === 'en' ? 'Activate Premium Membership?' : 'Aktivasi Keanggotaan Premium?',
+                                message: prefLang === 'en' 
+                                  ? 'Are you sure you want to spend coins to activate your Premium Elite Membership?'
+                                  : 'Apakah Anda yakin ingin membelanjakan koin Anda untuk mengaktifkan Keanggotaan Premium Klub Pal Mate?',
+                                confirmText: prefLang === 'en' ? 'Buy Premium' : 'Beli Premium',
+                                cancelText: prefLang === 'en' ? 'Back' : 'Kembali',
+                                severity: 'success',
+                                cost: { amount: 7500, type: 'coin' },
+                                onConfirm: () => {
+                                  const nextCoins = coins - 7500;
+                                  setCoins(nextCoins);
+                                  localStorage.setItem('coins', String(nextCoins));
+                                  setMembershipStatus('premium');
+                                  localStorage.setItem('membershipStatus', 'premium');
+                                  triggerAudio('win');
+                                  triggerReward(0, prefLang === 'en' ? "Congratulations! You are officially a Premium Elite Member of Pal Mate Club!" : "Selamat! Anda resmi menjadi Anggota Premium Klub Pal Mate!", 'success_no_xp');
+                                }
+                              });
+                            }
+                          });
                         }}
                         disabled={coins < 7500}
                         className="px-3 py-1.5 bg-gradient-to-r from-yellow-500 to-amber-500 hover:from-yellow-400 hover:to-amber-400 disabled:opacity-40 text-slate-950 font-extrabold text-[11px] uppercase rounded-lg shadow-[0_2px_0_0_#b38b00] active:translate-y-0.5 active:shadow-none cursor-pointer transition-all tracking-wide whitespace-nowrap shrink-0"
@@ -16330,7 +16514,16 @@ export default function App() {
                             
                             {!isUnlocked ? (
                               <button
-                                onClick={() => buyTheme(theme)}
+                                onClick={() => {
+                                  setPendingPurchaseItem({
+                                    id: `theme_${theme.id}`,
+                                    name: getThemeName(theme.id, theme.name),
+                                    cost: costValue,
+                                    costType: costType,
+                                    itemCategory: 'theme',
+                                    onBuySelf: () => buyTheme(theme)
+                                  });
+                                }}
                                 disabled={!hasEnough}
                                 className="px-3.5 py-1.5 bg-[#FFC800] hover:bg-yellow-400 disabled:opacity-40 text-[#262421] font-black text-[10px] uppercase rounded-lg shadow-[0_3px_0_0_#b38b00] active:translate-y-0.5 active:shadow-none cursor-pointer"
                               >
@@ -16432,45 +16625,54 @@ export default function App() {
                             {!isUnlocked ? (
                               <button
                                 onClick={() => {
-                                  if (skinItem.costType === 'coin') {
-                                    if (coins >= skinItem.cost) {
-                                      askConfirmation({
-                                        title: prefLang === 'en' ? 'Buy Piece Skin?' : 'Beli Skin Bidak?',
-                                        message: prefLang === 'en'
-                                          ? `Are you sure you want to spend coins to unlock the "${skinItem.name_en}" piece skin?`
-                                          : `Apakah Anda yakin ingin membelanjakan koin untuk membuka skin bidak "${skinItem.name}"?`,
-                                        confirmText: prefLang === 'en' ? 'Buy Skin' : 'Beli Skin',
-                                        cancelText: prefLang === 'en' ? 'Cancel' : 'Batal',
-                                        severity: 'info',
-                                        cost: { amount: skinItem.cost, type: 'coin' },
-                                        onConfirm: () => {
-                                          setCoins(prev => prev - skinItem.cost);
-                                          setUnlockedSkins(prev => [...prev, skinItem.id]);
-                                          triggerAudio('win');
-                                          triggerReward(0, prefLang === 'en' ? `Piece skin "${skinItem.name_en}" unlocked successfully for ${skinItem.cost} Coins!` : `Skin Bidak "${skinItem.name}" berhasil dibeli seharga ${skinItem.cost} Koin!`, 'success_no_xp');
+                                  setPendingPurchaseItem({
+                                    id: `skin_${skinItem.id}`,
+                                    name: prefLang === 'en' ? skinItem.name_en : skinItem.name,
+                                    cost: skinItem.cost,
+                                    costType: skinItem.costType,
+                                    itemCategory: 'skin',
+                                    onBuySelf: () => {
+                                      if (skinItem.costType === 'coin') {
+                                        if (coins >= skinItem.cost) {
+                                          askConfirmation({
+                                            title: prefLang === 'en' ? 'Buy Piece Skin?' : 'Beli Skin Bidak?',
+                                            message: prefLang === 'en'
+                                              ? `Are you sure you want to spend coins to unlock the "${skinItem.name_en}" piece skin?`
+                                              : `Apakah Anda yakin ingin membelanjakan koin untuk membuka skin bidak "${skinItem.name}"?`,
+                                            confirmText: prefLang === 'en' ? 'Buy Skin' : 'Beli Skin',
+                                            cancelText: prefLang === 'en' ? 'Cancel' : 'Batal',
+                                            severity: 'info',
+                                            cost: { amount: skinItem.cost, type: 'coin' },
+                                            onConfirm: () => {
+                                              setCoins(prev => prev - skinItem.cost);
+                                              setUnlockedSkins(prev => [...prev, skinItem.id]);
+                                              triggerAudio('win');
+                                              triggerReward(0, prefLang === 'en' ? `Piece skin "${skinItem.name_en}" unlocked successfully for ${skinItem.cost} Coins!` : `Skin Bidak "${skinItem.name}" berhasil dibeli seharga ${skinItem.cost} Koin!`, 'success_no_xp');
+                                            }
+                                          });
                                         }
-                                      });
-                                    }
-                                  } else {
-                                    if (diamonds >= skinItem.cost) {
-                                      askConfirmation({
-                                        title: prefLang === 'en' ? 'Buy Piece Skin?' : 'Beli Skin Bidak?',
-                                        message: prefLang === 'en'
-                                          ? `Are you sure you want to spend diamonds to unlock the "${skinItem.name_en}" piece skin?`
-                                          : `Apakah Anda yakin ingin membelanjakan berlian untuk membuka skin bidak "${skinItem.name}"?`,
-                                        confirmText: prefLang === 'en' ? 'Buy Skin' : 'Beli Skin',
-                                        cancelText: prefLang === 'en' ? 'Cancel' : 'Batal',
-                                        severity: 'info',
-                                        cost: { amount: skinItem.cost, type: 'diamond' },
-                                        onConfirm: () => {
-                                          setDiamonds(prev => prev - skinItem.cost);
-                                          setUnlockedSkins(prev => [...prev, skinItem.id]);
-                                          triggerAudio('win');
-                                          triggerReward(0, prefLang === 'en' ? `Piece skin "${skinItem.name_en}" unlocked successfully for ${skinItem.cost} Diamonds!` : `Skin Bidak "${skinItem.name}" berhasil dibeli seharga ${skinItem.cost} Berlian!`, 'success_no_xp');
+                                      } else {
+                                        if (diamonds >= skinItem.cost) {
+                                          askConfirmation({
+                                            title: prefLang === 'en' ? 'Buy Piece Skin?' : 'Beli Skin Bidak?',
+                                            message: prefLang === 'en'
+                                              ? `Are you sure you want to spend diamonds to unlock the "${skinItem.name_en}" piece skin?`
+                                              : `Apakah Anda yakin ingin membelanjakan berlian untuk membuka skin bidak "${skinItem.name}"?`,
+                                            confirmText: prefLang === 'en' ? 'Buy Skin' : 'Beli Skin',
+                                            cancelText: prefLang === 'en' ? 'Cancel' : 'Batal',
+                                            severity: 'info',
+                                            cost: { amount: skinItem.cost, type: 'diamond' },
+                                            onConfirm: () => {
+                                              setDiamonds(prev => prev - skinItem.cost);
+                                              setUnlockedSkins(prev => [...prev, skinItem.id]);
+                                              triggerAudio('win');
+                                              triggerReward(0, prefLang === 'en' ? `Piece skin "${skinItem.name_en}" unlocked successfully for ${skinItem.cost} Diamonds!` : `Skin Bidak "${skinItem.name}" berhasil dibeli seharga ${skinItem.cost} Berlian!`, 'success_no_xp');
+                                            }
+                                          });
                                         }
-                                      });
+                                      }
                                     }
-                                  }
+                                  });
                                 }}
                                 disabled={!hasEnough}
                                 className="px-3.5 py-1.5 bg-[#FFC800] hover:bg-yellow-400 disabled:opacity-40 text-black font-extrabold text-[10px] uppercase rounded-lg shadow-[0_3px_0_0_#b38b00] active:translate-y-0.5 active:shadow-none cursor-pointer"
@@ -17081,7 +17283,16 @@ export default function App() {
                       Icon: Globe,
                       action: () => { setMode('online-match'); },
                       tags: ['online', 'multiplayer', 'mabar', 'match', 'live', 'pvp', 'rating', 'elo', 'tanding'],
-                      isActive: mode === 'online-match'
+                      isActive: mode === 'online-match' && !friendLobbyType
+                    },
+                    {
+                      id: 'room-pin',
+                      label: prefLang === 'en' ? 'Create / Join Room PIN' : 'Buat / Masuk Room PIN',
+                      parentLabel: prefLang === 'en' ? 'Arena' : 'Arena',
+                      Icon: KeyRound,
+                      action: () => { setFriendLobbyType('online-room'); },
+                      tags: ['room', 'pin', 'kamar', 'mabar', 'buat', 'qr', 'kode', 'teman'],
+                      isActive: friendLobbyType === 'online-room'
                     },
                     {
                       id: 'analysis',
@@ -17720,6 +17931,30 @@ export default function App() {
       </div>
 
       <PageLoadingScreen isVisible={isPageLoading} />
+
+      <DownloadAppModal
+        isOpen={showDownloadAppModal}
+        onClose={() => setShowDownloadAppModal(false)}
+        prefLang={prefLang}
+      />
+
+      <ShareRoomModal
+        isOpen={showShareRoomModal}
+        onClose={() => setShowShareRoomModal(false)}
+        roomCode={friendRoomCode}
+        prefLang={prefLang}
+      />
+
+      <ShopPurchaseChoiceModal
+        isOpen={pendingPurchaseItem !== null}
+        onClose={() => setPendingPurchaseItem(null)}
+        item={pendingPurchaseItem}
+        userCoins={coins}
+        userDiamonds={diamonds}
+        friendsList={friendsList}
+        onSendGift={handleSendShopGift}
+        prefLang={prefLang}
+      />
 
       <ConfirmationDialog
         isOpen={confirmState.isOpen}

@@ -10,6 +10,7 @@ import { ChessPiece } from './ChessPieces';
 interface ChessTutorialTourProps {
   isOpen: boolean;
   onClose: () => void;
+  onComplete?: (coinsAward: number, xpAward: number) => void;
   mode: string;
   setMode: (mode: any) => void;
   setProfileActiveTab?: (tab: any) => void;
@@ -35,8 +36,8 @@ const TOUR_STEPS: StepType[] = [
   {
     titleId: "Selamat Datang di Pal Mate!",
     titleEn: "Welcome to Pal Mate!",
-    descId: "Arena Catur premium tempat Anda bisa bertanding catur taktis, naik level, mengumpulkan koin & diamond secara digital, mengoleksi anime skin kustom, dan memperkuat Suku Anda!",
-    descEn: "The premium chess arena where you can contest high-stakes ELO duels, gain XP levels, collect shiny virtual coins & diamonds, unlock custom anime piece skins, and empower your Suku!",
+    descId: "Arena Catur tempat Anda bisa bertanding catur taktis, naik level, mengumpulkan koin & diamond secara digital, mengoleksi anime skin kustom, dan memperkuat Suku Anda!",
+    descEn: "The tactical chess arena where you can contest high-stakes ELO duels, gain XP levels, collect shiny virtual coins & diamonds, unlock custom anime piece skins, and empower your Suku!",
     highlightTextId: "Sentuhan modern catur klasik ala klan lokal.",
     highlightTextEn: "A modern touch to the classic game of chess.",
     icon: Sparkles,
@@ -122,8 +123,8 @@ const TOUR_STEPS: StepType[] = [
     titleEn: "Discussion Forum & Chess Analysis",
     descId: "Ingin berbagi teori catur matang? Buatlah postingan di Forum Komunitas! Peroleh ribuan umpan balik taktis dari sesama master klan, serta diskusikan aneka perangkap pembukaan catur terpopuler saat ini.",
     descEn: "Have an elite opening blueprint to display? Share your guides in the Community Discussion Forum! Gain tactical reviews from master players and discuss opening traps or middle-game strategies in detail.",
-    highlightTextId: "Membuka obrolan catur premium bersama ratusan player.",
-    highlightTextEn: "Opening premium chess discussions with hundreds of active players.",
+    highlightTextId: "Membuka obrolan catur interaktif bersama ratusan player.",
+    highlightTextEn: "Opening interactive chess discussions with hundreds of active players.",
     icon: MessageSquare,
     iconColor: "text-rose-400",
     badge: "Forum",
@@ -146,6 +147,7 @@ const TOUR_STEPS: StepType[] = [
 export function ChessTutorialTour({
   isOpen,
   onClose,
+  onComplete,
   mode,
   setMode,
   setProfileActiveTab,
@@ -276,6 +278,7 @@ export function ChessTutorialTour({
       const activeUser = (localStorage.getItem('username') || 'guest').trim().toLowerCase();
       localStorage.setItem(`chess_tutorial_completed_${activeUser}`, 'true');
       localStorage.setItem('chess_tutorial_completed_v2', 'true');
+      localStorage.setItem('chess_tutorial_completed_guest', 'true');
       
       // Auto award initial balance if newly completed
       const coinsBefore = Number(localStorage.getItem('coins')) || 500;
@@ -283,9 +286,11 @@ export function ChessTutorialTour({
       localStorage.setItem('coins', String(coinsBefore + 1000));
       localStorage.setItem('xp', String(xpBefore + 100));
       
-      // Trigger a clean reload to sync values easily
-      window.location.reload();
-      onClose();
+      if (onComplete) {
+        onComplete(1000, 100);
+      } else {
+        onClose();
+      }
     } else {
       setCurrentStep(prev => prev + 1);
     }
@@ -303,6 +308,7 @@ export function ChessTutorialTour({
     const activeUser = (localStorage.getItem('username') || 'guest').trim().toLowerCase();
     localStorage.setItem(`chess_tutorial_completed_${activeUser}`, 'true');
     localStorage.setItem('chess_tutorial_completed_v2', 'true');
+    localStorage.setItem('chess_tutorial_completed_guest', 'true');
     onClose();
   };
 
