@@ -701,6 +701,74 @@ async function startServer() {
     }
   });
 
+  app.post("/api/auth/change-password", async (req, res) => {
+    try {
+      const { username, oldPassword, newPassword } = req.body;
+      if (!username || !oldPassword || !newPassword) {
+        return res.status(400).json({ error: "Username, password lama, dan password baru wajib diisi!" });
+      }
+      if (newPassword.length < 6) {
+        return res.status(400).json({ error: "Password baru minimal 6 karakter!" });
+      }
+
+      const lower = username.trim().toLowerCase();
+
+      if (db && !isFirestoreSuspended && !usersDb[lower]) {
+        try {
+          const docRef = doc(db, "users", lower);
+          const docSnap = await getDoc(docRef);
+          if (docSnap.exists()) {
+            usersDb[lower] = docSnap.data();
+          }
+        } catch (err: any) {
+          console.error("Firestore lookup error in change-password:", err);
+        }
+      }
+
+      const userObj = usersDb[lower];
+      if (!userObj) {
+        return res.status(404).json({ error: "Akun pengguna tidak ditemukan!" });
+      }
+
+      // Verify old password
+      if (userObj.password && userObj.password !== oldPassword) {
+        return res.status(400).json({ error: "Password lama yang Anda masukkan salah!" });
+      }
+
+      // Update password
+      userObj.password = newPassword;
+      saveUsersDb();
+      await saveUserToFirestore(userObj.username, true);
+
+      return res.json({ success: true, message: "Password akun berhasil diperbarui!" });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || "Gagal mengubah password" });
+    }
+  });
+
+  app.post("/api/auth/link-google", async (req, res) => {
+    try {
+      const { username, googleEmail, googleUid, googlePhotoUrl } = req.body;
+      if (!username || !googleEmail) {
+        return res.status(400).json({ error: "Username dan Google Email wajib diisi!" });
+      }
+      const lower = username.trim().toLowerCase();
+      const userObj = usersDb[lower];
+      if (userObj) {
+        userObj.googleLinkedEmail = googleEmail;
+        userObj.googleLinkedUid = googleUid || userObj.googleLinkedUid;
+        if (googlePhotoUrl && (!userObj.profileAvatar || userObj.profileAvatar.includes('avatar_martin'))) {
+          userObj.profileAvatar = googlePhotoUrl;
+        }
+        saveUsersDb();
+        await saveUserToFirestore(userObj.username, true);
+      }
+      return res.json({ success: true, message: `Akun berhasil terhubung dengan Google (${googleEmail})` });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || "Gagal menghubungkan Google" });
+    }
+  });
+
   app.post("/api/auth/sync", async (req, res) => {
     try {
       const { username, elo, xp, coins, diamonds, unlockedThemes, matchesPlayed, matchesWon, profileAvatar, profileBio, claimedAchievements, membershipStatus, unlockedItems, selectedFrame, unlockedFrames, selectedSkin, unlockedSkins, equippedTitle, unlockedTitles, equippedCheckmateEffect, unlockedCheckmateEffects, customStatus, isPrivate, likesCount } = req.body;

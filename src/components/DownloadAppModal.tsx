@@ -139,8 +139,8 @@ export const DownloadAppModal: React.FC<DownloadAppModalProps> = ({ isOpen, onCl
             </li>
             <li>
               {prefLang === 'en' 
-                ? 'Tap "Install". The Pal Mate icon will appear in your Android App Drawer!' 
-                : 'Tekan "Instal". Ikon Pal Mate akan langsung muncul di daftar aplikasi HP Anda!'}
+                ? 'On home screen, long press empty area to add the Pal Mate Streak Widget!' 
+                : 'Di layar HP, tekan lama area kosong untuk memasang Widget Streak Pal Mate!'}
             </li>
           </ol>
         </div>

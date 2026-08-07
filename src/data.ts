@@ -6,11 +6,11 @@ import wallyAvatar from './assets/images/wally_avatar_1779712178593.png';
 import magnusAvatar from './assets/images/magnus_avatar_1779712198066.png';
 
 import duoAvatar from './assets/images/duo_avatar_1779707455306.png';
-import lilyAvatar from './assets/images/lily_avatar_1779707473241.png';
-import oscarAvatar from './assets/images/oscar_avatar_1779707493065.png';
+import lilyAvatar from './assets/images/lily_bot_cartoon_1786094757281.jpg';
+import oscarAvatar from './assets/images/oscar_bot_cartoon_1786094737765.jpg';
 import zariAvatar from './assets/images/zari_avatar_1779707508891.png';
 import eddyAvatar from './assets/images/eddy_duo_style_1784811264758.jpg';
-import juniorAvatar from './assets/images/junior_duo_style_1784811276328.jpg';
+import juniorAvatar from './assets/images/junior_bot_cartoon_1786094967966.jpg';
 import linAvatar from './assets/images/lin_duo_style_1784811286442.jpg';
 import vikramAvatar from './assets/images/vikram_duo_style_1784811297014.jpg';
 import beaAvatar from './assets/images/bea_duo_style_1784811329878.jpg';

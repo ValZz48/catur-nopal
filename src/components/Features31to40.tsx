@@ -1909,7 +1909,7 @@ export const Features31to40: React.FC<Features31to40Props> = ({
       { id: 'fs_royal', name: 'Tampilan Bidak Ksatria Kerajaan', originalCost: 600, discountedCost: 180, currency: 'coins', rewardType: 'piece_royal', desc: 'Desain bidak catur beraliansi bangsawan klasik berlapis emas.' },
       { id: 'fs_sack', name: 'Kantung Hasil Pekan Diamond', originalCost: 150, discountedCost: 45, currency: 'diamonds', rewardType: 'diamond_sack', desc: 'Bypass brankas untuk mencairkan +50 Koin tambahan secara gratis!' },
       { id: 'fs_gold', name: 'Brankas Koin Kemakmuran Jumat', originalCost: 100, discountedCost: 30, currency: 'diamonds', rewardType: 'gold_heavy', desc: 'Buka brankas koin darurat: Dapatkan +1200 Koin Tabunan instan!' },
-      { id: 'fs_gm', name: 'Piala Gelar Grandmaster', originalCost: 120, discountedCost: 35, currency: 'diamonds', rewardType: 'title_gm', desc: 'Sematkan gelar kehormatan "Grandmaster" permanen pada kartu profil!' }
+      { id: 'fs_gm', name: 'Piala Kejuaraan Grandmaster', originalCost: 120, discountedCost: 35, currency: 'diamonds', rewardType: 'title_gm', desc: 'Sematkan piala kehormatan "Grandmaster" permanen pada kartu profil!' }
     ];
 
     const seed = (username || 'User').split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
@@ -1997,7 +1997,7 @@ export const Features31to40: React.FC<Features31to40Props> = ({
         localStorage.setItem('unlockedTitles', JSON.stringify(titles));
         window.dispatchEvent(new Event('storage'));
       } catch (e) {}
-      triggerReward(0, 'Pembelian Berhasil! Gelar elit "Grandmaster" Anda sekarang siap dipasang!', 'success_no_xp');
+      triggerReward(0, 'Pembelian Berhasil! Status elit "Grandmaster" Anda sekarang aktif!', 'success_no_xp');
     }
 
     const nextDeals = flashDeals.filter(d => d.id !== deal.id);

@@ -2,8 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { 
   Shield, Calendar, Megaphone, UserPlus, FileText, AlertTriangle, 
   Trash2, Plus, Clock, Award, Star, Lock, Eye, AlertCircle, Sparkles,
-  Search, RefreshCw, Coins, Gem
+  Search, RefreshCw, Coins, Gem, Newspaper
 } from 'lucide-react';
+import { NewsPortal } from './NewsPortal';
 
 interface AdminStaffConsoleProps {
   user: any;
@@ -25,7 +26,7 @@ export function AdminStaffConsole({
   showLocalToast,
   askConfirmation
 }: AdminStaffConsoleProps) {
-  const [activeTab, setActiveTab] = useState<'reports' | 'events' | 'staff' | 'tickets' | 'elo'>('reports');
+  const [activeTab, setActiveTab] = useState<'reports' | 'events' | 'staff' | 'tickets' | 'elo' | 'news'>('news');
 
   // Account Restoration state
   const [eloTargetUsername, setEloTargetUsername] = useState('');
@@ -543,6 +544,7 @@ export function AdminStaffConsole({
       {/* DASH BOARD SWITCH TABS */}
       <div className="flex bg-[#1e1c1a] p-1 rounded-xl border border-[#3c3934] mb-6 overflow-x-auto">
         {[
+          { id: 'news', label: 'Dashboard Berita', icon: Newspaper },
           { id: 'reports', label: 'Laporan Pengguna', icon: FileText },
           { id: 'events', label: 'Jadwalkan Event', icon: Calendar },
           { id: 'tickets', label: 'Dukungan Tiket', icon: Shield },
@@ -568,6 +570,14 @@ export function AdminStaffConsole({
       </div>
 
       {/* RENDER ACTIVE TAB BODY */}
+      {activeTab === 'news' && (
+        <NewsPortal
+          user={user}
+          isAdmin={true}
+          triggerAudio={triggerAudio}
+          showToast={showLocalToast}
+        />
+      )}
       {activeTab === 'reports' && (
         <div className="space-y-6">
           {/* TOP EXPLANATION / HEADER OF REPORTS */}

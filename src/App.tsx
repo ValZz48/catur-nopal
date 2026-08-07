@@ -28,6 +28,9 @@ import {
   Check, 
   RefreshCw,
   MessageSquare,
+  Newspaper,
+  Edit3,
+  ShieldCheck,
   Search,
   Users,
   Send,
@@ -68,7 +71,8 @@ import {
   Download,
   Star,
   Percent,
-  CheckCheck
+  CheckCheck,
+  Smartphone
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Character, GameMode, Puzzle, Lesson, PurchaseableTheme, BoardTheme, Achievement } from './types';
@@ -83,6 +87,7 @@ import { Features51to60 } from './components/Features51to60';
 import { SocialHub } from './components/SocialHub';
 import { ChessTutorialTour } from './components/ChessTutorialTour';
 import { AdminStaffConsole } from './components/AdminStaffConsole';
+import { NewsPortal } from './components/NewsPortal';
 import { AvatarWithFrame } from './components/AvatarWithFrame';
 import streakSvg from './assets/images/streak.svg';
 import { DuolingoMascotHeader } from './components/DuolingoMascotHeader';
@@ -93,7 +98,14 @@ import { TransactionHistoryTab } from './components/TransactionHistoryTab';
 import { PageLoadingScreen } from './components/PageLoadingScreen';
 import { DownloadAppModal } from './components/DownloadAppModal';
 import { ShareRoomModal } from './components/ShareRoomModal';
+import { AfterMatchReportModal } from './components/AfterMatchReportModal';
 import { ShopPurchaseChoiceModal, ShopItem } from './components/ShopPurchaseChoiceModal';
+import { StreakWidgetModal } from './components/StreakWidgetModal';
+import { BetaTrialAlertModal } from './components/BetaTrialAlertModal';
+import { SeasonResetRewardModal, SeasonResetDetails } from './components/SeasonResetRewardModal';
+import { SeasonStatsProfileCard } from './components/SeasonStatsProfileCard';
+import { registerServiceWorker, scheduleStreakReminderCheck, requestNotificationPermission } from './utils/notification';
+import { getGlobalSeasonInfo } from './utils/season';
 
 // Diagnostic Logging Middleware for localStorage updates
 try {
@@ -140,11 +152,11 @@ import wallyAvatar from './assets/images/wally_avatar_1779712178593.png';
 import magnusAvatar from './assets/images/magnus_avatar_1779712198066.png';
 
 import duoAvatar from './assets/images/duo_avatar_1779707455306.png';
-import lilyAvatar from './assets/images/lily_avatar_1779707473241.png';
-import oscarAvatar from './assets/images/oscar_avatar_1779707493065.png';
+import lilyAvatar from './assets/images/lily_bot_cartoon_1786094757281.jpg';
+import oscarAvatar from './assets/images/oscar_bot_cartoon_1786094737765.jpg';
 import zariAvatar from './assets/images/zari_avatar_1779707508891.png';
 import eddyAvatar from './assets/images/eddy_duo_style_1784811264758.jpg';
-import juniorAvatar from './assets/images/junior_duo_style_1784811276328.jpg';
+import juniorAvatar from './assets/images/junior_bot_cartoon_1786094967966.jpg';
 import linAvatar from './assets/images/lin_duo_style_1784811286442.jpg';
 import vikramAvatar from './assets/images/vikram_duo_style_1784811297014.jpg';
 import beaAvatar from './assets/images/bea_duo_style_1784811329878.jpg';
@@ -647,6 +659,17 @@ export default function App() {
       return localStorage.getItem('chess_tutorial_completed_guest') !== 'true';
     }
     return localStorage.getItem(`chess_tutorial_completed_${activeUser}`) !== 'true';
+  });
+  const [showBetaTrialAlert, setShowBetaTrialAlert] = useState<boolean>(() => {
+    const todayStr = new Date().toISOString().split('T')[0];
+    const hideDate = localStorage.getItem('hide_beta_alert_date');
+    return hideDate !== todayStr;
+  });
+  const [notifEnabledState, setNotifEnabledState] = useState<boolean>(() => {
+    if (typeof window !== 'undefined' && 'Notification' in window) {
+      return Notification.permission === 'granted' && localStorage.getItem('streak_notifications_enabled') === 'true';
+    }
+    return false;
   });
   const [mode, setMode] = useState<GameMode>(() => {
     return (localStorage.getItem('mode') as GameMode) || 'home';
@@ -1762,6 +1785,7 @@ export default function App() {
   // Interactive feedback triggers
   const [showRewardModal, setShowRewardModal] = useState<boolean>(false);
   const [isStreakModalOpen, setIsStreakModalOpen] = useState<boolean>(false);
+  const [isStreakWidgetModalOpen, setIsStreakWidgetModalOpen] = useState<boolean>(false);
   const [lastClaimedDailyRewardSummary, setLastClaimedDailyRewardSummary] = useState<{
     dayNumber: number;
     baseXp: number;
@@ -2010,6 +2034,30 @@ export default function App() {
   const [chatInput, setChatInput] = useState<string>('');
   const [searchTime, setSearchTime] = useState<number>(0);
   const [rankingList, setRankingList] = useState<any[]>(() => []);
+  const [googleLinkedEmail, setGoogleLinkedEmail] = useState<string>(() => localStorage.getItem('google_linked_email') || '');
+  const [googleLinkingLoading, setGoogleLinkingLoading] = useState<boolean>(false);
+  const [nicknameSettingInput, setNicknameSettingInput] = useState<string>('');
+  
+  // After Match Report Modal State
+  const [isAfterMatchReportOpen, setIsAfterMatchReportOpen] = useState<boolean>(false);
+
+  useEffect(() => {
+    if (gameResult || onlineGameResult) {
+      setIsAfterMatchReportOpen(true);
+    }
+  }, [gameResult, onlineGameResult]);
+  
+  // Resign Confirmation State
+  const [resignConfirmTarget, setResignConfirmTarget] = useState<'online' | 'local_friend' | null>(null);
+
+  // Change Password State
+  const [changePwOld, setChangePwOld] = useState<string>('');
+  const [changePwNew, setChangePwNew] = useState<string>('');
+  const [changePwConfirm, setChangePwConfirm] = useState<string>('');
+  const [changePwLoading, setChangePwLoading] = useState<boolean>(false);
+  const [changePwError, setChangePwError] = useState<string>('');
+  const [showOldPw, setShowOldPw] = useState<boolean>(false);
+  const [showNewPw, setShowNewPw] = useState<boolean>(false);
   const [playerId] = useState(() => {
     let id = localStorage.getItem('playerId');
     if (!id) {
@@ -2270,6 +2318,76 @@ export default function App() {
   const [showAvatarStudio, setShowAvatarStudio] = useState<boolean>(false);
   const [showSeasonalBanner, setShowSeasonalBanner] = useState<boolean>(true);
   const [activeTutorialDetail, setActiveTutorialDetail] = useState<string | null>(null);
+
+  const [showSeasonResetModal, setShowSeasonResetModal] = useState<boolean>(false);
+  const [seasonResetDetails, setSeasonResetDetails] = useState<SeasonResetDetails | null>(null);
+
+  const handleGlobalSeasonResetCheck = (forced = false) => {
+    const globalSeason = getGlobalSeasonInfo();
+    const currentCode = globalSeason.quarterCode;
+    const lastAck = localStorage.getItem('last_acknowledged_season');
+
+    if (!lastAck && !forced) {
+      localStorage.setItem('last_acknowledged_season', currentCode);
+      return;
+    }
+
+    if (forced || (lastAck && lastAck !== currentCode)) {
+      const prevSeasonCode = lastAck || (globalSeason.seasonNumber === 1 ? `Q4 ${globalSeason.year - 1}` : `Q${globalSeason.seasonNumber - 1} ${globalSeason.year}`);
+      const currentElo = onlineRating || Number(localStorage.getItem('onlineRating') || '600');
+
+      let rankName = "Pion Pemula";
+      let rewardCoins = 500;
+      let rewardDiamonds = 30;
+
+      if (currentElo >= 2000) { rankName = "Grandmaster Legendaris"; rewardCoins = 12000; rewardDiamonds = 700; }
+      else if (currentElo >= 1700) { rankName = "Raja Master Catur"; rewardCoins = 8000; rewardDiamonds = 400; }
+      else if (currentElo >= 1400) { rankName = "Menteri Ahli Strategi"; rewardCoins = 5000; rewardDiamonds = 240; }
+      else if (currentElo >= 1100) { rankName = "Benteng Pengawal"; rewardCoins = 3000; rewardDiamonds = 160; }
+      else if (currentElo >= 800) { rankName = "Gajah Cendekia"; rewardCoins = 1600; rewardDiamonds = 80; }
+      else if (currentElo >= 500) { rankName = "Kuda Magang"; rewardCoins = 800; rewardDiamonds = 40; }
+
+      const newElo = Math.max(500, Math.floor(currentElo * 0.70));
+
+      setCoins(prev => prev + rewardCoins);
+      setDiamonds(prev => prev + rewardDiamonds, true);
+      setOnlineRating(newElo);
+      setPassLevel(1);
+      setPassXp(0);
+
+      const userScope = getActUser();
+      localStorage.setItem('coins', String(coins + rewardCoins));
+      localStorage.setItem('diamonds', String(diamonds + rewardDiamonds));
+      if (userScope) {
+        localStorage.setItem(`coins:${userScope}`, String(coins + rewardCoins));
+        localStorage.setItem(`diamonds:${userScope}`, String(diamonds + rewardDiamonds));
+        localStorage.setItem(`onlineRating:${userScope}`, String(newElo));
+        localStorage.setItem(`seasonPassLevel:${userScope}`, '1');
+        localStorage.setItem(`seasonPassXp:${userScope}`, '0');
+      }
+      localStorage.setItem('onlineRating', String(newElo));
+      localStorage.setItem('seasonPassLevel', '1');
+      localStorage.setItem('seasonPassXp', '0');
+      localStorage.setItem('last_acknowledged_season', currentCode);
+
+      setSeasonResetDetails({
+        prevSeasonCode,
+        newSeasonCode: currentCode,
+        newSeasonName: globalSeason.seasonNameId,
+        finalElo: currentElo,
+        finalRankName: rankName,
+        newElo,
+        rewardCoins,
+        rewardDiamonds
+      });
+
+      setShowSeasonResetModal(true);
+    }
+  };
+
+  useEffect(() => {
+    handleGlobalSeasonResetCheck(false);
+  }, []);
 
   // --- CLIENT SUPPORT TICKETS & AI CHAT STATE ---
   const [supportTicketsList, setSupportTicketsList] = useState<any[]>([]);
@@ -4824,8 +4942,16 @@ export default function App() {
         }
       }
 
-      // Parse shared profile query parameter
+      // Register Service Worker for PWA & Push Notifications
+      registerServiceWorker();
+
+      // Parse shared profile query parameter or action parameters
       const params = new URLSearchParams(window.location.search);
+      const actionParam = params.get('action');
+      if (actionParam === 'checkin' || actionParam === 'widget') {
+        setIsStreakWidgetModalOpen(true);
+      }
+
       const roomParam = params.get('room') || params.get('roomCode') || params.get('join');
       if (roomParam) {
         const cleanRoomCode = roomParam.trim().replace(/[^0-9]/g, '');
@@ -4996,11 +5122,13 @@ export default function App() {
   };
 
   const getRatingBadge = (rating: number) => {
-    if (rating >= 2000) return "Grandmaster";
-    if (rating >= 1800) return "Master Nasional";
-    if (rating >= 1500) return "Pakar";
-    if (rating >= 1200) return "Wira Taktis";
-    return "Pemula Berbakat";
+    if (rating >= 2000) return "Grandmaster Legendaris";
+    if (rating >= 1700) return "Raja Master Catur";
+    if (rating >= 1400) return "Menteri Ahli Strategi";
+    if (rating >= 1100) return "Benteng Pengawal";
+    if (rating >= 800) return "Gajah Cendekia";
+    if (rating >= 500) return "Kuda Magang";
+    return "Pion Pemula";
   };
 
   // Run rankings retrieval when displaying online-match mode
@@ -5608,8 +5736,8 @@ export default function App() {
         return (
           <div className={`relative flex items-center justify-center rounded-full bg-cyan-500 text-white font-extrabold shrink-0 select-none ${className}`} title="Brilian!! (Langkah Luar Biasa)">
             <code className="absolute inset-x-0 inset-y-0 rounded-full animate-ping bg-cyan-400 opacity-60 pointer-events-none" />
-            <svg viewBox="0 0 24 24" fill="currentColor" className="w-[84%] h-[84%]" strokeWidth="0">
-              <path d="M12 2L4.5 12 12 22l7.5-10L12 2z" />
+            <svg viewBox="0 0 24 24" className="w-[80%] h-[80%] text-white fill-current relative z-10">
+              <text x="12" y="17.5" textAnchor="middle" fontSize="16" fontWeight="900" fontFamily="sans-serif">!!</text>
             </svg>
           </div>
         );
@@ -5877,7 +6005,7 @@ export default function App() {
     if (!selectedSquare) return [];
     
     const tokenTurn = chessRef.current.turn();
-    const playingColor = mode === 'online-match' ? onlinePlayerColor : aiMatchPlayerColor;
+    const playingColor = mode === 'online-match' ? onlinePlayerColor : (mode === 'local-friend' ? tokenTurn : aiMatchPlayerColor);
     
     // If it's indeed our turn, or we don't have separate colors, use normal moves
     if (tokenTurn === playingColor) {
@@ -6088,18 +6216,21 @@ export default function App() {
               type: q
             });
 
-            // Log AI move details inside analysis history
-            setAnalysisHistory(aprev => [
-              ...aprev,
-              {
-                fen: chess.fen(),
-                san: result.san,
-                from: result.from,
-                to: result.to,
-                type: q as any,
-                color: result.color as any
-              }
-            ]);
+            const aiFen = chess.fen();
+            setAnalysisHistory(aprev => {
+              if (aprev.length > 0 && aprev[aprev.length - 1].fen === aiFen) return aprev;
+              return [
+                ...aprev,
+                {
+                  fen: aiFen,
+                  san: result.san,
+                  from: result.from,
+                  to: result.to,
+                  type: q as any,
+                  color: result.color as any
+                }
+              ];
+            });
 
             return currentHistory;
           });
@@ -6184,27 +6315,36 @@ export default function App() {
           type: q
         });
 
-        // Log player move details inside analysis history
-        setAnalysisHistory(aprev => [
+        return currentHistory;
+      });
+
+      // Log player move details inside analysis history safely outside setMoveHistory
+      const playerFen = chess.fen();
+      setAnalysisHistory(aprev => {
+        if (aprev.length > 0 && aprev[aprev.length - 1].fen === playerFen) return aprev;
+        return [
           ...aprev,
           {
-            fen: chess.fen(),
+            fen: playerFen,
             san: moveResult.san,
             from: moveResult.from,
             to: moveResult.to,
-            type: q as any,
+            type: evaluateMoveQuality(moveResult, moveHistory.length < 16, moveHistory.slice(-4).includes(moveResult.san)) as any,
             color: moveResult.color as any
           }
-        ]);
-
-        return currentHistory;
+        ];
       });
 
       // Checks logic triggers
       if (chess.isCheckmate()) {
         triggerAudio('win');
         setGameResult('win');
-        if (selectedCharacter) {
+        if (mode === 'local-friend') {
+          const winnerName = moveResult.color === 'w'
+            ? (localFriendWName || 'Pemain Putih')
+            : (localFriendBName || 'Pemain Hitam');
+          triggerReward(40, `${winnerName} Menang lewat Skakmat!`);
+        } else if (selectedCharacter && mode === 'play') {
           setAiSpeech(selectedCharacter.checkmateMsg);
           triggerReward(40, `Kamu mengalahkan ${selectedCharacter.name}!`);
         }
@@ -6599,15 +6739,23 @@ export default function App() {
                     <div className="absolute inset-0 bg-red-500/25 border-2 border-red-500/60 pointer-events-none z-10 animate-pulse" />
                   )}
 
-                  {/* Chess piece display */}
+                  {/* Chess piece display with smooth movement animation */}
                   {piece && (
-                    <div 
+                    <motion.div 
+                      layout
+                      layoutId={pieceIds[squareName] || `piece_${piece.color}_${piece.type}_${squareName}`}
+                      transition={{
+                        type: "spring",
+                        stiffness: 350,
+                        damping: 28,
+                        mass: 0.8
+                      }}
                       draggable={!isAiThinking && !gameResult && !onlineGameResult}
                       onDragStart={(e) => handleDragStart(e, squareName)}
-                      className="w-[74%] h-[74%] transform group-hover:scale-[1.08] duration-100 transition-all flex items-center justify-center z-5 cursor-grab active:cursor-grabbing"
+                      className="w-[74%] h-[74%] transform group-hover:scale-[1.08] duration-100 transition-transform flex items-center justify-center z-5 cursor-grab active:cursor-grabbing"
                     >
                       <ChessPiece type={piece.type} color={piece.color} skin={selectedSkin} />
-                    </div>
+                    </motion.div>
                   )}
 
                   {/* Chess Move Evaluation mini bubble badge */}
@@ -7803,9 +7951,31 @@ export default function App() {
 
   return (
     <div className="min-h-screen bg-[#262421] text-[#bab9b8] flex flex-col font-sans selection:bg-emerald-950 antialiased">
+      {/* Early Access / Beta Trial Alert Modal */}
+      <BetaTrialAlertModal
+        isOpen={showBetaTrialAlert}
+        onClose={() => {
+          setShowBetaTrialAlert(false);
+        }}
+        onHideForToday={() => {
+          const todayStr = new Date().toISOString().split('T')[0];
+          localStorage.setItem('hide_beta_alert_date', todayStr);
+          setShowBetaTrialAlert(false);
+        }}
+        prefLang={prefLang}
+      />
+
+      {/* Global 3-Month Season Reset Reward Modal */}
+      <SeasonResetRewardModal
+        isOpen={showSeasonResetModal}
+        onClose={() => setShowSeasonResetModal(false)}
+        details={seasonResetDetails}
+        prefLang={prefLang}
+      />
+
       {/* Dynamic Interactive Onboarding Tutorial Tour Overlay */}
       <ChessTutorialTour
-        isOpen={showTutorialTour}
+        isOpen={showTutorialTour && !showBetaTrialAlert}
         onClose={() => setShowTutorialTour(false)}
         onComplete={(coinsAward, xpAward) => {
           setCoins(prev => prev + coinsAward);
@@ -8385,12 +8555,25 @@ export default function App() {
                 </div>
               </div>
 
-              <button
-                onClick={() => setIsStreakModalOpen(false)}
-                className="w-full py-3.5 bg-[#58cc02] hover:bg-[#46a302] text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-[0_5px_0_0_#46a302] active:translate-y-1 active:shadow-none transition-all cursor-pointer"
-              >
-                Mantap! Lanjutkan Latihan
-              </button>
+              <div className="w-full space-y-2">
+                <button
+                  onClick={() => setIsStreakModalOpen(false)}
+                  className="w-full py-3.5 bg-[#58cc02] hover:bg-[#46a302] text-white font-black text-xs uppercase tracking-widest rounded-2xl shadow-[0_5px_0_0_#46a302] active:translate-y-1 active:shadow-none transition-all cursor-pointer"
+                >
+                  Mantap! Lanjutkan Latihan
+                </button>
+
+                <button
+                  onClick={() => {
+                    setIsStreakModalOpen(false);
+                    setIsStreakWidgetModalOpen(true);
+                  }}
+                  className="w-full py-2.5 bg-[#203344] hover:bg-[#2b445a] border border-[#2c4052] text-amber-400 hover:text-amber-300 font-extrabold text-xs uppercase rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
+                >
+                  <Smartphone className="w-4 h-4 text-amber-400" />
+                  Pasang Widget HP & Notifikasi
+                </button>
+              </div>
             </motion.div>
           </div>
         )}
@@ -9924,15 +10107,28 @@ export default function App() {
                   </p>
                 </div>
               </div>
-              <button
-                onClick={() => {
-                  setMode('menu');
-                  triggerAudio('move');
-                }}
-                className="px-6 py-3 bg-[#81b64c] hover:bg-[#92ca5a] text-white font-extrabold text-sm rounded-xl shadow-[0_4px_0_0_#5d8a32] active:translate-y-1 active:shadow-none cursor-pointer transition-all uppercase shrink-0 tracking-wide z-10 flex items-center gap-1.5"
-              >
-                {t('lobbyStartMatchBtn')} <Swords className="w-4 h-4 text-white inline-block" />
-              </button>
+              <div className="flex items-center gap-2 shrink-0 z-10">
+                <button
+                  onClick={() => {
+                    setMode('news');
+                    triggerAudio('move');
+                  }}
+                  className="p-3 bg-[#262421] hover:bg-[#322f2b] text-[#81b64c] border border-[#3c3934] hover:border-[#81b64c] rounded-xl transition-all cursor-pointer shadow-md flex items-center justify-center shrink-0"
+                  title="Berita & Pengumuman Catur"
+                >
+                  <Newspaper className="w-5 h-5 text-[#81b64c]" />
+                </button>
+
+                <button
+                  onClick={() => {
+                    setMode('menu');
+                    triggerAudio('move');
+                  }}
+                  className="px-6 py-3 bg-[#81b64c] hover:bg-[#92ca5a] text-white font-extrabold text-sm rounded-xl shadow-[0_4px_0_0_#5d8a32] active:translate-y-1 active:shadow-none cursor-pointer transition-all uppercase shrink-0 tracking-wide flex items-center gap-1.5"
+                >
+                  {t('lobbyStartMatchBtn')} <Swords className="w-4 h-4 text-white inline-block" />
+                </button>
+              </div>
             </div>
 
             {/* SEASONAL EVENT BANNER (HORIZONTAL & DISMISSIBLE) */}
@@ -11125,6 +11321,9 @@ export default function App() {
                   </div>
                 </div>
 
+                {/* GLOBAL 3-MONTH SEASON STATS SECTION */}
+                <SeasonStatsProfileCard onlineRating={onlineRating} prefLang={prefLang} />
+
                 {/* EDITING INTERFACES */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 max-w-4xl mx-auto w-full">
                   {/* EDIT MOTTO/BIO STATUS */}
@@ -11892,6 +12091,7 @@ export default function App() {
                 friendsList={friendsList}
                 setFriendsList={setFriendsList}
                 prefLang={prefLang}
+                onTriggerSeasonResetModal={() => handleGlobalSeasonResetCheck(true)}
               />
             )}
 
@@ -12121,6 +12321,7 @@ export default function App() {
               friendsList={friendsList}
               setFriendsList={setFriendsList}
               prefLang={prefLang}
+              onTriggerSeasonResetModal={() => handleGlobalSeasonResetCheck(true)}
             />
           </div>
         )}
@@ -12174,6 +12375,7 @@ export default function App() {
               friendsList={friendsList}
               setFriendsList={setFriendsList}
               prefLang={prefLang}
+              onTriggerSeasonResetModal={() => handleGlobalSeasonResetCheck(true)}
             />
           </div>
         )}
@@ -12284,6 +12486,269 @@ export default function App() {
               
               {/* LEFT COLUMN: CONTROL PREFERENCES */}
               <div className="md:col-span-6 space-y-6">
+
+                {/* FEATURE: GANTI NICKNAME CATUR */}
+                <div className="p-6 bg-[#312e2b] rounded-3xl border border-[#3c3934] shadow-md space-y-3">
+                  <div>
+                    <h4 className="font-extrabold text-white text-sm flex items-center gap-2">
+                      <Edit3 className="w-4 h-4 text-[#81b64c]" /> Ganti Nickname Caturmu
+                    </h4>
+                    <p className="text-[10px] text-[#9babaf] font-semibold mt-0.5">Ubah nama panggilan yang terlihat di arena, klan, dan papan peringkat</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      value={nicknameSettingInput !== '' ? nicknameSettingInput : username}
+                      onChange={(e) => setNicknameSettingInput(e.target.value)}
+                      placeholder="Masukkan nickname baru..."
+                      className="flex-1 px-3.5 py-2 bg-[#262421] border border-[#3c3934] rounded-xl text-xs text-white font-bold focus:outline-none focus:border-[#81b64c]"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const trimmed = (nicknameSettingInput || username).trim();
+                        if (!trimmed) return;
+                        setUsername(trimmed);
+                        localStorage.setItem('username', trimmed);
+                        triggerAudio('win');
+                        showLocalToast('Nickname catur berhasil diperbarui!');
+                      }}
+                      className="px-4 py-2 bg-[#81b64c] hover:bg-[#72a343] text-white font-black text-xs rounded-xl shadow-md cursor-pointer transition-all shrink-0"
+                    >
+                      Simpan
+                    </button>
+                  </div>
+                </div>
+
+                {/* FEATURE: LINK AKUN DENGAN GOOGLE */}
+                <div className="p-6 bg-[#312e2b] rounded-3xl border border-[#3c3934] shadow-md space-y-3">
+                  <div>
+                    <h4 className="font-extrabold text-white text-sm flex items-center gap-2">
+                      <ShieldCheck className="w-4 h-4 text-cyan-400" /> Hubungkan Akun dengan Google
+                    </h4>
+                    <p className="text-[10px] text-[#9babaf] font-semibold mt-0.5">Tautkan akun caturmu dengan Google untuk mengamankan progres dan masuk dengan mudah</p>
+                  </div>
+                  {googleLinkedEmail ? (
+                    <div className="p-3 bg-[#262421] border border-[#81b64c]/40 rounded-2xl flex items-center justify-between">
+                      <div className="flex items-center gap-2.5">
+                        <div className="w-7 h-7 rounded-full bg-white flex items-center justify-center font-bold text-slate-800 text-xs shadow-sm">
+                          G
+                        </div>
+                        <div>
+                          <span className="text-xs font-black text-white block">{googleLinkedEmail}</span>
+                          <span className="text-[9px] font-bold text-[#81b64c] uppercase">Terhubung dengan Google</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setGoogleLinkedEmail('');
+                          localStorage.removeItem('google_linked_email');
+                          localStorage.removeItem('google_linked_uid');
+                          triggerAudio('move');
+                          showLocalToast('Tautan Google dilepaskan');
+                        }}
+                        className="text-[10px] font-bold text-slate-400 hover:text-red-400 underline cursor-pointer px-2"
+                      >
+                        Lepas Tautan
+                      </button>
+                    </div>
+                  ) : (
+                    <button
+                      type="button"
+                      disabled={googleLinkingLoading}
+                      onClick={async () => {
+                        try {
+                          setGoogleLinkingLoading(true);
+                          const provider = new GoogleAuthProvider();
+                          const result = await signInWithPopup(auth, provider);
+                          const googleUser = result?.user;
+                          if (!googleUser || !googleUser.email) {
+                            showLocalToast('Gagal menghubungkan dengan Google Auth.');
+                            return;
+                          }
+
+                          setGoogleLinkedEmail(googleUser.email);
+                          localStorage.setItem('google_linked_email', googleUser.email);
+                          if (googleUser.uid) {
+                            localStorage.setItem('google_linked_uid', googleUser.uid);
+                          }
+
+                          if (googleUser.photoURL && (!user?.profileAvatar || user.profileAvatar.includes('avatar_martin'))) {
+                            if (setUser) {
+                              setUser((prev: any) => prev ? { ...prev, profileAvatar: googleUser.photoURL } : prev);
+                            }
+                          }
+
+                          await fetchWithTimeout('/api/auth/link-google', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              username: user ? user.username : username,
+                              googleEmail: googleUser.email,
+                              googleUid: googleUser.uid,
+                              googlePhotoUrl: googleUser.photoURL
+                            })
+                          }, 4000).catch(() => null);
+
+                          triggerAudio('win');
+                          showLocalToast(`Akun berhasil dihubungkan dengan Google (${googleUser.email})!`);
+                        } catch (err: any) {
+                          console.error("Google linking error:", err);
+                          const errMsg = err?.message || '';
+                          if (errMsg.includes('popup-closed-by-user')) {
+                            showLocalToast('Proses penghubungan Google dibatalkan.');
+                          } else {
+                            showLocalToast('Gagal menghubungkan Google Auth.');
+                          }
+                        } finally {
+                          setGoogleLinkingLoading(false);
+                        }
+                      }}
+                      className="w-full py-2.5 bg-white hover:bg-slate-100 disabled:opacity-60 text-slate-900 font-extrabold text-xs rounded-xl border border-slate-300 shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
+                    >
+                      {googleLinkingLoading ? (
+                        <RefreshCw className="w-4 h-4 animate-spin text-slate-700" />
+                      ) : (
+                        <svg className="w-4 h-4" viewBox="0 0 24 24">
+                          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+                          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+                          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+                          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+                        </svg>
+                      )}
+                      {googleLinkingLoading ? 'Menghubungkan...' : 'Hubungkan dengan Akun Google'}
+                    </button>
+                  )}
+                </div>
+
+                {/* FEATURE: GANTI PASSWORD AKUN */}
+                <div className="p-6 bg-[#312e2b] rounded-3xl border border-[#3c3934] shadow-md space-y-3">
+                  <div>
+                    <h4 className="font-extrabold text-white text-sm flex items-center gap-2">
+                      <Lock className="w-4 h-4 text-amber-400" /> Ganti Password Akun
+                    </h4>
+                    <p className="text-[10px] text-[#9babaf] font-semibold mt-0.5">Ubah kata sandi akun untuk menjaga keamanan profil Anda</p>
+                  </div>
+
+                  {changePwError && (
+                    <div className="p-2.5 bg-red-500/10 border border-red-500/30 rounded-xl text-red-400 text-xs font-bold flex items-center gap-2">
+                      <AlertCircle className="w-4 h-4 shrink-0 text-red-400" />
+                      <span>{changePwError}</span>
+                    </div>
+                  )}
+
+                  <div className="space-y-2.5">
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-[#bab9b8] uppercase mb-1">Password Lama</label>
+                      <div className="relative">
+                        <input
+                          type={showOldPw ? "text" : "password"}
+                          value={changePwOld}
+                          onChange={(e) => { setChangePwOld(e.target.value); setChangePwError(''); }}
+                          placeholder="Masukkan password lama..."
+                          className="w-full px-3.5 py-2 bg-[#262421] border border-[#3c3934] rounded-xl text-xs text-white font-bold focus:outline-none focus:border-[#81b64c]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowOldPw(!showOldPw)}
+                          className="absolute right-3 top-2.5 text-[#bab9b8] hover:text-white"
+                        >
+                          {showOldPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-[#bab9b8] uppercase mb-1">Password Baru (Min. 6 Karakter)</label>
+                      <div className="relative">
+                        <input
+                          type={showNewPw ? "text" : "password"}
+                          value={changePwNew}
+                          onChange={(e) => { setChangePwNew(e.target.value); setChangePwError(''); }}
+                          placeholder="Masukkan password baru..."
+                          className="w-full px-3.5 py-2 bg-[#262421] border border-[#3c3934] rounded-xl text-xs text-white font-bold focus:outline-none focus:border-[#81b64c]"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setShowNewPw(!showNewPw)}
+                          className="absolute right-3 top-2.5 text-[#bab9b8] hover:text-white"
+                        >
+                          {showNewPw ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                        </button>
+                      </div>
+                    </div>
+
+                    <div>
+                      <label className="block text-[10px] font-extrabold text-[#bab9b8] uppercase mb-1">Konfirmasi Password Baru</label>
+                      <input
+                        type="password"
+                        value={changePwConfirm}
+                        onChange={(e) => { setChangePwConfirm(e.target.value); setChangePwError(''); }}
+                        placeholder="Ulangi password baru..."
+                        className="w-full px-3.5 py-2 bg-[#262421] border border-[#3c3934] rounded-xl text-xs text-white font-bold focus:outline-none focus:border-[#81b64c]"
+                      />
+                    </div>
+
+                    <button
+                      type="button"
+                      disabled={changePwLoading}
+                      onClick={async () => {
+                        if (!changePwOld || !changePwNew || !changePwConfirm) {
+                          setChangePwError('Harap lengkapi semua kolom password!');
+                          return;
+                        }
+                        if (changePwNew.length < 6) {
+                          setChangePwError('Password baru minimal 6 karakter!');
+                          return;
+                        }
+                        if (changePwNew !== changePwConfirm) {
+                          setChangePwError('Konfirmasi password baru tidak cocok!');
+                          return;
+                        }
+
+                        try {
+                          setChangePwLoading(true);
+                          setChangePwError('');
+                          const resp = await fetchWithTimeout('/api/auth/change-password', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                              username: user ? user.username : username,
+                              oldPassword: changePwOld,
+                              newPassword: changePwNew
+                            })
+                          }, 6000);
+
+                          const data = await resp.json();
+                          if (!resp.ok || !data.success) {
+                            setChangePwError(data?.error || 'Gagal mengubah password. Pastikan password lama benar.');
+                            return;
+                          }
+
+                          setChangePwOld('');
+                          setChangePwNew('');
+                          setChangePwConfirm('');
+                          setChangePwError('');
+                          triggerAudio('win');
+                          showLocalToast('Password akun berhasil diperbarui!');
+                        } catch (err: any) {
+                          setChangePwError(err?.message || 'Terjadi kesalahan jaringan.');
+                        } finally {
+                          setChangePwLoading(false);
+                        }
+                      }}
+                      className="w-full py-2.5 bg-amber-500 hover:bg-amber-600 disabled:opacity-60 text-slate-950 font-black text-xs rounded-xl shadow-md cursor-pointer transition-all flex items-center justify-center gap-2"
+                    >
+                      {changePwLoading ? (
+                        <RefreshCw className="w-4 h-4 animate-spin" />
+                      ) : (
+                        <KeyRound className="w-4 h-4" />
+                      )}
+                      {changePwLoading ? 'Memproses...' : 'Simpan Password Baru'}
+                    </button>
+                  </div>
+                </div>
                 
                 {/* PREFERENCE 1: CONSOLE AUDIO SOUND TOGGLE */}
                 <div className="p-6 bg-[#312e2b] rounded-3xl border border-[#3c3934] shadow-md space-y-4">
@@ -12301,6 +12766,43 @@ export default function App() {
                           setSoundEnabled(val);
                           localStorage.setItem('sound', String(val));
                           if (val) triggerAudio('move');
+                        }}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-[#262421] border border-[#3c3934] rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[4px] after:left-[4px] after:bg-[#bab9b8] after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-[#81b64c] peer-checked:after:bg-white" />
+                    </label>
+                  </div>
+                </div>
+
+                {/* PREFERENCE 1B: STREAK & APP NOTIFICATIONS TOGGLE */}
+                <div className="p-6 bg-[#312e2b] rounded-3xl border border-[#3c3934] shadow-md space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <h4 className="font-extrabold text-white text-sm">Notifikasi Streak & Pengingat Harian</h4>
+                      <p className="text-[10px] text-[#9babaf] font-semibold mt-0.5">Pengingat harian agar streak absensi dan teka-teki catur Anda tidak terputus</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer select-none">
+                      <input
+                        type="checkbox"
+                        checked={notifEnabledState}
+                        onChange={async (e) => {
+                          const val = e.target.checked;
+                          if (val) {
+                            const perm = await requestNotificationPermission();
+                            if (perm === 'granted') {
+                              setNotifEnabledState(true);
+                              triggerAudio('move');
+                              showLocalToast(prefLang === 'en' ? 'Notifications activated' : 'Notifikasi streak diaktifkan');
+                            } else {
+                              setNotifEnabledState(false);
+                              showLocalToast(prefLang === 'en' ? 'Notification permission denied' : 'Izin notifikasi ditolak oleh browser');
+                            }
+                          } else {
+                            localStorage.setItem('streak_notifications_enabled', 'false');
+                            setNotifEnabledState(false);
+                            triggerAudio('move');
+                            showLocalToast(prefLang === 'en' ? 'Notifications disabled' : 'Notifikasi streak dinonaktifkan');
+                          }
                         }}
                         className="sr-only peer"
                       />
@@ -13038,7 +13540,7 @@ export default function App() {
                   <p className="text-[#9babaf] text-xs font-semibold">{prefLang === 'en' ? 'Review the most active tactical chess clubs of the week in Nusatenggara region' : 'Tinjau reputasi klub taktis catur teraktif minggu ini di region Nusatenggara'}</p>
                 </div>
                 <div className="bg-[#1c1a19] border border-[#3c3934] px-4 py-2 rounded-xl text-xs font-extrabold text-[#81b64c] uppercase tracking-wide">
-                  {prefLang === 'en' ? 'Regular Season 2026' : 'Musim Reguler 2026'}
+                  {prefLang === 'en' ? getGlobalSeasonInfo().seasonNameEn : getGlobalSeasonInfo().seasonNameId}
                 </div>
               </div>
 
@@ -13617,17 +14119,27 @@ export default function App() {
 
               {/* GAME STATE NOTIFICATION HEADLINE */}
               {gameResult && (
-                <div className={`px-4 py-1.5 rounded-xl border font-extrabold text-xs uppercase flex items-center gap-2 ${
-                  (gameResult === 'win' || gameResult === 'win-time') ? 'bg-[#263121] text-[#81b64c] border-[#81b64c]' :
-                  (gameResult === 'lose' || gameResult === 'lose-time') ? 'bg-red-950/50 text-red-400 border-red-900' :
-                  'bg-amber-950/50 text-amber-500 border-amber-900'
-                }`}>
-                  <AlertCircle className="w-4 h-4" />
-                  {gameResult === 'win' && 'Skakmat! Kamu menang!'}
-                  {gameResult === 'win-time' && 'Waktu AI habis! Kamu menang secara waktu!'}
-                  {gameResult === 'lose' && 'Skakmat! Kamu kalah dari AI.'}
-                  {gameResult === 'lose-time' && 'Waktumu habis! Kamu kalah secara waktu.'}
-                  {gameResult === 'draw' && 'Seri (Draw) ! Papan terkunci.'}
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className={`px-4 py-1.5 rounded-xl border font-extrabold text-xs uppercase flex items-center gap-2 ${
+                    (gameResult === 'win' || gameResult === 'win-time') ? 'bg-[#263121] text-[#81b64c] border-[#81b64c]' :
+                    (gameResult === 'lose' || gameResult === 'lose-time') ? 'bg-red-950/50 text-red-400 border-red-900' :
+                    'bg-amber-950/50 text-amber-500 border-amber-900'
+                  }`}>
+                    <AlertCircle className="w-4 h-4" />
+                    {gameResult === 'win' && 'Skakmat! Kamu menang!'}
+                    {gameResult === 'win-time' && 'Waktu AI habis! Kamu menang secara waktu!'}
+                    {gameResult === 'lose' && 'Skakmat! Kamu kalah dari AI.'}
+                    {gameResult === 'lose-time' && 'Waktumu habis! Kamu kalah secara waktu.'}
+                    {gameResult === 'draw' && 'Seri (Draw)! Papan terkunci.'}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIsAfterMatchReportOpen(true)}
+                    className="px-3 py-1.5 bg-[#81b64c] hover:bg-[#6f9e41] text-slate-950 font-black text-xs uppercase rounded-xl shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
+                  >
+                    <BarChart3 className="w-3.5 h-3.5" />
+                    Laporan Pertandingan
+                  </button>
                 </div>
               )}
 
@@ -13901,6 +14413,10 @@ export default function App() {
               <div className="flex items-center gap-4">
                 <button 
                   onClick={() => {
+                    if (!chessRef.current.isGameOver() && !localFriendResigned) {
+                      setResignConfirmTarget('local_friend');
+                      return;
+                    }
                     setMode('menu');
                     triggerAudio('move');
                   }}
@@ -13915,11 +14431,36 @@ export default function App() {
               </div>
 
               {/* ACTIVE TURN METRICS DISPLAY */}
-              <div className="flex items-center gap-3 bg-[#262421] px-5 py-2 rounded-xl border border-[#3c3934]">
-                <div className={`w-3.5 h-3.5 rounded-full ${chessRef.current.turn() === 'w' ? 'bg-white shadow-[0_0_10px_white]' : 'bg-[#151515] border border-[#555]'}`} />
-                <span className="text-sm font-extrabold text-white uppercase tracking-wider">
-                  GILIRAN: {chessRef.current.turn() === 'w' ? (localFriendWName || "PEMAIN PUTIH") : (localFriendBName || "PEMAIN HITAM")}
-                </span>
+              <div className="flex flex-wrap items-center gap-3">
+                <div className="flex items-center gap-3 bg-[#262421] px-5 py-2 rounded-xl border border-[#3c3934]">
+                  <div className={`w-3.5 h-3.5 rounded-full ${chessRef.current.turn() === 'w' ? 'bg-white shadow-[0_0_10px_white]' : 'bg-[#151515] border border-[#555]'}`} />
+                  <span className="text-sm font-extrabold text-white uppercase tracking-wider">
+                    GILIRAN: {chessRef.current.turn() === 'w' ? (localFriendWName || "PEMAIN PUTIH") : (localFriendBName || "PEMAIN HITAM")}
+                  </span>
+                </div>
+
+                {/* LAST MOVE ANALYSIS BADGE IN LOCAL FRIEND */}
+                {lastMove && lastMove.type && (
+                  <div className={`px-4 py-2 rounded-xl border flex items-center justify-between gap-3 text-[11px] ${EVALUATION_LABELS[lastMove.type]?.bg} shadow-md animate-fade-in select-none shrink-0`}>
+                    <div className="flex items-center gap-2 font-bold text-white">
+                      {lastMove.type === 'book' ? (
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" className="w-3.5 h-3.5 stroke-white" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+                          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z" />
+                        </svg>
+                      ) : (
+                        <span className="text-sm">{EVALUATION_LABELS[lastMove.type]?.icon}</span>
+                      )}
+                      <span>Langkah:</span>
+                      <span className="font-extrabold font-mono bg-black/40 px-1.5 py-0.5 rounded text-[#81b64c]">
+                        {moveHistory[moveHistory.length - 1] || '-'}
+                      </span>
+                    </div>
+                    <div className={`font-black uppercase tracking-wider text-[10px] ${EVALUATION_LABELS[lastMove.type]?.text}`}>
+                      {EVALUATION_LABELS[lastMove.type]?.label}
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* GAME OVER CARD / ANALYZE LINK */}
@@ -13950,87 +14491,96 @@ export default function App() {
               <div className="w-full max-w-[500px] aspect-square bg-[#262421] rounded-2xl overflow-hidden border-4 border-[#3c3934] relative shadow-2xl">
                 
                 {/* Chess grid mapping */}
-                <div 
-                  className="w-full h-full grid grid-cols-8 grid-rows-8 transition-transform duration-500"
-                  style={{
-                    transform: (localFriendRotates && chessRef.current.turn() === 'b') ? 'rotate(180deg)' : 'rotate(0deg)'
-                  }}
-                >
-                  {board.map((rowArr, rIdx) => (
-                    <React.Fragment key={rIdx}>
-                      {rowArr.map((squareObj, cIdx) => {
-                        // Adjust row/col indexes for visual flip
-                        const displayRow = rIdx;
-                        const displayCol = cIdx;
-                        
-                        const file = ['a','b','c','d','e','f','g','h'][displayCol];
-                        const rank = 8 - displayRow;
-                        const squareName = `${file}${rank}`;
-                        
-                        const isDark = (displayRow + displayCol) % 2 === 1;
-                        const isSelected = selectedSquare === squareName;
-                        const isDragging = draggingSquare === squareName;
-                        const isTargetChoice = validMoves.includes(squareName);
-                        const isFlashed = invalidSquareFlash === squareName;
+                <div className="w-full h-full grid grid-cols-8 grid-rows-8">
+                  {[0,1,2,3,4,5,6,7].map(rIdx => {
+                    const isFlipped = localFriendRotates && chessRef.current.turn() === 'b';
+                    const displayRow = isFlipped ? (7 - rIdx) : rIdx;
+                    return (
+                      <React.Fragment key={rIdx}>
+                        {[0,1,2,3,4,5,6,7].map(cIdx => {
+                          const displayCol = isFlipped ? (7 - cIdx) : cIdx;
+                          const squareObj = board[displayRow] ? board[displayRow][displayCol] : null;
+                          
+                          const file = ['a','b','c','d','e','f','g','h'][displayCol];
+                          const rank = 8 - displayRow;
+                          const squareName = `${file}${rank}`;
+                          
+                          const isDark = (displayRow + displayCol) % 2 === 1;
+                          const isSelected = selectedSquare === squareName;
+                          const isDragging = draggingSquare === squareName;
+                          const isTargetChoice = validMoves.includes(squareName);
+                          const isFlashed = invalidSquareFlash === squareName;
 
-                        // Source & Destination highlights of the last move
-                        const isLastMoveSrc = lastMove && lastMove.from === squareName;
-                        const isLastMoveDst = lastMove && lastMove.to === squareName;
+                          // Source & Destination highlights of the last move
+                          const isLastMoveSrc = lastMove && lastMove.from === squareName;
+                          const isLastMoveDst = lastMove && lastMove.to === squareName;
 
-                        const isHighlighted = isSelected || isLastMoveSrc || isLastMoveDst || isTargetChoice || isFlashed;
-                        let squareBg = '';
-                        
-                        if (isSelected) squareBg = 'bg-yellow-500/40';
-                        else if (isLastMoveSrc || isLastMoveDst) squareBg = 'bg-teal-500/25';
-                        else if (isTargetChoice) squareBg = isDark ? 'bg-[#5c7a43]' : 'bg-[#7c9a63]';
-                        else if (isFlashed) squareBg = 'bg-red-600/60';
+                          const isHighlighted = isSelected || isLastMoveSrc || isLastMoveDst || isTargetChoice || isFlashed;
+                          let squareBg = '';
+                          
+                          if (isSelected) squareBg = 'bg-yellow-500/40';
+                          else if (isLastMoveSrc || isLastMoveDst) squareBg = 'bg-teal-500/25';
+                          else if (isTargetChoice) squareBg = isDark ? 'bg-[#5c7a43]' : 'bg-[#7c9a63]';
+                          else if (isFlashed) squareBg = 'bg-red-600/60';
 
-                        return (
-                          <div
-                            key={squareName}
-                            onClick={() => handleSquareClick(squareName)}
-                            onDragOver={(e) => handleDragOver(e, squareName)}
-                            onDrop={(e) => handleDrop(e, squareName)}
-                            className={`relative aspect-square flex items-center justify-center transition-colors font-sans select-none cursor-pointer ${squareBg}`}
-                            style={{
-                              backgroundColor: isHighlighted ? undefined : (isDark ? activeThemeConfig.secondaryColor : activeThemeConfig.primaryColor)
-                            }}
-                          >
-                          {/* Chess piece graphics */}
-                          {squareObj && (
+                          return (
                             <div
-                              draggable
-                              onDragStart={(e) => handleDragStart(e, squareName)}
-                              className={`w-[85%] h-[85%] flex items-center justify-center z-10 transition-transform ${isDragging ? 'opacity-30' : ''}`}
+                              key={squareName}
+                              onClick={() => handleSquareClick(squareName)}
+                              onDragOver={(e) => handleDragOver(e, squareName)}
+                              onDrop={(e) => handleDrop(e, squareName)}
+                              className={`relative aspect-square flex items-center justify-center transition-colors font-sans select-none cursor-pointer ${squareBg}`}
                               style={{
-                                transform: (localFriendRotates && chessRef.current.turn() === 'b') ? 'rotate(180deg)' : 'rotate(0deg)'
+                                backgroundColor: isHighlighted ? undefined : (isDark ? activeThemeConfig.secondaryColor : activeThemeConfig.primaryColor)
                               }}
                             >
-                              <ChessPiece type={squareObj.type} color={squareObj.color} skin={selectedSkin} />
-                            </div>
-                          )}
+                            {/* Chess piece graphics */}
+                            {squareObj && (
+                              <motion.div
+                                layout
+                                layoutId={pieceIds[squareName] || `piece_${squareObj.color}_${squareObj.type}_${squareName}`}
+                                transition={{
+                                  type: "spring",
+                                  stiffness: 350,
+                                  damping: 28,
+                                  mass: 0.8
+                                }}
+                                draggable
+                                onDragStart={(e) => handleDragStart(e, squareName)}
+                                className={`w-[85%] h-[85%] flex items-center justify-center z-10 transition-transform ${isDragging ? 'opacity-30' : ''}`}
+                              >
+                                <ChessPiece type={squareObj.type} color={squareObj.color} skin={selectedSkin} />
+                              </motion.div>
+                            )}
 
-                          {/* Move suggestion overlay */}
-                          {isTargetChoice && !squareObj && (
-                            <div className="w-5 h-5 rounded-full bg-black/15 z-25 absolute" />
-                          )}
+                            {/* Chess Move Evaluation mini bubble badge */}
+                            {lastMove && lastMove.to === squareName && lastMove.type && (
+                              <div className="absolute top-0.5 right-0.5 z-20 pointer-events-none">
+                                {getEvaluationBadge(lastMove.type, "w-4 h-4 shadow-sm")}
+                              </div>
+                            )}
 
-                          {/* Coordinates */}
-                          {displayCol === 0 && (
-                            <span className="absolute top-1 left-1 text-[8px] font-bold text-slate-400 select-none">
-                              {rank}
-                            </span>
-                          )}
-                          {displayRow === 7 && (
-                            <span className="absolute bottom-1 right-1 text-[8px] font-bold text-slate-400 select-none">
-                              {file}
-                            </span>
-                          )}
-                        </div>
-                      );
-                    })}
-                  </React.Fragment>
-                  ))}
+                            {/* Move suggestion overlay */}
+                            {isTargetChoice && !squareObj && (
+                              <div className="w-5 h-5 rounded-full bg-black/15 z-25 absolute" />
+                            )}
+
+                            {/* Coordinates */}
+                            {cIdx === 0 && (
+                              <span className="absolute top-1 left-1 text-[8px] font-bold text-slate-400 select-none">
+                                {rank}
+                              </span>
+                            )}
+                            {rIdx === 7 && (
+                              <span className="absolute bottom-1 right-1 text-[8px] font-bold text-slate-400 select-none">
+                                {file}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </React.Fragment>
+                  )})}
                 </div>
 
                 {/* Promotion choices absolute overlay */}
@@ -14117,9 +14667,7 @@ export default function App() {
                 {!chessRef.current.isGameOver() && !localFriendResigned && (
                   <button
                     onClick={() => {
-                      const currentTurn = chessRef.current.turn();
-                      setLocalFriendResigned(currentTurn);
-                      triggerAudio('error');
+                      setResignConfirmTarget('local_friend');
                     }}
                     className="flex-1 py-2.5 bg-red-650 hover:bg-red-750 text-xs font-black text-white hover:text-red-100 rounded-xl border border-red-800 uppercase tracking-wide cursor-pointer transition-all flex items-center justify-center gap-1.5 shadow-[0_3px_0_0_#9a2c2c] active:translate-y-0.5"
                   >
@@ -15131,8 +15679,15 @@ export default function App() {
               <div>
                 <button 
                   onClick={() => {
+                    if (onlineStatus === 'playing' && !onlineGameResult && !chessRef.current.isGameOver()) {
+                      setResignConfirmTarget('online');
+                      return;
+                    }
+                    if (onlineStatus === 'searching') {
+                      setOnlineStatus('idle');
+                      setFriendRoomCode('');
+                    }
                     setMode('menu');
-                    setOnlineStatus('idle');
                     triggerAudio('move');
                   }}
                   className="mb-2 px-3.5 py-2 flex items-center gap-1.5 text-xs font-black text-[#4b4b4b] bg-white hover:bg-[#f7f7f7] border-2 border-[#e5e5e5] rounded-xl shadow-[0_3px_0_0_#e5e5e5] active:translate-y-0.5 active:shadow-none transition-all uppercase tracking-wider cursor-pointer"
@@ -15158,30 +15713,28 @@ export default function App() {
                 {/* COLUMN LEFT: CONFIGURATION & HISTORY */}
                 <div className="md:col-span-12 lg:col-span-7 space-y-6">
                   
-                  {/* CONFIG PROFILE BOX */}
+                  {/* READ-ONLY PROFILE DISPLAY BOX */}
                   <div className="bg-white rounded-3xl p-6 border-2 border-[#E5E5E5] shadow-sm">
                     <h3 className="text-lg font-black text-[#4B4B4B] mb-4 flex items-center gap-2 uppercase tracking-wide">
                       <User className="w-5 h-5 text-[#81b64c] shrink-0" /> Profil Pemain Anda
                     </h3>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 items-center">
-                      <div>
-                        <label className="block text-xs font-bold text-[#777777] uppercase tracking-wider mb-2">Ganti Nickname Caturmu:</label>
-                        <div className="flex gap-2">
-                          <input 
-                            type="text"
-                            maxLength={15}
-                            value={username}
-                            onChange={(e) => handleSaveUsername(e.target.value)}
-                            className="flex-1 px-4 py-2.5 rounded-xl border-2 border-[#E5E5E5] focus:border-[#1CB0F6] text-sm font-extrabold text-[#4B4B4B] focus:outline-none"
-                            placeholder="Ketik username baru..."
-                          />
+                    <div className="flex items-center justify-between p-4 bg-slate-50 rounded-2xl border-2 border-[#E5E5E5]">
+                      <div className="flex items-center gap-3">
+                        <img
+                          src={user?.profileAvatar || localStorage.getItem('guestAvatar') || martinAvatar}
+                          alt={username}
+                          className="w-12 h-12 rounded-full border-2 border-amber-400 object-cover shadow-sm"
+                        />
+                        <div>
+                          <span className="text-xs font-black text-slate-800 uppercase block">{username}</span>
+                          <span className="text-[10px] font-extrabold text-[#AF7E00] bg-[#FFF4D1] px-2 py-0.5 rounded border border-[#FFC800] uppercase inline-block mt-0.5">
+                            {getRatingBadge(onlineRating)}
+                          </span>
                         </div>
                       </div>
-                      <div className="p-4 bg-slate-50 rounded-2xl border-2 border-[#E5E5E5] text-center">
-                        <span className="block text-[10px] text-[#777777] font-black uppercase tracking-widest mb-1">Gelar Saat Ini</span>
-                        <span className="text-xs font-black px-2.5 py-1 text-[#AF7E00] bg-[#FFF4D1] rounded-lg border border-[#FFC800] uppercase">
-                          {getRatingBadge(onlineRating)}
-                        </span>
+                      <div className="text-right">
+                        <span className="text-xs font-mono font-black text-[#81b64c] block">{onlineRating} ELO</span>
+                        <span className="text-[9px] font-bold text-slate-400">Peringkat Online</span>
                       </div>
                     </div>
                   </div>
@@ -15316,54 +15869,119 @@ export default function App() {
                 </div>
 
                 {/* COLUMN RIGHT: NATIONAL LEADERBOARD */}
-                <div className="md:col-span-12 lg:col-span-5 bg-white rounded-3xl p-6 border-2 border-[#E5E5E5] shadow-sm">
-                  <h3 className="text-lg font-black text-[#4B4B4B] mb-4 flex items-center gap-2 uppercase tracking-wide">
-                    <Trophy className="w-5 h-5 text-yellow-500 fill-yellow-500/20 shrink-0" /> Papan Peringkat Nasional
-                  </h3>
-                  <div className="space-y-3">
-                    {rankingList.map((player: any, index: number) => {
-                      const isCurrentUser = player.isUser;
-                      return (
-                        <div 
-                          key={index} 
-                          className={`p-3.5 rounded-xl border-2 flex items-center justify-between transition-all ${
-                            isCurrentUser 
-                              ? 'bg-[#FFF4D1] border-[#FFC800] ring-2 ring-yellow-400/20' 
-                              : 'bg-white border-[#E5E5E5] hover:bg-slate-50'
-                          }`}
-                        >
-                          <div className="flex items-center gap-2">
-                            <span className={`w-6 h-6 rounded-full flex items-center justify-center font-black text-xs ${
-                              index === 0 ? 'bg-yellow-400 text-white' :
-                              index === 1 ? 'bg-slate-300 text-slate-700' :
-                              index === 2 ? 'bg-amber-600 text-white' :
-                              'bg-slate-100 text-slate-500'
-                            }`}>
-                              {index + 1}
-                            </span>
-                            <div>
-                              <div className="flex items-center gap-1.5">
-                                <span className={`text-xs font-black ${isCurrentUser ? 'text-[#AF7E00]' : 'text-[#4B4B4B]'}`}>
-                                  {player.name}
+                <div className="md:col-span-12 lg:col-span-5 bg-white rounded-3xl p-6 border-2 border-[#E5E5E5] shadow-sm flex flex-col justify-between">
+                  <div>
+                    <div className="flex items-center justify-between mb-4">
+                      <h3 className="text-lg font-black text-[#4B4B4B] flex items-center gap-2 uppercase tracking-wide">
+                        <Trophy className="w-5 h-5 text-yellow-500 fill-yellow-500/20 shrink-0" /> Papan Peringkat Nasional
+                      </h3>
+                      <span className="text-[10px] font-extrabold text-slate-400 bg-slate-100 px-2 py-0.5 rounded-full">
+                        Top 100
+                      </span>
+                    </div>
+
+                    {/* Top 100 Scroll Area */}
+                    <div className="space-y-2.5 max-h-[380px] overflow-y-auto pr-1 scrollbar-thin">
+                      {(() => {
+                        const top100List = (rankingList || []).slice(0, 100);
+                        if (top100List.length === 0) {
+                          return (
+                            <div className="p-4 text-center text-xs font-bold text-slate-400 bg-slate-50 rounded-2xl border border-slate-200">
+                              Belum ada data pemain di papan peringkat
+                            </div>
+                          );
+                        }
+                        return top100List.map((player: any, index: number) => {
+                          const isCurrentUser = player.isUser || (player.name && player.name.toLowerCase().includes(username.toLowerCase()));
+                          const currentUserAvatar = user?.profileAvatar || localStorage.getItem('guestAvatar') || martinAvatar;
+                          const playerAvatar = isCurrentUser ? currentUserAvatar : (player.avatar || martinAvatar);
+
+                          return (
+                            <div 
+                              key={index} 
+                              className={`p-3 rounded-2xl border-2 flex items-center justify-between transition-all ${
+                                isCurrentUser 
+                                  ? 'bg-[#FFF4D1] border-[#FFC800] ring-2 ring-yellow-400/20 shadow-sm' 
+                                  : 'bg-white border-[#E5E5E5] hover:bg-slate-50'
+                              }`}
+                            >
+                              <div className="flex items-center gap-2.5 min-w-0">
+                                <span className={`w-6 h-6 rounded-full flex items-center justify-center font-black text-xs shrink-0 ${
+                                  index === 0 ? 'bg-yellow-400 text-white' :
+                                  index === 1 ? 'bg-slate-300 text-slate-700' :
+                                  index === 2 ? 'bg-amber-600 text-white' :
+                                  'bg-slate-100 text-slate-500'
+                                }`}>
+                                  {index + 1}
                                 </span>
-                                {isCurrentUser && (
-                                  <span className="text-[8px] font-mono px-1 bg-yellow-400 text-white rounded">
-                                    ANDA
-                                  </span>
-                                )}
+
+                                {/* Profile Photo */}
+                                <img 
+                                  src={playerAvatar} 
+                                  alt={player.name}
+                                  className="w-8 h-8 rounded-full border border-slate-200 object-cover shrink-0"
+                                  onError={(e) => { (e.target as HTMLElement).setAttribute('src', '/cool_cat.svg'); }}
+                                />
+
+                                <div className="min-w-0 truncate">
+                                  <div className="flex items-center gap-1.5 truncate">
+                                    <span className={`text-xs font-black truncate ${isCurrentUser ? 'text-[#AF7E00]' : 'text-[#4B4B4B]'}`}>
+                                      {player.name}
+                                    </span>
+                                    {isCurrentUser && (
+                                      <span className="text-[8px] font-mono px-1 bg-yellow-400 text-white rounded shrink-0">
+                                        ANDA
+                                      </span>
+                                    )}
+                                  </div>
+                                  <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none truncate">
+                                    {player.badge || getRatingBadge(player.elo)}
+                                  </p>
+                                </div>
                               </div>
-                              <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest leading-none">
-                                {player.badge || getRatingBadge(player.elo)}
-                              </p>
+
+                              <span className="font-mono text-xs font-extrabold text-[#4B4B4B] shrink-0">
+                                {player.elo} <span className="text-[10px] text-slate-400">ELO</span>
+                              </span>
+                            </div>
+                          );
+                        });
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* USER RANK STATUS CARD AT BOTTOM */}
+                  {(() => {
+                    const userIndex = (rankingList || []).findIndex((p: any) => p.isUser || (p.name && p.name.toLowerCase().includes(username.toLowerCase())));
+                    const isInTop100 = userIndex >= 0 && userIndex < 100;
+
+                    return (
+                      <div className="mt-4 pt-3 border-t-2 border-slate-100">
+                        <div className={`p-3.5 rounded-2xl border-2 flex items-center justify-between ${
+                          isInTop100 ? 'bg-[#FFF4D1] border-[#FFC800]' : 'bg-slate-100 border-slate-300 text-slate-600'
+                        }`}>
+                          <div className="flex items-center gap-2.5 min-w-0">
+                            <img 
+                              src={user?.profileAvatar || localStorage.getItem('guestAvatar') || martinAvatar} 
+                              alt={username}
+                              className="w-9 h-9 rounded-full border-2 border-amber-400 object-cover shrink-0 shadow-sm"
+                            />
+                            <div className="min-w-0">
+                              <span className="text-[10px] font-black uppercase tracking-wider text-slate-500 block">
+                                Status Peringkat Anda
+                              </span>
+                              <span className="text-xs font-extrabold text-slate-900 truncate block">
+                                {isInTop100 ? `Peringkat ke-#${userIndex + 1} Nasional` : 'Anda tidak masuk papan peringkat'}
+                              </span>
                             </div>
                           </div>
-                          <span className="font-mono text-xs font-extrabold text-[#4B4B4B]">
-                            {player.elo} <span className="text-[10px] text-slate-400">ELO</span>
+                          <span className="font-mono text-xs font-black text-amber-700 bg-amber-100 px-2.5 py-1 rounded-xl shrink-0">
+                            {onlineRating} ELO
                           </span>
                         </div>
-                      );
-                    })}
-                  </div>
+                      </div>
+                    );
+                  })()}
                 </div>
 
                 {/* INBOX & FRIENDS HUB */}
@@ -15691,7 +16309,7 @@ export default function App() {
                       )}
                     </div>
                     <button
-                      onClick={() => finishOnlineGame('lose')}
+                      onClick={() => setResignConfirmTarget('online')}
                       className="px-4 py-2 bg-red-50 text-[#FF4B4B] border-2 border-red-200 hover:bg-red-100 text-xs font-black uppercase rounded-xl transition-colors cursor-pointer"
                     >
                       Resign (Menyerah)
@@ -15814,6 +16432,14 @@ export default function App() {
                 </div>
 
                 <div className="flex flex-col gap-3 w-full">
+                  <button
+                    type="button"
+                    onClick={() => setIsAfterMatchReportOpen(true)}
+                    className="w-full py-3 bg-[#81b64c] hover:bg-[#6f9e41] text-slate-950 font-black rounded-xl shadow-[0_4px_0_0_#5a863f] hover:translate-y-[2px] active:translate-y-[4px] active:shadow-none transition-all uppercase tracking-wider text-xs cursor-pointer flex items-center justify-center gap-2"
+                  >
+                    <BarChart3 className="w-4 h-4" /> Buka Laporan Pertandingan
+                  </button>
+
                   <button
                     type="button"
                     onClick={() => {
@@ -15962,6 +16588,36 @@ export default function App() {
               setUnlockedFrames={setUnlockedFrames}
               initialTab="guild"
               hideTabsSelector={true}
+            />
+          </div>
+        )}
+
+        {/* =========================================
+             5.65 STANDALONE NEWS & ANNOUNCEMENT MODE
+           ========================================= */}
+        {mode === 'news' && (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between pb-2">
+              <button 
+                onClick={() => {
+                  setMode('menu');
+                  triggerAudio('move');
+                }}
+                className="px-3.5 py-2 flex items-center gap-1.5 text-xs font-black text-slate-300 bg-[#262421]/90 hover:bg-[#312e2b] border border-[#3c3934] rounded-xl transition-all uppercase tracking-wider cursor-pointer font-sans"
+              >
+                <ArrowLeft className="w-4 h-4 text-[#81b64c]" /> Kembali ke Arena
+              </button>
+            </div>
+
+            <NewsPortal
+              user={{ username, level: getLevelFromXP(xp), elo: onlineRating }}
+              isAdmin={false}
+              onClose={() => {
+                setMode('menu');
+                triggerAudio('move');
+              }}
+              triggerAudio={triggerAudio}
+              showToast={(msg, type) => triggerReward(0, msg)}
             />
           </div>
         )}
@@ -17400,6 +18056,16 @@ export default function App() {
                       isActive: mode === 'forum-diskusi'
                     },
 
+                    // --- BERITA & PENGUMUMAN ---
+                    {
+                      id: 'news',
+                      label: prefLang === 'en' ? 'Chess News & Updates' : 'Berita & Pengumuman',
+                      Icon: Newspaper,
+                      action: () => { setMode('news'); },
+                      tags: ['berita', 'news', 'pengumuman', 'turnamen', 'patch', 'pembaharuan', 'update', 'artikel', 'taktik'],
+                      isActive: mode === 'news'
+                    },
+
                     // --- TOKO ---
                     {
                       id: 'store',
@@ -17553,20 +18219,14 @@ export default function App() {
                   }
 
                   const handleNavigationClick = (targetAction: () => void) => {
-                    if (mode === 'online-match' && onlineStatus === 'playing') {
-                      askConfirmation({
-                        title: 'Tinggalkan Pertandingan?',
-                        message: 'Apakah Anda yakin ingin meninggalkan pertandingan online yang sedang berjalan? Anda akan dinilai kalah!',
-                        confirmText: 'Tinggalkan',
-                        cancelText: 'Batal',
-                        severity: 'danger',
-                        onConfirm: () => {
-                          setOnlineStatus('idle');
-                          targetAction();
-                          setIsNavDrawerOpen(false);
-                          triggerAudio('move');
-                        }
-                      });
+                    if (mode === 'online-match' && onlineStatus === 'playing' && !onlineGameResult && !chessRef.current.isGameOver()) {
+                      setIsNavDrawerOpen(false);
+                      setResignConfirmTarget('online');
+                      return;
+                    }
+                    if (mode === 'local-friend' && !chessRef.current.isGameOver() && !localFriendResigned) {
+                      setIsNavDrawerOpen(false);
+                      setResignConfirmTarget('local_friend');
                       return;
                     }
                     if (mode === 'puzzles') {
@@ -17938,6 +18598,15 @@ export default function App() {
         prefLang={prefLang}
       />
 
+      <StreakWidgetModal
+        isOpen={isStreakWidgetModalOpen}
+        onClose={() => setIsStreakWidgetModalOpen(false)}
+        streak={streak}
+        isCheckedInToday={dailyClaimed}
+        onPerformCheckIn={handleClaimDailyReward}
+        prefLang={prefLang}
+      />
+
       <ShareRoomModal
         isOpen={showShareRoomModal}
         onClose={() => setShowShareRoomModal(false)}
@@ -17954,6 +18623,111 @@ export default function App() {
         friendsList={friendsList}
         onSendGift={handleSendShopGift}
         prefLang={prefLang}
+      />
+
+      {/* RESIGN CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {resignConfirmTarget && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm select-none">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#262421] border-2 border-red-500/40 rounded-3xl p-6 max-w-md w-full shadow-2xl text-center space-y-4"
+            >
+              <div className="w-16 h-16 rounded-2xl bg-red-500/20 border border-red-500/40 flex items-center justify-center mx-auto text-red-500">
+                <Flag className="w-8 h-8 animate-pulse" />
+              </div>
+
+              <div>
+                <h3 className="text-lg font-black text-white uppercase tracking-wide">Konfirmasi Menyerah (Resign)</h3>
+                <p className="text-xs font-semibold text-[#bab9b8] mt-1">
+                  Apakah Anda yakin ingin menyerah dari pertandingan ini?
+                </p>
+              </div>
+
+              <div className="p-3 bg-red-950/40 border border-red-800/40 rounded-2xl text-red-300 text-xs font-bold text-left flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-red-400 shrink-0 mt-0.5" />
+                <span>Kekalahan akan langsung dicatat, dan poin rating ELO Anda akan berkurang.</span>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setResignConfirmTarget(null)}
+                  className="flex-1 py-3 bg-[#312e2b] hover:bg-[#3c3934] text-white font-extrabold text-xs uppercase rounded-xl border border-[#3c3934] cursor-pointer transition-colors"
+                >
+                  Batal (Lanjutkan)
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    const target = resignConfirmTarget;
+                    setResignConfirmTarget(null);
+                    if (target === 'online') {
+                      finishOnlineGame('lose');
+                    } else if (target === 'local_friend') {
+                      const currentTurn = chessRef.current.turn();
+                      setLocalFriendResigned(currentTurn);
+                      triggerAudio('error');
+                    }
+                  }}
+                  className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase rounded-xl shadow-lg shadow-red-900/30 cursor-pointer transition-colors"
+                >
+                  Ya, Saya Menyerah
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      <AfterMatchReportModal
+        isOpen={isAfterMatchReportOpen}
+        onClose={() => setIsAfterMatchReportOpen(false)}
+        gameOutcome={
+          onlineGameResult 
+            ? onlineGameResult 
+            : gameResult 
+            ? gameResult 
+            : localFriendResigned 
+            ? (localFriendResigned === 'w' ? 'lose' : 'win') 
+            : 'draw'
+        }
+        mode={mode}
+        playerColor={mode === 'online-match' ? (onlinePlayerColor || 'w') : aiMatchPlayerColor}
+        whitePlayer={
+          mode === 'online-match'
+            ? (onlinePlayerColor === 'w' ? { name: username.trim() || 'Kamu', elo: onlineRating } : { name: onlineOpponent?.name || 'Lawan Online', elo: onlineOpponent?.elo || 1200 })
+            : (aiMatchPlayerColor === 'w' ? { name: username.trim() || 'Kamu', elo: onlineRating } : { name: selectedCharacter.name + ' (AI)', elo: selectedCharacter.rating })
+        }
+        blackPlayer={
+          mode === 'online-match'
+            ? (onlinePlayerColor === 'b' ? { name: username.trim() || 'Kamu', elo: onlineRating } : { name: onlineOpponent?.name || 'Lawan Online', elo: onlineOpponent?.elo || 1200 })
+            : (aiMatchPlayerColor === 'b' ? { name: username.trim() || 'Kamu', elo: onlineRating } : { name: selectedCharacter.name + ' (AI)', elo: selectedCharacter.rating })
+        }
+        eloChange={onlineEloChange}
+        analysisHistory={analysisHistory}
+        moveHistory={moveHistory}
+        openingName={detectOpeningAndAnalyze().openingName}
+        onPlayAgain={() => {
+          setIsAfterMatchReportOpen(false);
+          if (mode === 'online-match') {
+            setOnlineGameResult(null);
+            setOnlineOpponent(null);
+            setOnlineGameId(null);
+            setOnlineStatus('searching');
+            setLastMove(null);
+            setMoveHistory([]);
+            triggerAudio('move');
+          } else {
+            resetAiGame(selectedCharacter);
+          }
+        }}
+        onAnalyzeBoard={() => {
+          setIsAfterMatchReportOpen(false);
+          setMode('analysis');
+        }}
       />
 
       <ConfirmationDialog

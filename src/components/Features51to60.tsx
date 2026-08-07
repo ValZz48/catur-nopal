@@ -11,6 +11,7 @@ import { AnimatedMascot } from './AnimatedMascot';
 import { ChessPiece } from './ChessPieces';
 import martinAvatar from '../assets/images/avatar_martin_1779709510230.png';
 import { getLevelFromXP, handleQuizSubmission } from '../utils';
+import { getGlobalSeasonInfo, formatSeasonCountdown } from '../utils/season';
 
 // =========================================================================
 // TYPES & PROPS
@@ -713,29 +714,17 @@ export const Features51to60: React.FC<Features51to60Props> = ({
   }, [selectedMonthSim, selectedEventId]);
 
   const [seasonTimerText, setSeasonTimerText] = useState<string>('');
+  const globalSeason = getGlobalSeasonInfo();
 
   useEffect(() => {
-    let targetTs = Number(localStorage.getItem('season_end_timestamp') || '0');
-    if (!targetTs || targetTs <= Date.now()) {
-      targetTs = Date.now() + 14 * 24 * 60 * 60 * 1000;
-      localStorage.setItem('season_end_timestamp', String(targetTs));
-    }
     const tick = () => {
-      const diff = targetTs - Date.now();
-      if (diff <= 0) {
-        setSeasonTimerText('0 Hari, 0 Jam');
-        return;
-      }
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const secs = Math.floor((diff % (1000 * 60)) / 1000);
-      setSeasonTimerText(`${days}h ${hours}j ${mins}m ${secs}s`);
+      const curSeason = getGlobalSeasonInfo();
+      setSeasonTimerText(formatSeasonCountdown(curSeason.resetTimestamp, isEng ? 'en' : 'id'));
     };
     tick();
     const inv = setInterval(tick, 1000);
     return () => clearInterval(inv);
-  }, []);
+  }, [isEng]);
 
   const [eventScore, setEventScore] = useState<number>(() => {
     const scope = username ? username.trim().toLowerCase() : 'guest';
@@ -1145,7 +1134,7 @@ export const Features51to60: React.FC<Features51to60Props> = ({
     localStorage.setItem('starter_pack_purchased', 'true');
 
     triggerAudio('win');
-    triggerReward(250, "Starter Pack Berhasil Diklaim! Gelar, frame, koin & diamond berhasil ditambahkan!", "reward", 2000, 75);
+    triggerReward(250, "Starter Pack Berhasil Diklaim! Frame, koin & diamond berhasil ditambahkan!", "reward", 2000, 75);
 
     const finalCoins = coins - starterCostCoins + 2000;
     const finalDiamonds = diamonds + 75;
@@ -2241,7 +2230,7 @@ export const Features51to60: React.FC<Features51to60Props> = ({
                   <div>
                     <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 text-[8.5px] font-black uppercase rounded-full bg-slate-900/90 border border-slate-700/60 shadow-inner ${activeEvent.badgeTextColor}`}>
                       <Calendar className="w-3 h-3 text-[#81b64c]" />
-                      Musim Aktif: Sisa {seasonTimerText || '14 Hari'}
+                      {isEng ? `Global Season (3 Mo): ${globalSeason.quarterCode} • ${seasonTimerText}` : `Season Global (3 Bulan): ${globalSeason.quarterCode} • Sisa ${seasonTimerText}`}
                     </span>
                     <h2 className="text-base font-black text-white uppercase tracking-tight mt-1 flex items-center gap-2">
                       {activeEvent.name}

@@ -8,6 +8,7 @@ import {
 import { motion, AnimatePresence } from 'motion/react';
 import { ChessPiece } from './ChessPieces';
 import { toSquare } from '../utils';
+import { getGlobalSeasonInfo, formatSeasonCountdown } from '../utils/season';
 
 // ==========================================
 // TYPES & CONSTELLATIONS FOR FEATURES 17-25
@@ -54,13 +55,13 @@ export interface RankTier {
 }
 
 const RANK_TIERS: RankTier[] = [
-  { name: "Warrior Chess", minElo: 400, maxElo: 499, color: "text-amber-700", rewardCoins: 150, rewardDiamonds: 8, rewardTitle: "Warrior Arena" },
-  { name: "Elite Chess", minElo: 500, maxElo: 799, color: "text-slate-400", rewardCoins: 400, rewardDiamonds: 20, rewardTitle: "Perwira Elite" },
-  { name: "Master Chess", minElo: 800, maxElo: 1099, color: "text-yellow-500", rewardCoins: 800, rewardDiamonds: 40, rewardTitle: "Master Taktik" },
-  { name: "Grandmaster Chess", minElo: 1100, maxElo: 1399, color: "text-cyan-400", rewardCoins: 1500, rewardDiamonds: 80, rewardTitle: "Grandmaster Akbar" },
-  { name: "Epic Chess", minElo: 1400, maxElo: 1699, color: "text-[#4dabf7]", rewardCoins: 2500, rewardDiamonds: 120, rewardTitle: "Epic Catur Legenda" },
-  { name: "Legend Chess", minElo: 1700, maxElo: 1999, color: "text-purple-400", rewardCoins: 4000, rewardDiamonds: 200, rewardTitle: "Penguasa Arena Legend" },
-  { name: "Mythic Glory Chess", minElo: 2000, maxElo: 9999, color: "text-rose-500 font-extrabold animate-pulse", rewardCoins: 6000, rewardDiamonds: 350, rewardTitle: "Dewa Mythic Glory" }
+  { name: "Pion Pemula", minElo: 400, maxElo: 499, color: "text-amber-700", rewardCoins: 150, rewardDiamonds: 8, rewardTitle: "Arena Pemula Catur" },
+  { name: "Kuda Magang", minElo: 500, maxElo: 799, color: "text-slate-400", rewardCoins: 400, rewardDiamonds: 20, rewardTitle: "Perwira Kuda Taktis" },
+  { name: "Gajah Cendekia", minElo: 800, maxElo: 1099, color: "text-yellow-500", rewardCoins: 800, rewardDiamonds: 40, rewardTitle: "Cendekia Gajah Diagonal" },
+  { name: "Benteng Pengawal", minElo: 1100, maxElo: 1399, color: "text-cyan-400", rewardCoins: 1500, rewardDiamonds: 80, rewardTitle: "Pengawal Benteng Kokoh" },
+  { name: "Menteri Ahli Strategi", minElo: 1400, maxElo: 1699, color: "text-[#4dabf7]", rewardCoins: 2500, rewardDiamonds: 120, rewardTitle: "Master Strategi Menteri" },
+  { name: "Raja Master Catur", minElo: 1700, maxElo: 1999, color: "text-purple-400", rewardCoins: 4000, rewardDiamonds: 200, rewardTitle: "Penguasa Arena Raja" },
+  { name: "Grandmaster Legendaris", minElo: 2000, maxElo: 9999, color: "text-rose-500 font-extrabold animate-pulse", rewardCoins: 6000, rewardDiamonds: 350, rewardTitle: "Grandmaster Catur Agung" }
 ];
 
 const SEASON_PASS_REWARDS: SeasonPassReward[] = Array.from({ length: 100 }, (_, i) => {
@@ -127,6 +128,7 @@ interface FeaturesProps {
   friendsList: any[];
   setFriendsList: React.Dispatch<React.SetStateAction<any[]>>;
   prefLang?: 'id' | 'en';
+  onTriggerSeasonResetModal?: () => void;
 }
 
 export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'social' | 'rank' | 'pass' }> = ({
@@ -135,7 +137,8 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
   triggerAudio, triggerReward, user, syncUserStats, subTab,
   passLevel, setPassLevel, passXp, setPassXp, passStatus, setPassStatus,
   claimedPassRewards, setClaimedPassRewards, claimedRankRewards, setClaimedRankRewards,
-  diamondSavings, setDiamondSavings, friendsList, setFriendsList, prefLang
+  diamondSavings, setDiamondSavings, friendsList, setFriendsList, prefLang,
+  onTriggerSeasonResetModal
 }) => {
 
   // --- REPLAY CHESSBOARD STATES ---
@@ -186,24 +189,12 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
   });
 
   const [seasonTimer, setSeasonTimer] = useState<string>('');
+  const globalSeason = getGlobalSeasonInfo();
 
   useEffect(() => {
-    let targetTs = Number(localStorage.getItem('season_end_timestamp') || '0');
-    if (!targetTs || targetTs <= Date.now()) {
-      targetTs = Date.now() + 14 * 24 * 60 * 60 * 1000;
-      localStorage.setItem('season_end_timestamp', String(targetTs));
-    }
     const updateTimer = () => {
-      const diff = targetTs - Date.now();
-      if (diff <= 0) {
-        setSeasonTimer('0 Hari, 0 Jam');
-        return;
-      }
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const secs = Math.floor((diff % (1000 * 60)) / 1000);
-      setSeasonTimer(`${days} Hari, ${hours} Jam, ${mins} Mnt, ${secs} Det`);
+      const curSeason = getGlobalSeasonInfo();
+      setSeasonTimer(formatSeasonCountdown(curSeason.resetTimestamp, 'id'));
     };
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
@@ -425,6 +416,10 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
   };
 
   const simulateSeasonReset = () => {
+    if (onTriggerSeasonResetModal) {
+      onTriggerSeasonResetModal();
+      return;
+    }
     const bonusCoins = myRank.rewardCoins * 2;
     const bonusDiamonds = myRank.rewardDiamonds * 2;
 
@@ -1159,12 +1154,14 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
       )}
 
       {/* ----------------- ML CHESS RANK JOURNEY SECTION ----------------- */}
-      {subTab === 'rank' && (
+      {subTab === 'rank' && (() => {
+        const isEng = prefLang === 'en';
+        return (
         <div className="space-y-4">
           <div className="flex justify-between items-center border-b border-[#3c3934] pb-3 flex-wrap gap-2">
             <div>
               <h3 className="text-sm font-black text-slate-300 flex items-center gap-1.5 uppercase tracking-wide">
-                <Shield className="w-4 h-4 text-[#81b64c]" /> Lintasan Perjalanan Rank Mobile Legends Chess
+                <Shield className="w-4 h-4 text-[#81b64c]" /> Lintasan Perjalanan Pangkat Catur (Rank Tour)
               </h3>
               <p className="text-[10px] text-slate-400 mt-0.5">Selesaikan permainan, naikkan nilai ELO di pertandingan online arena, dapatkan pangkat terkuat, dan menangkan peti hadiah season catur.</p>
             </div>
@@ -1183,9 +1180,15 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
             </div>
 
             <div className="bg-black/20 p-2.5 px-3.5 rounded-xl text-right md:-mt-1 text-[11px] space-y-0.5 font-bold border border-[#3c3934]/30">
-              <div className="text-slate-500 text-[8.5px] uppercase font-bold tracking-wider font-mono">Season Berjalan</div>
-              <div className="text-[#81b64c] uppercase text-[9.5px]">Musim Laga Pertarungan Kehormatan</div>
-              <div className="text-[10px] text-slate-400 font-mono font-black mt-0.5">Sisa Durasi: {seasonTimer}</div>
+              <div className="text-slate-500 text-[8.5px] uppercase font-bold tracking-wider font-mono">
+                {isEng ? 'Active Global Season (3 Months Cycle)' : 'Season Berjalan (Siklus 3 Bulan / Reset Serentak)'}
+              </div>
+              <div className="text-[#81b64c] uppercase text-[9.5px]">
+                {isEng ? globalSeason.seasonNameEn : globalSeason.seasonNameId}
+              </div>
+              <div className="text-[10px] text-slate-400 font-mono font-black mt-0.5">
+                {isEng ? 'Remaining Time: ' : 'Sisa Durasi: '}{seasonTimer}
+              </div>
             </div>
           </div>
 
@@ -1193,7 +1196,7 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
 
           <div className="p-4 bg-[#262421] border border-[#3c3934] rounded-2xl">
             <h4 className="text-2xs font-extrabold text-slate-300 uppercase tracking-widest mb-3 flex items-center gap-1">
-              Daftar Tingkat Pangkat Mobile Legends Chess Kemajuan Hadiah
+              Daftar Tingkat Pangkat Catur & Kemajuan Hadiah
             </h4>
 
             <div className="flex gap-3 overflow-x-auto pb-2 snap-x scrollbar-thin">
@@ -1230,9 +1233,6 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
                         <Gem className="w-3.5 h-3.5 text-cyan-400" />
                         <span>+{tier.rewardDiamonds} Berlian</span>
                       </div>
-                      <div className="text-[8.5px] text-yellow-500 truncate mt-1 border-t border-[#3c3934]/40 pt-1 px-1 font-sans">
-                        Gelar: {tier.rewardTitle}
-                      </div>
                     </div>
 
                     <div>
@@ -1255,7 +1255,8 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
             </div>
           </div>
         </div>
-      )}
+      );
+      })()}
 
       {/* ----------------- BATTLE PASS & TABUNGAN DIAMOND SECTION ----------------- */}
       {subTab === 'pass' && (
@@ -1337,7 +1338,7 @@ export const Features17to25: React.FC<FeaturesProps & { subTab: 'replay' | 'soci
                   <h4 className="text-2xs font-black text-yellow-550 uppercase tracking-wider flex items-center gap-1">
                     Beli Lintasan Elite
                   </h4>
-                  <p className="text-[9.5px] leading-relaxed text-slate-400 font-semibold mt-1">Buka segudang hadiah, bonus gelar, serta lipatgandakan laju tabungan Berlian mabar Anda x1.75!</p>
+                  <p className="text-[9.5px] leading-relaxed text-slate-400 font-semibold mt-1">Buka segudang hadiah serta lipatgandakan laju tabungan Berlian mabar Anda x1.75!</p>
                 </div>
                 <div className="grid grid-cols-2 gap-2 mt-1 py-1">
                   <button

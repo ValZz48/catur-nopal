@@ -4,7 +4,7 @@ import {
   X, Check, ChevronRight, ChevronLeft, Award, Sparkles, 
   Play, Users, Gift, MessageSquare, ArrowUp, ArrowDown, Compass
 } from 'lucide-react';
-import juniorAvatar from '../assets/images/junior_duo_style_1784811276328.jpg';
+import juniorAvatar from '../assets/images/junior_bot_cartoon_1786094967966.jpg';
 import { ChessPiece } from './ChessPieces';
 
 interface ChessTutorialTourProps {
