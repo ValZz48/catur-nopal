@@ -72,9 +72,7 @@ import {
   Star,
   Percent,
   CheckCheck,
-  Smartphone,
-  Maximize,
-  Minimize
+  Smartphone
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Character, GameMode, Puzzle, Lesson, PurchaseableTheme, BoardTheme, Achievement } from './types';
@@ -653,29 +651,6 @@ export default function App() {
 
   // Navigation / Gamification States which persist in localStorage
   const [isNavDrawerOpen, setIsNavDrawerOpen] = useState<boolean>(false);
-  const [isFullscreen, setIsFullscreen] = useState<boolean>(() => {
-    return typeof document !== 'undefined' && !!document.fullscreenElement;
-  });
-
-  useEffect(() => {
-    const handleFSChange = () => {
-      setIsFullscreen(!!document.fullscreenElement);
-    };
-    document.addEventListener('fullscreenchange', handleFSChange);
-    return () => document.removeEventListener('fullscreenchange', handleFSChange);
-  }, []);
-
-  const toggleFullscreen = () => {
-    if (!document.fullscreenElement) {
-      if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(() => {});
-      }
-    } else {
-      if (document.exitFullscreen) {
-        document.exitFullscreen().catch(() => {});
-      }
-    }
-  };
   const [activeHubTab, setActiveHubTab] = useState<'replay' | 'social' | 'rank' | 'pass'>('replay');
   const [showTutorialTour, setShowTutorialTour] = useState<boolean>(() => {
     const activeUser = (localStorage.getItem('username') || 'guest').trim().toLowerCase();
@@ -8066,23 +8041,6 @@ export default function App() {
                 {soundEnabled ? <Volume2 className="w-3.5 h-3.5" /> : <VolumeX className="w-3.5 h-3.5 text-red-500" />}
               </button>
 
-              {/* Fullscreen toggle button */}
-              <button
-                onClick={() => {
-                  toggleFullscreen();
-                  triggerAudio('move');
-                }}
-                className={`p-1 px-1.5 border rounded-lg cursor-pointer transition-colors shrink-0 ${
-                  prefTheme === 'light'
-                    ? 'bg-[#F5EFE6] border-[#C9B89A] text-[#201B15] hover:text-[#81b64c]'
-                    : 'bg-[#262421] border-[#3c3934] text-[#9babaf] hover:text-white'
-                }`}
-                style={prefTheme === 'light' ? { backgroundColor: '#F5EFE6', borderColor: '#C9B89A', color: '#201B15' } : undefined}
-                title={isFullscreen ? "Keluar Layar Penuh" : "Mode Layar Penuh (Tanpa Browser Header)"}
-              >
-                {isFullscreen ? <Minimize className="w-3.5 h-3.5 text-[#81b64c]" /> : <Maximize className="w-3.5 h-3.5" />}
-              </button>
-
               {/* Login / Profile on mobile */}
               {user ? (
                 <div className={`flex items-center gap-1 pl-1 border-l shrink-0 ${prefTheme === 'light' ? 'border-[#C9B89A]' : 'border-[#3c3934]'}`}>
@@ -8312,23 +8270,6 @@ export default function App() {
                 title={soundEnabled ? "Matikan Efek Suara" : "Aktifkan Efek Suara"}
               >
                 {soundEnabled ? <Volume2 className="w-4 h-4" /> : <VolumeX className="w-4 h-4 text-red-500" />}
-              </button>
-
-              {/* Fullscreen button */}
-              <button
-                onClick={() => {
-                  toggleFullscreen();
-                  triggerAudio('move');
-                }}
-                className={`p-1.5 rounded-lg cursor-pointer transition-colors shrink-0 ${
-                  prefTheme === 'light'
-                    ? 'text-[#201B15] hover:bg-[#E2D7C3]'
-                    : 'text-[#9babaf] hover:text-white hover:bg-[#3c3934]'
-                }`}
-                style={prefTheme === 'light' ? { color: '#201B15' } : undefined}
-                title={isFullscreen ? "Keluar Layar Penuh" : "Mode Layar Penuh"}
-              >
-                {isFullscreen ? <Minimize className="w-4 h-4 text-[#81b64c]" /> : <Maximize className="w-4 h-4" />}
               </button>
 
               {user ? (
