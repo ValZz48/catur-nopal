@@ -10,24 +10,54 @@
     <link rel="manifest" href="/manifest.json" />
     <link rel="apple-touch-icon" href="/assets/images/avatar_martin_1779709510230.png" />
     <title>Pal Mate - Arena Catur Digital</title>
+    <style>
+      @keyframes splashFadeIn {
+        0% { opacity: 0; transform: scale(0.85); }
+        100% { opacity: 1; transform: scale(1); }
+      }
+      @keyframes splashTextSlide {
+        0% { opacity: 0; transform: translateX(12px); }
+        100% { opacity: 1; transform: translateX(0); }
+      }
+      .og-logo-anim {
+        animation: splashFadeIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      }
+      .pal-logo-anim {
+        animation: splashFadeIn 0.6s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+      }
+      .pal-text-anim {
+        animation: splashTextSlide 0.5s ease 0.2s forwards;
+      }
+      .splash-overlay {
+        position: fixed;
+        inset: 0;
+        z-index: 10000;
+        background: #0A0C07;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: opacity 0.5s ease;
+        overflow: hidden;
+      }
+    </style>
   </head>
   <body>
-    <!-- ===== STUDIO SPLASH — OG Studio ===== -->
-    <div id="studio-splash" style="position:fixed;inset:0;z-index:10000;background:#0A0C07;display:flex;align-items:center;justify-content:center;transition:opacity 0.5s ease;overflow:hidden;">
+    <!-- 1. OG Studio Splash -->
+    <div id="studio-splash" class="splash-overlay">
       <div style="text-align:center;">
-        <img id="ogLogo" src="/og-studio-logo-1.png" alt="OG Studio" style="width:min(48vw,300px);opacity:0;transform:scale(0.7);transition:opacity 0.6s ease, transform 0.6s cubic-bezier(.34,1.56,.64,1);" />
-        <div id="ogCaption" style="margin-top:18px;opacity:0;transition:opacity 0.5s ease;">
+        <img id="ogLogo" src="/og-studio-logo-1.png" alt="OG Studio" class="og-logo-anim" style="width:min(48vw,300px);display:block;margin:0 auto;" />
+        <div id="ogCaption" style="margin-top:18px;">
           <div style="font-family:sans-serif;font-weight:700;font-size:min(4.5vw,26px);color:#F3EFE1;">Orang Ganteng</div>
           <div style="font-family:sans-serif;font-weight:700;font-size:min(2.6vw,16px);letter-spacing:5px;color:#A6E065;margin-top:4px;">STUDIO</div>
         </div>
       </div>
     </div>
 
-    <!-- ===== SPLASH — Pal Mate ===== -->
-    <div id="splash-screen" style="position:fixed;inset:0;z-index:9999;background:#0A0C07;display:flex;align-items:center;justify-content:center;transition:opacity 0.5s ease;overflow:hidden;">
-      <div id="splashRow" style="display:flex;align-items:center;">
-        <img id="splashLogo" src="/palmate-logo.png" alt="Pal Mate" style="width:96px;height:96px;border-radius:22px;box-shadow:0 14px 34px rgba(0,0,0,0.45);opacity:0;transform:scale(0.6);transition:opacity 0.6s ease, transform 0.6s cubic-bezier(.34,1.56,.64,1);flex-shrink:0;" />
-        <div id="splashText" style="padding-left:20px;white-space:nowrap;opacity:0;transition:opacity 0.6s ease;">
+    <!-- 2. Pal Mate Splash -->
+    <div id="splash-screen" class="splash-overlay" style="z-index:9999;display:none;">
+      <div style="display:flex;align-items:center;justify-content:center;">
+        <img id="splashLogo" src="/palmate-logo.png" alt="Pal Mate" class="pal-logo-anim" style="width:96px;height:96px;border-radius:22px;box-shadow:0 14px 34px rgba(0,0,0,0.45);flex-shrink:0;" />
+        <div id="splashText" class="pal-text-anim" style="padding-left:18px;white-space:nowrap;opacity:0;">
           <span style="font-family:sans-serif;font-weight:800;font-size:38px;">
             <span style="color:#F3EFE1;">Pal </span><span style="color:#A6E065;">Mate</span>
           </span>
@@ -36,79 +66,40 @@
     </div>
 
     <script>
-      // ===== 1. OG Studio Splash =====
-      window.__studioSplashDone = new Promise(function (resolve) {
-        var splash = document.getElementById('studio-splash');
-        var logo = document.getElementById('ogLogo');
-        var caption = document.getElementById('ogCaption');
-
-        requestAnimationFrame(function () {
-          requestAnimationFrame(function () {
-            if (logo) {
-              logo.style.opacity = '1';
-              logo.style.transform = 'scale(1)';
-            }
-          });
-        });
-
-        setTimeout(function () { if (caption) caption.style.opacity = '1'; }, 500);
-
-        setTimeout(function () {
-          if (splash) splash.style.opacity = '0';
-          setTimeout(function () {
-            if (splash && splash.parentNode) splash.remove();
-            resolve();
-          }, 500);
-        }, 1800);
-      });
-
-      // ===== 2. Pal Mate Splash =====
-      window.__splashReady = new Promise(function (resolve) {
-        window.__resolveSplash = resolve;
-      });
-
-      (function () {
-        var row = document.getElementById('splashRow');
-        var logo = document.getElementById('splashLogo');
-        var text = document.getElementById('splashText');
-
-        if (text && row) {
-          var shift = text.offsetWidth / 2;
-          row.style.transform = 'translateX(' + shift + 'px)';
-        }
-
-        window.__studioSplashDone.then(function () {
-          requestAnimationFrame(function () {
-            requestAnimationFrame(function () {
-              if (row && logo) {
-                row.style.transition = 'transform 0.6s cubic-bezier(.22,.61,.36,1)';
-                logo.style.opacity = '1';
-                logo.style.transform = 'scale(1)';
-              }
-            });
-          });
-
-          setTimeout(function () {
-            if (row && text) {
-              row.style.transform = 'translateX(0)';
-              text.style.opacity = '1';
-            }
-          }, 600);
-
-          setTimeout(function () {
-            if (window.__resolveSplash) window.__resolveSplash();
-          }, 1800);
-        });
-      })();
-
-      // Guarantee removal failsafe after 5 seconds
-      setTimeout(function() {
-        if (window.__resolveSplash) window.__resolveSplash();
+      (function() {
         var s1 = document.getElementById('studio-splash');
         var s2 = document.getElementById('splash-screen');
-        if (s1) { s1.style.opacity = '0'; setTimeout(function(){ if (s1 && s1.parentNode) s1.remove(); }, 500); }
-        if (s2) { s2.style.opacity = '0'; setTimeout(function(){ if (s2 && s2.parentNode) s2.remove(); }, 500); }
-      }, 5000);
+
+        function dismiss(el) {
+          if (!el) return;
+          el.style.opacity = '0';
+          el.style.pointerEvents = 'none';
+          setTimeout(function() {
+            if (el && el.parentNode) el.remove();
+          }, 500);
+        }
+
+        window.__hideAllSplashScreens = function() {
+          dismiss(s1);
+          dismiss(s2);
+        };
+
+        // Step 1: Show OG Studio for 1.8s
+        setTimeout(function() {
+          dismiss(s1);
+          if (s2) s2.style.display = 'flex';
+
+          // Step 2: Show Pal Mate for 1.8s, then dismiss
+          setTimeout(function() {
+            dismiss(s2);
+          }, 1800);
+        }, 1800);
+
+        // Fail-safe limit: ensure both splash screens are completely removed after 3.8 seconds max
+        setTimeout(function() {
+          window.__hideAllSplashScreens();
+        }, 3800);
+      })();
     </script>
 
     <div id="root"></div>
