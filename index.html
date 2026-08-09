@@ -36,7 +36,7 @@
     </div>
 
     <script>
-      // ===== Jalankan OG Studio dulu =====
+      // ===== 1. OG Studio Splash =====
       window.__studioSplashDone = new Promise(function (resolve) {
         var splash = document.getElementById('studio-splash');
         var logo = document.getElementById('ogLogo');
@@ -51,19 +51,21 @@
           });
         });
 
-        setTimeout(function () { if (caption) caption.style.opacity = '1'; }, 550);
+        setTimeout(function () { if (caption) caption.style.opacity = '1'; }, 500);
 
         setTimeout(function () {
           if (splash) splash.style.opacity = '0';
           setTimeout(function () {
             if (splash && splash.parentNode) splash.remove();
             resolve();
-          }, 600);
-        }, 2600);
+          }, 500);
+        }, 1800);
       });
 
-      // ===== Baru Pal Mate, NUNGGU OG selesai dulu =====
-      window.__splashReady = new Promise(function (resolve) { window.__resolveSplash = resolve; });
+      // ===== 2. Pal Mate Splash =====
+      window.__splashReady = new Promise(function (resolve) {
+        window.__resolveSplash = resolve;
+      });
 
       (function () {
         var row = document.getElementById('splashRow');
@@ -79,7 +81,7 @@
           requestAnimationFrame(function () {
             requestAnimationFrame(function () {
               if (row && logo) {
-                row.style.transition = 'transform 0.8s cubic-bezier(.22,.61,.36,1)';
+                row.style.transition = 'transform 0.6s cubic-bezier(.22,.61,.36,1)';
                 logo.style.opacity = '1';
                 logo.style.transform = 'scale(1)';
               }
@@ -91,21 +93,22 @@
               row.style.transform = 'translateX(0)';
               text.style.opacity = '1';
             }
-          }, 1000);
+          }, 600);
 
           setTimeout(function () {
             if (window.__resolveSplash) window.__resolveSplash();
-          }, 2200);
+          }, 1800);
         });
       })();
 
-      // Failsafe fallback to remove splash screens even if main JS bundle fails or stalls on Vercel/Netlify
+      // Guarantee removal failsafe after 5 seconds
       setTimeout(function() {
+        if (window.__resolveSplash) window.__resolveSplash();
         var s1 = document.getElementById('studio-splash');
         var s2 = document.getElementById('splash-screen');
-        if (s1) { s1.style.opacity = '0'; setTimeout(function(){ if (s1.parentNode) s1.remove(); }, 500); }
-        if (s2) { s2.style.opacity = '0'; setTimeout(function(){ if (s2.parentNode) s2.remove(); }, 500); }
-      }, 4500);
+        if (s1) { s1.style.opacity = '0'; setTimeout(function(){ if (s1 && s1.parentNode) s1.remove(); }, 500); }
+        if (s2) { s2.style.opacity = '0'; setTimeout(function(){ if (s2 && s2.parentNode) s2.remove(); }, 500); }
+      }, 5000);
     </script>
 
     <div id="root"></div>
