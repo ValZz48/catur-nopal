@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { 
   Compass, Award, Shield, MessageSquare, ShoppingBag, User, Settings, Check, Lock, Star, 
   HelpCircle, Sparkles, Flame, Play, Trophy, Users, Eye, EyeOff, BookOpen, Clock, 
@@ -1043,11 +1043,39 @@ export const Features41to50: React.FC<Features41to50Props> = ({
     }
   }, [forceTab]);
 
-  // Load state from local storage or default
+  // Load solved quiz nodes state scoped per user/guest
   const [solvedNodes, setSolvedNodes] = useState<string[]>(() => {
-    const saved = localStorage.getItem('solved_nodes');
-    return saved ? JSON.parse(saved) : ['lv1', 'lv2'];
+    const activeKey = (username || 'guest').trim().toLowerCase();
+    const serverSolved: string[] = (user && Array.isArray(user.solved_nodes)) ? user.solved_nodes : [];
+    const saved = localStorage.getItem(`solved_nodes:${activeKey}`);
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        return Array.from(new Set([...serverSolved, ...parsed]));
+      } catch (_) {}
+    }
+    return serverSolved;
   });
+
+  const lastUserForNodesRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    const activeKey = (username || 'guest').trim().toLowerCase();
+    if (lastUserForNodesRef.current !== activeKey) {
+      lastUserForNodesRef.current = activeKey;
+      const serverSolved: string[] = (user && Array.isArray(user.solved_nodes)) ? user.solved_nodes : [];
+      const saved = localStorage.getItem(`solved_nodes:${activeKey}`);
+      let localSolved: string[] = [];
+      if (saved) {
+        try {
+          localSolved = JSON.parse(saved);
+        } catch (_) {}
+      }
+      const merged = Array.from(new Set([...serverSolved, ...localSolved]));
+      setSolvedNodes(merged);
+      localStorage.setItem(`solved_nodes:${activeKey}`, JSON.stringify(merged));
+    }
+  }, [username, user]);
 
   const [blockedUsers, setBlockedUsers] = useState<string[]>(() => {
     const activeUser = (localStorage.getItem('username') || 'guest').trim().toLowerCase();
@@ -1350,8 +1378,10 @@ export const Features41to50: React.FC<Features41to50Props> = ({
 
   // Persists states in useEffect
   useEffect(() => {
+    const activeKey = (username || 'guest').trim().toLowerCase();
+    localStorage.setItem(`solved_nodes:${activeKey}`, JSON.stringify(solvedNodes));
     localStorage.setItem('solved_nodes', JSON.stringify(solvedNodes));
-  }, [solvedNodes]);
+  }, [solvedNodes, username]);
 
   useEffect(() => {
     localStorage.setItem('unlocked_pokedex_inv', JSON.stringify(unlockedInventory));
@@ -3483,7 +3513,7 @@ export const Features41to50: React.FC<Features41to50Props> = ({
           };
 
           const CHESS_DEX_ITEMS = [
-            { id: 'starter_pack', name: 'Starter Pack Pemula', name_en: 'Beginner Starter Pack', type: 'Bundling', rarity: 'Epic', desc: 'Bundel pemula eksklusif berisi koin, berlian, gelar, bingkai Kubah Emerald, dan bonus XP!' },
+            { id: 'starter_pack', name: 'Starter Pack Pemula', name_en: 'Beginner Starter Pack', type: 'Bundling', rarity: 'Epic', desc: 'Bundel pemula eksklusif berisi 2000 koin, 100 berlian, bingkai Kubah Emerald, dan bonus 350 XP!' },
             { id: 'premium_membership', name: 'Keanggotaan Premium Elite', name_en: 'Premium Elite Membership', type: 'Premium', rarity: 'Legendary', desc: 'Akses tanpa batas ke stamina analisis, mahkota emas, bot eksklusif, dan seluruh kosmetik visual.' },
 
             { id: 'classic', name: 'Hijau Premium', name_en: 'Premium Green Theme', type: 'Papan', rarity: 'Common', desc: 'Gaya visual papan catur hijau emerald premium klasik.' },

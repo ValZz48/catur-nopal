@@ -693,7 +693,9 @@ async function startServer() {
           streak: existing.streak !== undefined ? existing.streak : 0,
           peakXp: existing.peakXp !== undefined ? existing.peakXp : 0,
           winStreak: existing.winStreak !== undefined ? existing.winStreak : 0,
-          longestDefense: existing.longestDefense !== undefined ? existing.longestDefense : 0
+          longestDefense: existing.longestDefense !== undefined ? existing.longestDefense : 0,
+          googleLinkedEmail: existing.googleLinkedEmail,
+          googleLinkedUid: existing.googleLinkedUid
         }
       });
     } catch (err: any) {
@@ -748,24 +750,230 @@ async function startServer() {
 
   app.post("/api/auth/link-google", async (req, res) => {
     try {
-      const { username, googleEmail, googleUid, googlePhotoUrl } = req.body;
-      if (!username || !googleEmail) {
-        return res.status(400).json({ error: "Username dan Google Email wajib diisi!" });
+      const { username, googleEmail, googleUid, googlePhotoUrl, unlink } = req.body;
+      if (!username) {
+        return res.status(400).json({ error: "Username wajib diisi!" });
       }
       const lower = username.trim().toLowerCase();
       const userObj = usersDb[lower];
       if (userObj) {
-        userObj.googleLinkedEmail = googleEmail;
-        userObj.googleLinkedUid = googleUid || userObj.googleLinkedUid;
-        if (googlePhotoUrl && (!userObj.profileAvatar || userObj.profileAvatar.includes('avatar_martin'))) {
-          userObj.profileAvatar = googlePhotoUrl;
+        if (unlink) {
+          delete userObj.googleLinkedEmail;
+          delete userObj.googleLinkedUid;
+        } else {
+          userObj.googleLinkedEmail = googleEmail;
+          userObj.googleLinkedUid = googleUid || userObj.googleLinkedUid;
+          if (googlePhotoUrl && (!userObj.profileAvatar || userObj.profileAvatar.includes('avatar_martin'))) {
+            userObj.profileAvatar = googlePhotoUrl;
+          }
         }
         saveUsersDb();
         await saveUserToFirestore(userObj.username, true);
       }
-      return res.json({ success: true, message: `Akun berhasil terhubung dengan Google (${googleEmail})` });
+      return res.json({
+        success: true,
+        message: unlink ? "Tautan Google berhasil dilepaskan" : `Akun berhasil terhubung dengan Google (${googleEmail})`,
+        user: userObj
+      });
     } catch (err: any) {
       return res.status(500).json({ error: err.message || "Gagal menghubungkan Google" });
+    }
+  });
+
+  app.post("/api/auth/google-login", async (req, res) => {
+    try {
+      const { googleEmail, googleUid, displayName, photoUrl } = req.body;
+      if (!googleEmail || !googleUid) {
+        return res.status(400).json({ error: "Google Email dan UID wajib diisi!" });
+      }
+
+      const cleanEmail = googleEmail.trim().toLowerCase();
+
+      // 1. Search in-memory usersDb for explicit link or matching email
+      let foundUserKey = Object.keys(usersDb).find((key) => {
+        const u = usersDb[key];
+        if (!u) return false;
+        return (
+          (u.googleLinkedUid && u.googleLinkedUid === googleUid) ||
+          (u.googleLinkedEmail && u.googleLinkedEmail.trim().toLowerCase() === cleanEmail) ||
+          (u.email && u.email.trim().toLowerCase() === cleanEmail)
+        );
+      });
+
+      // 2. Query Firestore if not found in cache
+      if (!foundUserKey && db && !isFirestoreSuspended) {
+        try {
+          const colRef = collection(db, "users");
+          const snap = await getDocs(colRef);
+          snap.forEach((docSnap) => {
+            const data = docSnap.data();
+            if (
+              (data.googleLinkedUid && data.googleLinkedUid === googleUid) ||
+              (data.googleLinkedEmail && data.googleLinkedEmail.trim().toLowerCase() === cleanEmail) ||
+              (data.email && data.email.trim().toLowerCase() === cleanEmail)
+            ) {
+              const uKey = docSnap.id;
+              usersDb[uKey] = data;
+              foundUserKey = uKey;
+            }
+          });
+        } catch (err: any) {
+          console.error("Firestore lookup error in google-login:", err);
+        }
+      }
+
+      // 3. Fallback: Check username matching email prefix (e.g. "nopal")
+      if (!foundUserKey) {
+        const emailPrefix = cleanEmail.split('@')[0].toLowerCase();
+        if (usersDb[emailPrefix]) {
+          foundUserKey = emailPrefix;
+        }
+      }
+
+      if (foundUserKey) {
+        const existing = usersDb[foundUserKey];
+        if (existing.isBanned) {
+          return res.status(403).json({ error: "Akun Anda telah di-banned karena melanggar aturan komunitas!" });
+        }
+
+        // Auto link if not yet attached
+        existing.googleLinkedEmail = existing.googleLinkedEmail || googleEmail;
+        existing.googleLinkedUid = existing.googleLinkedUid || googleUid;
+        if (photoUrl && (!existing.profileAvatar || existing.profileAvatar.includes('avatar_martin'))) {
+          existing.profileAvatar = photoUrl;
+        }
+
+        saveUsersDb();
+        await saveUserToFirestore(existing.username, true);
+
+        const lowerUser = existing.username.trim().toLowerCase();
+        const isAdm = lowerUser === "almaira" || lowerUser === "nopal" || !!existing.isAdmin;
+
+        return res.json({
+          success: true,
+          isNew: false,
+          user: {
+            username: existing.username,
+            elo: existing.elo || 400,
+            xp: existing.xp || 0,
+            coins: existing.coins || 500,
+            diamonds: existing.diamonds || 20,
+            unlockedThemes: existing.unlockedThemes || ["classic"],
+            matchesPlayed: existing.matchesPlayed || 0,
+            matchesWon: existing.matchesWon || 0,
+            profileAvatar: existing.profileAvatar || photoUrl || "/src/assets/images/avatar_martin_1779709510230.png",
+            profileBio: existing.profileBio || "Pecatur sejati pantang menyerah!",
+            claimedAchievements: existing.claimedAchievements || [],
+            membershipStatus: existing.membershipStatus || 'free',
+            unlockedItems: existing.unlockedItems || [],
+            selectedFrame: existing.selectedFrame || 'none',
+            unlockedFrames: existing.unlockedFrames || ['none'],
+            selectedSkin: existing.selectedSkin || 'standard',
+            unlockedSkins: existing.unlockedSkins || ['standard'],
+            equippedTitle: existing.equippedTitle || 'Pecatur Perintis',
+            unlockedTitles: existing.unlockedTitles || ['Pecatur Perintis'],
+            equippedCheckmateEffect: existing.equippedCheckmateEffect || 'none',
+            unlockedCheckmateEffects: existing.unlockedCheckmateEffects || ['none'],
+            customStatus: existing.customStatus || 'Pantang menyerah sebelum raja digulingkan!',
+            isPrivate: !!existing.isPrivate,
+            isAdmin: isAdm,
+            isStaff: !!existing.isStaff,
+            onlineHistory: existing.onlineHistory || [],
+            chess_transaction_history: existing.chess_transaction_history || [],
+            followers: existing.followers || [],
+            following: existing.following || [],
+            likesCount: existing.likesCount !== undefined ? existing.likesCount : (existing.likes || 0),
+            likedBy: existing.likedBy || [],
+            guild_has_owner: existing.guild_has_owner || false,
+            guild_profile_data: existing.guild_profile_data || null,
+            guild_members: existing.guild_members || [],
+            guild_lvl: existing.guild_lvl || 1,
+            guild_treasury_gold: existing.guild_treasury_gold || 0,
+            guild_blacklist_list: existing.guild_blacklist_list || [],
+            guild_action_history: existing.guild_action_history || [],
+            guild_join_requests: existing.guild_join_requests || [],
+            requested_fragment_skin: existing.requested_fragment_skin || null,
+            has_active_fragment_req: existing.has_active_fragment_req || false,
+            today_fragment_donation_count: existing.today_fragment_donation_count || 0,
+            conquered_boards_list: existing.conquered_boards_list || [],
+            clan_checked_in: existing.clan_checked_in || false,
+            clan_weekly_milestones: existing.clan_weekly_milestones || [],
+            boardTheme: existing.boardTheme || 'classic',
+            seasonal_event_score: existing.seasonal_event_score || 0,
+            seasonal_completed_quests: existing.seasonal_completed_quests || [],
+            seasonal_answered_quizzes: existing.seasonal_answered_quizzes || [],
+            seasonal_completed_milestones: existing.seasonal_completed_milestones || [],
+            blockedUsers: existing.blockedUsers || [],
+            pinned_medals_ids: existing.pinned_medals_ids || [],
+            streak: existing.streak !== undefined ? existing.streak : 0,
+            peakXp: existing.peakXp !== undefined ? existing.peakXp : 0,
+            winStreak: existing.winStreak !== undefined ? existing.winStreak : 0,
+            longestDefense: existing.longestDefense !== undefined ? existing.longestDefense : 0,
+            googleLinkedEmail: existing.googleLinkedEmail,
+            googleLinkedUid: existing.googleLinkedUid
+          }
+        });
+      }
+
+      // 4. Create new user account if no matching account found
+      let baseName = (displayName || googleEmail.split('@')[0] || 'UserGoogle').replace(/[^a-zA-Z0-9_]/g, '');
+      if (!baseName) baseName = 'UserGoogle';
+      let targetUsername = baseName;
+      let counter = 1;
+      while (usersDb[targetUsername.toLowerCase()]) {
+        targetUsername = `${baseName}_${counter}`;
+        counter++;
+      }
+
+      const newUserObj: any = {
+        username: targetUsername,
+        password: `google_${googleUid}`,
+        elo: 400,
+        xp: 0,
+        coins: 500,
+        diamonds: 20,
+        unlockedThemes: ["classic"],
+        matchesPlayed: 0,
+        matchesWon: 0,
+        profileAvatar: photoUrl || "/src/assets/images/avatar_martin_1779709510230.png",
+        profileBio: "Member Google Auth Pal Mate!",
+        googleLinkedEmail: googleEmail,
+        googleLinkedUid: googleUid,
+        claimedAchievements: [],
+        membershipStatus: 'free',
+        unlockedItems: [],
+        selectedFrame: 'none',
+        unlockedFrames: ['none'],
+        selectedSkin: 'standard',
+        unlockedSkins: ['standard'],
+        equippedTitle: 'Pecatur Perintis',
+        unlockedTitles: ['Pecatur Perintis'],
+        equippedCheckmateEffect: 'none',
+        unlockedCheckmateEffects: ['none'],
+        customStatus: 'Pantang menyerah sebelum raja digulingkan!',
+        isPrivate: false,
+        isAdmin: targetUsername.toLowerCase() === 'almaira' || targetUsername.toLowerCase() === 'nopal',
+        isStaff: false,
+        onlineHistory: [],
+        chess_transaction_history: [],
+        followers: [],
+        following: [],
+        likesCount: 0,
+        likedBy: [],
+        boardTheme: 'classic'
+      };
+
+      usersDb[targetUsername.toLowerCase()] = newUserObj;
+      saveUsersDb();
+      await saveUserToFirestore(targetUsername, true);
+
+      return res.json({
+        success: true,
+        isNew: true,
+        user: newUserObj
+      });
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message || "Gagal masuk dengan Google" });
     }
   });
 
@@ -2798,6 +3006,148 @@ PANDUAN CHAT MANUSIA ALAMI (ANTI-ROBOTIK):
     }
   });
 
+  // API Route for Contextual AI Opponent Live Chat Reply in Online Matches
+  app.post("/api/online/ai-chat-reply", async (req, res) => {
+    try {
+      const { message, opponentName, userName, chatHistory } = req.body;
+      if (!message || typeof message !== 'string') {
+        return res.status(400).json({ error: "Pesan wajib diisi!" });
+      }
+
+      const oppName = opponentName || "Lawan Catur";
+      const usrName = userName || "Pecatur";
+      const userText = message.trim();
+
+      // Smart offline rule-based contextual reply generator
+      const getSmartOfflineReply = (text: string): string => {
+        const lower = text.toLowerCase();
+
+        if (lower.includes("halo") || lower.includes("hai") || lower.includes("salam") || lower.includes(" p ") || lower === "p" || lower.includes("bro") || lower.includes("gan") || lower.includes("selamat")) {
+          const replies = [
+            `Halo ${usrName}! Salam kenal ya, selamat bertanding!`,
+            `Hai bro! Salam kenal juga, semoga gamenya seru!`,
+            `Halo! Siap fokus ke papan catur, semoga pertandingan kita asyik!`,
+            `Halo ${usrName}, salam kenal dari saya! Selamat melangkah.`
+          ];
+          return replies[Math.floor(Math.random() * replies.length)];
+        }
+
+        if (lower.includes("dari mana") || lower.includes("orang mana") || lower.includes("asal") || lower.includes("tinggal") || lower.includes("kota") || lower.includes("rumah")) {
+          const cities = [
+            `Aku dari Bandung bro, kamu sendiri asal kota mana?`,
+            `Dari Surabaya nih! Salam dari Jawa Timur ya.`,
+            `Jogja bro! Kamu orang mana nih?`,
+            `Aku dari Medan, salam kenal sesama pecinta catur!`,
+            `Dari Jakarta bro, salam kenal ya!`
+          ];
+          return cities[Math.floor(Math.random() * cities.length)];
+        }
+
+        if (lower.includes("umur") || lower.includes("tahun") || lower.includes("lama main") || lower.includes("pangkat") || lower.includes("elo") || lower.includes("rank") || lower.includes("jago")) {
+          const skills = [
+            `Udah sekitar 2 tahunan main catur online, masih belajar juga nih wkwk.`,
+            `Masih pemula kok bro, hobi main pas waktu senggang aja.`,
+            `Lumayan sering main catur di Warkop sama teman-teman, sekadar asah otak wkwk.`,
+            `Poin ELO saya naik turun terus nih bro, yang penting seru mainnya!`
+          ];
+          return skills[Math.floor(Math.random() * skills.length)];
+        }
+
+        if (lower.includes("rematch") || lower.includes("mabar") || lower.includes("lagi") || lower.includes("tambah") || lower.includes("selanjutnya")) {
+          const rematches = [
+            `Boleh banget bro! Selesaikan game ini dulu ya, habis ini kita rematch!`,
+            `Siap gas bro! Beres game ini kita tancap lagi!`,
+            `Sip, tawarannya menarik! Mari selesaikan ronde ini dulu.`
+          ];
+          return rematches[Math.floor(Math.random() * rematches.length)];
+        }
+
+        if (lower.includes("hebat") || lower.includes("mantap") || lower.includes("jago") || lower.includes("pro") || lower.includes("keren") || lower.includes("gokil") || lower.includes("salut") || lower.includes("wah")) {
+          const compliments = [
+            `Makasih banyak bro! Langkahmu juga rapi banget, bikin pusing mikirnya wkwk.`,
+            `Hehe makasih bro! Kita berdua sama-sama berjuang keras nih.`,
+            `Wih terima kasih! Kamu juga mainnya solid banget.`
+          ];
+          return compliments[Math.floor(Math.random() * compliments.length)];
+        }
+
+        if (lower.includes("aduh") || lower.includes("blunder") || lower.includes("salah") || lower.includes("maaf") || lower.includes("sorry") || lower.includes("kelewat") || lower.includes("duhh")) {
+          const blunders = [
+            `Santai aja bro, namanya juga catur! Masih ada kesempatan kok.`,
+            `Wkwk tenang bro, saya juga sering blunder kalau ga fokus.`,
+            `Gak apa-apa bro, tetap semangat fokus ke langkah berikutnya!`
+          ];
+          return blunders[Math.floor(Math.random() * blunders.length)];
+        }
+
+        if (lower.includes("kabar") || lower.includes("gimana") || lower.includes("sehat") || lower.includes("piye")) {
+          return `Kabar baik bro! Siap fokus ke pertempuran papan catur nih! Kamu gimana?`;
+        }
+
+        if (lower.includes("remis") || lower.includes("draw") || lower.includes("seri")) {
+          return `Hmm, tawaran remis yang menarik! Mari kita evaluasi posisinya dulu ya.`;
+        }
+
+        if (lower.includes("siapa") || lower.includes("kenapa") || lower.includes("mengapa") || lower.includes("apa") || lower.includes("kok") || lower.endsWith("?")) {
+          const questions = [
+            `Haha pertanyaan yang menarik! Mending fokus ke papan dulu yuk biar tambah tegang wkwk.`,
+            `Wah begitu ya bro, ayo lanjut gempur posisi bidaknya!`,
+            `Bisa jadi bro, mari kita lihat gimana jalannya pertandingan ini!`
+          ];
+          return questions[Math.floor(Math.random() * questions.length)];
+        }
+
+        const generalReplies = [
+          `Ohh begitu ya bro, mantap! Mari kita lanjutkan langkah caturnya.`,
+          `Sip bro! Pertarungan yang makin seru nih wkwk.`,
+          `Hahaha asyik juga chatan sama kamu bro, gas terus!`,
+          `Setuju banget bro! Mari fokus ke strategi papan.`
+        ];
+        return generalReplies[Math.floor(Math.random() * generalReplies.length)];
+      };
+
+      if (ai) {
+        try {
+          const systemInstruction = `Anda adalah seorang pemain catur manusia asal Indonesia bernama "${oppName}".
+Anda sedang bermain catur online secara live melawan pengguna bernama "${usrName}".
+
+ATURAN OBROLAN LIVE CHAT CATUR ONLINE (HARUS SANGAT NATURAL, MANUSIAWI & LANGSUNG NYAMBUNG):
+1. Anda HARUS merespon pesan pengguna ("${userText}") secara KONTEKSTUAL, RELEVAN, dan LANGSUNG NYAMBUNG dengan topik/isi pesan tersebut!
+2. Jika pengguna menyapa/berkenalan ("halo", "hai", "salam kenal"): Balas sapaan dengan ramah khas anak catur.
+3. Jika pengguna bertanya tentang asal daerah ("dari mana?", "orang mana?", "kota apa?"): Berikan jawaban daerah di Indonesia yang alami (misal: Bandung, Surabaya, Jogja, Jakarta) dan tanyakan balik secara sopan.
+4. Jika pengguna bertanya tentang pengalaman/umur/skill ("sudah berapa lama main catur?", "umur berapa?", "jago banget"): Jawab dengan santai jujur sebagai sesama pecinta catur.
+5. Jika pengguna mengajak main lagi / rematch ("mabar lagi", "rematch"): Sambut antusias.
+6. Gaya Bahasa: Bahasa chat gaul santai Indonesia (gunakan "wkwk", "bro", "gan", "siap", "mantap", "hehe", "wih").
+7. Panjang Pesan: Sangat singkat (1-2 kalimat pendek, 5-15 kata). JANGAN PANJANG-PANJANG!
+8. DILARANG KERAS BERPURA-PURA MENJADI BOT ATAU AI ATAU ASISTEN SOK SERIUS! Anda adalah 100% pecatur manusia Indonesia yang sedang santai chatan di game catur HP/Web.
+`;
+
+          const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: `User ("${usrName}") mengirim pesan: "${userText}"\nBalasan singkat dari "${oppName}":`,
+            config: {
+              systemInstruction,
+              temperature: 0.85,
+            }
+          });
+
+          let replyText = response.text?.trim().replace(/^"|"$/g, '') || "";
+          if (!replyText) {
+            replyText = getSmartOfflineReply(userText);
+          }
+          return res.json({ success: true, reply: replyText });
+        } catch (geminiErr) {
+          console.log("[AI Chat Reply] Gemini API quota limit or error, using smart offline contextual generator.");
+          return res.json({ success: true, reply: getSmartOfflineReply(userText) });
+        }
+      } else {
+        return res.json({ success: true, reply: getSmartOfflineReply(userText) });
+      }
+    } catch (err: any) {
+      return res.status(500).json({ error: err.message });
+    }
+  });
+
   // --- ONLINE MULTIPLAYER MATCHMAKING STATE & ROUTES ---
   interface WaitingPlayer {
     id: string;
@@ -2840,7 +3190,7 @@ PANDUAN CHAT MANUSIA ALAMI (ANTI-ROBOTIK):
     const now = Date.now();
     for (let i = waitingPlayers.length - 1; i >= 0; i--) {
       // Don't expire custom room codes so fast to let friends connect comfortably
-      const delay = waitingPlayers[i].roomCode ? 60000 : 15000;
+      const delay = waitingPlayers[i].roomCode ? 120000 : 30000;
       if (now - waitingPlayers[i].joinedAt > delay) {
         waitingPlayers.splice(i, 1);
       }
@@ -2883,10 +3233,10 @@ PANDUAN CHAT MANUSIA ALAMI (ANTI-ROBOTIK):
     let opponent: WaitingPlayer | undefined;
     if (cleanRoomCode) {
       // Find another user waiting with the EXACT same custom room code
-      opponent = waitingPlayers.find(p => p.id !== playerId && p.roomCode === cleanRoomCode && (now - p.joinedAt < 60000));
+      opponent = waitingPlayers.find(p => p.id !== playerId && p.roomCode === cleanRoomCode && (now - p.joinedAt < 120000));
     } else {
       // Standard matchmaking (match with players who DO NOT have a custom room code)
-      opponent = waitingPlayers.find(p => p.id !== playerId && !p.roomCode && (now - p.joinedAt < 15000));
+      opponent = waitingPlayers.find(p => p.id !== playerId && !p.roomCode && (now - p.joinedAt < 30000));
     }
 
     if (opponent) {
@@ -3014,7 +3364,7 @@ PANDUAN CHAT MANUSIA ALAMI (ANTI-ROBOTIK):
       time: Date.now()
     });
 
-    return res.json({ success: true });
+    return res.json({ success: true, chats: game.chats });
   });
 
   // Declare match result (win/lose/draw)
@@ -3028,6 +3378,7 @@ PANDUAN CHAT MANUSIA ALAMI (ANTI-ROBOTIK):
         text: winner === 'draw' ? 'Pertandingan berakhir Seri (Remis)!' : `Skakmat! Pertandingan selesai. Pemenang: ${winner === 'w' ? 'Putih' : 'Hitam'}.`,
         time: Date.now()
       });
+      return res.json({ success: true, chats: game.chats });
     }
     return res.json({ success: true });
   });

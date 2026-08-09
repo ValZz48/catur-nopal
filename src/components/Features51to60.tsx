@@ -579,6 +579,7 @@ export const Features51to60: React.FC<Features51to60Props> = ({
       'Penguasa Gurun': 'Desert Ruler',
       'Penebar Salju': 'Snow Spreader',
       'Ksatria Perintis': 'Pioneer Knight',
+      'Panglima Taktis': 'Tactical Commander',
       'Kolektor Kartu Perdana': 'Starter Card Collector',
       'Pecatur Berbakat': 'Talented Chess Player'
     };
@@ -1113,17 +1114,10 @@ export const Features51to60: React.FC<Features51to60Props> = ({
     setCoins(prev => prev - starterCostCoins + 2000);
     
     (window as any).__bypassSavingsRedirect = true;
-    setDiamonds(prev => prev + 75, true);
+    setDiamonds(prev => prev + 100, true);
     (window as any).__bypassSavingsRedirect = false;
 
     // Unlock rewards
-    const updatedTitles = [...unlockedTitles];
-    if (!updatedTitles.includes('Ksatria Perintis')) {
-      updatedTitles.push('Ksatria Perintis');
-    }
-    setUnlockedTitles(updatedTitles);
-    setEquippedTitle('Ksatria Perintis');
-
     const updatedFrames = [...unlockedFrames];
     if (!updatedFrames.includes('embed_emerald')) {
       updatedFrames.push('embed_emerald');
@@ -1134,10 +1128,10 @@ export const Features51to60: React.FC<Features51to60Props> = ({
     localStorage.setItem('starter_pack_purchased', 'true');
 
     triggerAudio('win');
-    triggerReward(250, "Starter Pack Berhasil Diklaim! Frame, koin & diamond berhasil ditambahkan!", "reward", 2000, 75);
+    triggerReward(250, "Starter Pack Berhasil Diklaim! Frame Kubah Emerald, +100 Diamond & +2000 Koin ditambahkan!", "reward", 2000, 100);
 
     const finalCoins = coins - starterCostCoins + 2000;
-    const finalDiamonds = diamonds + 75;
+    const finalDiamonds = diamonds + 100;
 
     if (syncUserStats) {
       syncUserStats(

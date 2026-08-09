@@ -44,6 +44,8 @@ import {
   Swords,
   ArrowLeft,
   Clock,
+  Handshake,
+  AlertTriangle,
   LogOut,
   Lightbulb,
   Eye,
@@ -2032,6 +2034,20 @@ export default function App() {
   });
   const [onlineChats, setOnlineChats] = useState<any[]>([]);
   const [chatInput, setChatInput] = useState<string>('');
+  const [onlineWhiteTime, setOnlineWhiteTime] = useState<number>(600);
+  const [onlineBlackTime, setOnlineBlackTime] = useState<number>(600);
+  const [timeWarningBubble, setTimeWarningBubble] = useState<string | null>(null);
+  const [warned30sWhite, setWarned30sWhite] = useState<boolean>(false);
+  const [warned30sBlack, setWarned30sBlack] = useState<boolean>(false);
+  const [activeDrawOffer, setActiveDrawOffer] = useState<{ sender: string; time: number } | null>(null);
+  const [showDrawConfirmModal, setShowDrawConfirmModal] = useState<boolean>(false);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
+  }, [onlineChats, activeDrawOffer]);
   const [searchTime, setSearchTime] = useState<number>(0);
   const [rankingList, setRankingList] = useState<any[]>(() => []);
   const [googleLinkedEmail, setGoogleLinkedEmail] = useState<string>(() => localStorage.getItem('google_linked_email') || '');
@@ -2589,6 +2605,7 @@ export default function App() {
       'Penguasa Gurun': 'Desert Ruler',
       'Penebar Salju': 'Snow Spreader',
       'Ksatria Perintis': 'Pioneer Knight',
+      'Panglima Taktis': 'Tactical Commander',
       'Kolektor Kartu Perdana': 'Starter Card Collector',
       'Pecatur Berbakat': 'Talented Chess Player'
     };
@@ -2845,6 +2862,13 @@ export default function App() {
     localStorage.setItem('seasonal_event_score', '0');
     localStorage.setItem('seasonal_completed_quests', '[]');
     localStorage.setItem('seasonal_answered_quizzes', '[]');
+    localStorage.setItem('solved_nodes', '[]');
+    localStorage.setItem('seasonal_event_score:guest', '0');
+    localStorage.setItem('seasonal_completed_quests:guest', '[]');
+    localStorage.setItem('seasonal_answered_quizzes:guest', '[]');
+    localStorage.setItem('solved_nodes:guest', '[]');
+    localStorage.removeItem('triviaAnswered');
+    localStorage.removeItem('triviaAnswered:guest');
     localStorage.removeItem('seasonal_completed_milestones');
     localStorage.setItem('claimedPassRewards', '[]');
     localStorage.setItem('claimedRankRewards', '[]');
@@ -3899,18 +3923,25 @@ export default function App() {
         requestPayload.seasonal_answered_quizzes = [];
         requestPayload.seasonal_completed_milestones = [];
       } else {
-        const seasonalScore = localStorage.getItem('seasonal_event_score');
+        const cleanUser = user.username.trim().toLowerCase();
+        const seasonalScore = localStorage.getItem(`seasonal_event_score:${cleanUser}`) || localStorage.getItem('seasonal_event_score');
         if (seasonalScore) requestPayload.seasonal_event_score = Number(seasonalScore);
-        const seasonalQuests = localStorage.getItem('seasonal_completed_quests');
+        const seasonalQuests = localStorage.getItem(`seasonal_completed_quests:${cleanUser}`) || localStorage.getItem('seasonal_completed_quests');
         if (seasonalQuests) {
           try {
             requestPayload.seasonal_completed_quests = JSON.parse(seasonalQuests);
           } catch (e) {}
         }
-        const seasonalQuizzes = localStorage.getItem('seasonal_answered_quizzes');
+        const seasonalQuizzes = localStorage.getItem(`seasonal_answered_quizzes:${cleanUser}`) || localStorage.getItem('seasonal_answered_quizzes');
         if (seasonalQuizzes) {
           try {
             requestPayload.seasonal_answered_quizzes = JSON.parse(seasonalQuizzes);
+          } catch (e) {}
+        }
+        const solvedNodes = localStorage.getItem(`solved_nodes:${cleanUser}`) || localStorage.getItem('solved_nodes');
+        if (solvedNodes) {
+          try {
+            requestPayload.solved_nodes = JSON.parse(solvedNodes);
           } catch (e) {}
         }
       }
@@ -5169,6 +5200,12 @@ export default function App() {
             setOnlineOpponent({ ...data.opponent, isAi: false });
             setOnlineStatus('playing');
             setOnlineGameResult(null);
+            setOnlineWhiteTime(timerLimit || 600);
+            setOnlineBlackTime(timerLimit || 600);
+            setWarned30sWhite(false);
+            setWarned30sBlack(false);
+            setTimeWarningBubble(null);
+            setActiveDrawOffer(null);
             setLastMove(null);
             setMoveHistory([]);
             
@@ -5194,9 +5231,9 @@ export default function App() {
     };
   }, [mode, onlineStatus, friendRoomCode, playerId, username, onlineRating]);
 
-  // Search Timeout (Fallback after 5 seconds to instant simulated opponent)
+  // Search Timeout (Fallback after 20 seconds to instant simulated opponent)
   useEffect(() => {
-    if (onlineStatus === 'searching' && searchTime >= 5 && !friendRoomCode) {
+    if (onlineStatus === 'searching' && searchTime >= 20 && !friendRoomCode) {
       const simulatedOpponents = [
         { name: "CaturMania99", elo: onlineRating + Math.floor(Math.random() * 80 - 40) },
         { name: "Dian_Laksana", elo: onlineRating + Math.floor(Math.random() * 60 - 30) },
@@ -5212,6 +5249,12 @@ export default function App() {
       setOnlineOpponent({ name: matched.name, elo: matched.elo, isAi: true });
       setOnlineStatus('playing');
       setOnlineGameResult(null);
+      setOnlineWhiteTime(timerLimit || 600);
+      setOnlineBlackTime(timerLimit || 600);
+      setWarned30sWhite(false);
+      setWarned30sBlack(false);
+      setTimeWarningBubble(null);
+      setActiveDrawOffer(null);
       setLastMove(null);
       setMoveHistory([]);
       
@@ -5308,7 +5351,36 @@ export default function App() {
               }
             }
             
-            setOnlineChats(data.chats || []);
+            if (data.chats && Array.isArray(data.chats)) {
+              setOnlineChats(data.chats);
+
+              // Extract draw proposals from online chat logs
+              const drawOffers = data.chats.filter((c: any) => c.text && typeof c.text === 'string' && c.text.includes('[DRAW_OFFER]'));
+              if (drawOffers.length > 0) {
+                const latestOffer = drawOffers[drawOffers.length - 1];
+                const offerIdx = data.chats.indexOf(latestOffer);
+                const subsequent = data.chats.slice(offerIdx + 1);
+                const isResolved = subsequent.some((c: any) => c.text && typeof c.text === 'string' && (c.text.includes('[DRAW_ACCEPTED]') || c.text.includes('[DRAW_DECLINED]')));
+
+                const myName = (username.trim() || 'Pecatur');
+                const offerMatch = latestOffer.text.match(/\[DRAW_OFFER\]\s*(.*?)\s*menawarkan/);
+                const offerSender = offerMatch ? offerMatch[1].trim() : latestOffer.sender;
+
+                if (!isResolved && offerSender !== myName) {
+                  setActiveDrawOffer({ sender: offerSender, time: latestOffer.time || Date.now() });
+                } else if (isResolved) {
+                  setActiveDrawOffer(null);
+                }
+              } else {
+                setActiveDrawOffer(null);
+              }
+
+              // Handle draw acceptance sync
+              const hasAcceptedDraw = data.chats.some((c: any) => c.text && typeof c.text === 'string' && c.text.includes('[DRAW_ACCEPTED]'));
+              if (hasAcceptedDraw && onlineStatus === 'playing' && !gameResult && !onlineGameResult) {
+                finishOnlineGame('draw');
+              }
+            }
             
             if (data.winner && onlineStatus === 'playing') {
               const outcome = data.winner === onlinePlayerColor ? 'win' : (data.winner === 'draw' ? 'draw' : 'lose');
@@ -5318,10 +5390,10 @@ export default function App() {
         } catch (e) {
           console.warn("Gagal sinkronisasi data online");
         }
-      }, 1500);
+      }, 1000);
     }
     return () => clearInterval(interval);
-  }, [mode, onlineStatus, onlineGameId, onlinePlayerColor, onlineOpponent]);
+  }, [mode, onlineStatus, onlineGameId, onlinePlayerColor, onlineOpponent, username]);
 
   // AI Opponent Simulated Game loop (triggers when opponent is AI and it's their turn)
   useEffect(() => {
@@ -5515,6 +5587,177 @@ export default function App() {
     return () => clearInterval(interval);
   }, [mode, timerEnabled, gameResult, selectedCharacter, isAiThinking]);
 
+  // Online Match Chess Clock Countdown Effect & 30s Warning Bubble
+  useEffect(() => {
+    if (mode !== 'online-match' || onlineStatus !== 'playing' || gameResult || onlineGameResult) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      const chess = chessRef.current;
+      if (chess.isGameOver()) return;
+
+      const turn = chess.turn(); // 'w' or 'b'
+      if (turn === 'w') {
+        setOnlineWhiteTime((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            finishOnlineGame(onlinePlayerColor === 'w' ? 'lose' : 'win');
+            return 0;
+          }
+          const next = prev - 1;
+          if (next === 30 && !warned30sWhite) {
+            setWarned30sWhite(true);
+            const alertText = "Peringatan Waktu: Sisa waktu Bidak Putih kurang dari 30 detik! Segera jalankan langkah Anda.";
+            setTimeWarningBubble(alertText);
+            setTimeout(() => setTimeWarningBubble(null), 6000);
+
+            const sysMsg = { sender: 'Sistem', text: alertText, time: Date.now() };
+            setOnlineChats(chats => [...chats, sysMsg]);
+            if (onlineGameId && !onlineOpponent?.isAi) {
+              fetch('/api/online/game/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gameId: onlineGameId, sender: 'Sistem', text: alertText })
+              }).catch(() => {});
+            }
+          }
+          return next;
+        });
+      } else {
+        setOnlineBlackTime((prev) => {
+          if (prev <= 1) {
+            clearInterval(interval);
+            finishOnlineGame(onlinePlayerColor === 'b' ? 'lose' : 'win');
+            return 0;
+          }
+          const next = prev - 1;
+          if (next === 30 && !warned30sBlack) {
+            setWarned30sBlack(true);
+            const alertText = "Peringatan Waktu: Sisa waktu Bidak Hitam kurang dari 30 detik! Segera jalankan langkah Anda.";
+            setTimeWarningBubble(alertText);
+            setTimeout(() => setTimeWarningBubble(null), 6000);
+
+            const sysMsg = { sender: 'Sistem', text: alertText, time: Date.now() };
+            setOnlineChats(chats => [...chats, sysMsg]);
+            if (onlineGameId && !onlineOpponent?.isAi) {
+              fetch('/api/online/game/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ gameId: onlineGameId, sender: 'Sistem', text: alertText })
+              }).catch(() => {});
+            }
+          }
+          return next;
+        });
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [mode, onlineStatus, gameResult, onlineGameResult, onlinePlayerColor, warned30sWhite, warned30sBlack, onlineGameId, onlineOpponent]);
+
+  const handleProposeDraw = async () => {
+    if (onlineStatus !== 'playing' || gameResult || onlineGameResult) return;
+
+    const finalSender = username.trim() || 'Pecatur';
+    const offerText = `[DRAW_OFFER] ${finalSender} menawarkan hasil remis.`;
+
+    setOnlineChats(prev => [
+      ...prev,
+      { sender: finalSender, text: offerText, time: Date.now() }
+    ]);
+
+    if (onlineOpponent && !onlineOpponent.isAi && onlineGameId) {
+      try {
+        await fetch('/api/online/game/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gameId: onlineGameId,
+            sender: finalSender,
+            text: offerText
+          })
+        });
+      } catch (e) {
+        console.warn("Gagal mengirim proposal remis");
+      }
+    } else if (onlineOpponent?.isAi) {
+      setTimeout(() => {
+        const moveCount = chessRef.current.history().length;
+        if (moveCount > 6) {
+          const acceptMsg = { sender: 'Sistem', text: '[DRAW_ACCEPTED] AI menerima proposal remis! Pertandingan berakhir Seri.', time: Date.now() };
+          setOnlineChats(prev => [...prev, acceptMsg]);
+          finishOnlineGame('draw');
+        } else {
+          const declineMsg = { sender: onlineOpponent.name, text: '[DRAW_DECLINED] Saya ingin terus bertanding! Tawaran remis ditolak.', time: Date.now() };
+          setOnlineChats(prev => [...prev, declineMsg]);
+        }
+      }, 1500);
+    }
+  };
+
+  const handleAcceptDraw = async () => {
+    if (onlineStatus !== 'playing' || gameResult || onlineGameResult) return;
+    const finalSender = username.trim() || 'Pecatur';
+    const acceptText = `[DRAW_ACCEPTED] ${finalSender} menerima tawaran remis.`;
+
+    setOnlineChats(prev => [
+      ...prev,
+      { sender: 'Sistem', text: acceptText, time: Date.now() }
+    ]);
+    setActiveDrawOffer(null);
+
+    if (onlineGameId && onlineOpponent && !onlineOpponent.isAi) {
+      try {
+        await fetch('/api/online/game/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gameId: onlineGameId,
+            sender: 'Sistem',
+            text: acceptText
+          })
+        });
+        await fetch('/api/online/game/result', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gameId: onlineGameId,
+            winner: 'draw'
+          })
+        });
+      } catch (e) {}
+    }
+
+    finishOnlineGame('draw');
+  };
+
+  const handleDeclineDraw = async () => {
+    if (onlineStatus !== 'playing' || gameResult || onlineGameResult) return;
+    const finalSender = username.trim() || 'Pecatur';
+    const declineText = `[DRAW_DECLINED] ${finalSender} menolak tawaran remis.`;
+
+    setOnlineChats(prev => [
+      ...prev,
+      { sender: 'Sistem', text: declineText, time: Date.now() }
+    ]);
+    setActiveDrawOffer(null);
+
+    if (onlineGameId && onlineOpponent && !onlineOpponent.isAi) {
+      try {
+        await fetch('/api/online/game/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            gameId: onlineGameId,
+            sender: 'Sistem',
+            text: declineText
+          })
+        });
+      } catch (e) {}
+    }
+  };
+
   // Online game actions
   const makeOnlineMove = async (from: string, to: string, promotionPiece?: string) => {
     const chess = chessRef.current;
@@ -5595,14 +5838,13 @@ export default function App() {
     setChatInput('');
 
     const finalSender = username.trim() || 'Pecatur';
-    setOnlineChats(prev => [
-      ...prev,
-      { sender: finalSender, text: msg, time: Date.now() }
-    ]);
+    const tempMsg = { sender: finalSender, text: msg, time: Date.now() };
+
+    setOnlineChats(prev => [...prev, tempMsg]);
 
     if (onlineOpponent && !onlineOpponent.isAi) {
       try {
-        await fetch('/api/online/game/chat', {
+        const res = await fetch('/api/online/game/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -5611,23 +5853,48 @@ export default function App() {
             text: msg
           })
         });
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.chats) {
+            setOnlineChats(data.chats);
+          }
+        }
       } catch (e) {
         console.warn("Gagal mengirim kargo chat");
       }
     } else if (onlineOpponent?.isAi) {
-      setTimeout(() => {
-        const reactions = [
-          "Mantap sekali! Teruskan perjuanganmu.",
-          "Santai saja, catur adalah harmoni pikiran. Hehe",
-          "Hahaha, langkah perwiramu membuatku ketar-ketir.",
-          "Semoga pemain terbaik yang sukses menggenggam trofi!",
-          "Sungguh asyik bertanding denganmu!"
-        ];
-        setOnlineChats(prev => [
-          ...prev,
-          { sender: onlineOpponent.name, text: reactions[Math.floor(Math.random() * reactions.length)], time: Date.now() }
-        ]);
-      }, 1000);
+      const currentSender = finalSender;
+      const currentOpponentName = onlineOpponent.name;
+      try {
+        fetch('/api/online/ai-chat-reply', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            message: msg,
+            opponentName: currentOpponentName,
+            userName: currentSender
+          })
+        })
+        .then(res => res.json())
+        .then(data => {
+          if (data && data.reply) {
+            setTimeout(() => {
+              setOnlineChats(prev => [
+                ...prev,
+                { sender: currentOpponentName, text: data.reply, time: Date.now() }
+              ]);
+            }, 1000);
+          }
+        })
+        .catch(() => {
+          setTimeout(() => {
+            setOnlineChats(prev => [
+              ...prev,
+              { sender: currentOpponentName, text: "Sip bro! Pertarungan yang seru, mari lanjut melangkah!", time: Date.now() }
+            ]);
+          }, 1000);
+        });
+      } catch (e) {}
     }
   };
 
@@ -7694,22 +7961,15 @@ export default function App() {
 
     askConfirmation({
       title: 'Beli Starter Pack Pemula?',
-      message: 'Apakah Anda yakin ingin membelanjakan koin Anda untuk membeli Starter Pack Pemula? Anda akan mendapatkan Gelar Ksatria Perintis, Bingkai Kubah Emerald, +75 Diamonds, +2000 Koin dan +250 XP bonus langsung!',
+      message: 'Apakah Anda yakin ingin membelanjakan koin Anda untuk membeli Starter Pack Pemula? Anda akan mendapatkan Bingkai Kubah Emerald, +100 Diamonds, +2000 Koin dan +350 XP bonus langsung!',
       confirmText: 'Beli Sekarang',
       cancelText: 'Kembali',
       severity: 'success',
       cost: { amount: starterCostCoins, type: 'coin' },
       onConfirm: () => {
         setCoins(prev => prev - starterCostCoins + 2000);
-        setDiamonds(prev => prev + 75);
-        setXp(prev => prev + 250);
-
-        const updatedTitles = [...unlockedTitles];
-        if (!updatedTitles.includes('Ksatria Perintis')) {
-          updatedTitles.push('Ksatria Perintis');
-        }
-        setUnlockedTitles(updatedTitles);
-        setEquippedTitle('Ksatria Perintis');
+        setDiamonds(prev => prev + 100);
+        setXp(prev => prev + 350);
 
         const updatedFrames = [...unlockedFrames];
         if (!updatedFrames.includes('embed_emerald')) {
@@ -7721,7 +7981,7 @@ export default function App() {
         localStorage.setItem('starter_pack_purchased', 'true');
 
         triggerAudio('win');
-        triggerReward(150, "Starter Pack Berhasil Diklaim! Gelar, frame, coin & diamond masuk peti!", "success_no_xp");
+        triggerReward(150, "Starter Pack Berhasil Diklaim! Bingkai Kubah Emerald, +100 Diamond, +2000 Koin & XP masuk peti!", "success_no_xp");
       }
     });
   };
@@ -8632,118 +8892,118 @@ export default function App() {
                     const provider = new GoogleAuthProvider();
                     const result = await signInWithPopup(auth, provider);
                     const googleUser = result.user;
-                    if (!googleUser) {
-                      setAuthError('Gagal mendapatkan informasi dari Google Auth.');
+                    if (!googleUser || !googleUser.email) {
+                      setAuthError('Gagal mendapatkan informasi email dari Google Auth.');
                       setAuthLoading(false);
                       return;
                     }
 
-                    const rawName = (googleUser.displayName || googleUser.email?.split('@')[0] || 'UserGoogle').replace(/[^a-zA-Z0-9_]/g, '');
-                    const googleAuthUsername = rawName || `GoogleUser_${googleUser.uid.substring(0, 5)}`;
-
-                    const isRegisterMode = authTab === 'register';
-                    const endpoint = isRegisterMode ? '/api/auth/register' : '/api/auth/login';
-                    const authReqBody = isRegisterMode 
-                      ? {
-                          username: googleAuthUsername,
-                          password: `google_${googleUser.uid}`,
-                          elo: onlineRating || 400,
-                          xp: xp || 0,
-                          coins: coins || 500,
-                          diamonds: diamonds || 20,
-                          matchesPlayed: user ? (user.matchesPlayed || 0) : guestMatchesPlayed,
-                          matchesWon: user ? (user.matchesWon || 0) : guestMatchesWon,
-                          boardTheme: boardTheme || 'classic',
-                          unlockedThemes: unlockedThemes || ['classic'],
-                          selectedSkin: selectedSkin || 'standard',
-                          unlockedSkins: unlockedSkins || ['standard'],
-                          selectedFrame: selectedFrame || 'none',
-                          unlockedFrames: unlockedFrames || ['none'],
-                          onlineHistory: onlineHistory || [],
-                          blockedUsers: []
-                        }
-                      : { username: googleAuthUsername, password: `google_${googleUser.uid}` };
-
-                    let response = await fetchWithTimeout(endpoint, {
+                    const response = await fetchWithTimeout('/api/auth/google-login', {
                       method: 'POST',
                       headers: { 'Content-Type': 'application/json' },
-                      body: JSON.stringify(authReqBody)
-                    }, 1500).catch(() => null);
+                      body: JSON.stringify({
+                        googleEmail: googleUser.email,
+                        googleUid: googleUser.uid,
+                        displayName: googleUser.displayName,
+                        photoUrl: googleUser.photoURL
+                      })
+                    }, 4000).catch(() => null);
 
                     let data: any = null;
                     if (response && response.ok) {
                       data = await response.json().catch(() => null);
                     }
 
-                    let isNewAccount = isRegisterMode;
                     if (!data || !data.success || !data.user) {
-                      if (!isRegisterMode) {
-                        isNewAccount = true;
-                        const regBody = {
-                          username: googleAuthUsername,
-                          password: `google_${googleUser.uid}`,
-                          elo: 400,
-                          xp: 0,
-                          coins: 500,
-                          diamonds: 20,
-                          matchesPlayed: 0,
-                          matchesWon: 0,
-                          boardTheme: 'classic',
-                          unlockedThemes: ['classic'],
-                          selectedSkin: 'standard',
-                          unlockedSkins: ['standard'],
-                          selectedFrame: 'none',
-                          unlockedFrames: ['none'],
-                          onlineHistory: [],
-                          blockedUsers: []
-                        };
-                        response = await fetchWithTimeout('/api/auth/register', {
-                          method: 'POST',
-                          headers: { 'Content-Type': 'application/json' },
-                          body: JSON.stringify(regBody)
-                        }, 1500).catch(() => null);
-                        if (response && response.ok) {
-                          data = await response.json().catch(() => null);
-                        }
-                      }
+                      setAuthError((data && data.error) || 'Gagal masuk dengan Google.');
+                      setAuthLoading(false);
+                      return;
                     }
 
-                    const authenticatedUser: any = {
-                      username: (data && data.user && data.user.username) ? data.user.username : googleAuthUsername,
-                      elo: (data && data.user && data.user.elo !== undefined) ? data.user.elo : 400,
-                      xp: (data && data.user && data.user.xp !== undefined) ? data.user.xp : 0,
-                      coins: (data && data.user && data.user.coins !== undefined) ? data.user.coins : 500,
-                      diamonds: (data && data.user && data.user.diamonds !== undefined) ? data.user.diamonds : 20,
-                      unlockedThemes: (data && data.user && data.user.unlockedThemes) || ["classic"],
-                      matchesPlayed: (data && data.user && data.user.matchesPlayed !== undefined) ? data.user.matchesPlayed : 0,
-                      matchesWon: (data && data.user && data.user.matchesWon !== undefined) ? data.user.matchesWon : 0,
-                      profileAvatar: googleUser.photoURL || martinAvatar,
-                      profileBio: "Member Google Auth Pal Mate!",
-                      claimedAchievements: [],
-                      membershipStatus: 'free',
-                      selectedFrame: 'none',
-                      unlockedFrames: ['none'],
-                      selectedSkin: 'standard',
-                      unlockedSkins: ['standard'],
-                      equippedTitle: 'Pecatur Perintis',
-                      customStatus: 'Pantang menyerah sebelum raja digulingkan!',
-                      chess_transaction_history: []
-                    };
-
+                    const authenticatedUser = data.user;
                     isResettingRef.current = true;
                     setUser(authenticatedUser);
-                    setProfileEditingBio(authenticatedUser.profileBio);
-                    localStorage.setItem('user', JSON.stringify(authenticatedUser));
+                    restoreGuildFromUser(authenticatedUser);
 
-                    if (isNewAccount) {
-                      const userScope = authenticatedUser.username.trim().toLowerCase();
-                      localStorage.removeItem(`chess_tutorial_completed_${userScope}`);
-                      setShowTutorialTour(true);
+                    if (authenticatedUser.googleLinkedEmail) {
+                      setGoogleLinkedEmail(authenticatedUser.googleLinkedEmail);
+                      localStorage.setItem('google_linked_email', authenticatedUser.googleLinkedEmail);
+                    } else {
+                      setGoogleLinkedEmail('');
+                      localStorage.removeItem('google_linked_email');
+                    }
+                    if (authenticatedUser.googleLinkedUid) {
+                      localStorage.setItem('google_linked_uid', authenticatedUser.googleLinkedUid);
+                    } else {
+                      localStorage.removeItem('google_linked_uid');
                     }
 
-                    handleSaveUsername(authenticatedUser.username);
-                    setOnlineRating(authenticatedUser.elo);
-                    setXp(authenticatedUser.xp);
+                    setProfileEditingBio(authenticatedUser.profileBio || "Pecatur sejati pantang menyerah!");
+                    setClaimedAchievements(authenticatedUser.claimedAchievements || []);
+                    localStorage.setItem('user', JSON.stringify(authenticatedUser));
+
+                    const userScope = authenticatedUser.username.trim().toLowerCase();
+                    if (data.isNew) {
+                      localStorage.removeItem(`chess_tutorial_completed_${userScope}`);
+                      setShowTutorialTour(true);
+                      localStorage.setItem(`coins:${userScope}`, "500");
+                      localStorage.setItem(`diamonds:${userScope}`, "20");
+                      localStorage.setItem(`xp:${userScope}`, "0");
+                      localStorage.setItem(`streak:${userScope}`, "0");
+                      localStorage.setItem(`unlockedThemes:${userScope}`, JSON.stringify(["classic"]));
+                      localStorage.setItem(`unlockedFrames:${userScope}`, JSON.stringify(["none"]));
+                      localStorage.setItem(`selectedFrame:${userScope}`, "none");
+                      localStorage.setItem(`onlineRating:${userScope}`, "400");
+                      localStorage.setItem(`onlineHistory:${userScope}`, JSON.stringify([]));
+                      localStorage.setItem(`blocked_users:${userScope}`, JSON.stringify([]));
+                      localStorage.setItem('blocked_users', JSON.stringify([]));
+                    } else {
+                      localStorage.setItem(`coins:${userScope}`, String(authenticatedUser.coins ?? 500));
+                      localStorage.setItem(`diamonds:${userScope}`, String(authenticatedUser.diamonds ?? 20));
+                      localStorage.setItem(`xp:${userScope}`, String(authenticatedUser.xp ?? 0));
+                      localStorage.setItem(`streak:${userScope}`, String(authenticatedUser.streak ?? 0));
+                      localStorage.setItem(`peak_xp:${userScope}`, String(authenticatedUser.peakXp ?? 0));
+                      localStorage.setItem(`win_streak:${userScope}`, String(authenticatedUser.winStreak ?? 0));
+                      localStorage.setItem(`longest_defense:${userScope}`, String(authenticatedUser.longestDefense ?? 0));
+                      localStorage.setItem(`unlockedThemes:${userScope}`, JSON.stringify(authenticatedUser.unlockedThemes || ["classic"]));
+                      localStorage.setItem(`unlockedFrames:${userScope}`, JSON.stringify(authenticatedUser.unlockedFrames || ["none"]));
+                      localStorage.setItem(`selectedFrame:${userScope}`, authenticatedUser.selectedFrame || "none");
+                      localStorage.setItem(`onlineRating:${userScope}`, String(authenticatedUser.elo));
+                      localStorage.setItem(`onlineHistory:${userScope}`, JSON.stringify(authenticatedUser.onlineHistory || []));
+                      localStorage.setItem(`blocked_users:${userScope}`, JSON.stringify(authenticatedUser.blockedUsers || []));
+                      localStorage.setItem('blocked_users', JSON.stringify(authenticatedUser.blockedUsers || []));
+                    }
+
+                    loadUserScopedStats(
+                      authenticatedUser.username, 
+                      data.serverDate, 
+                      authenticatedUser.coins, 
+                      authenticatedUser.diamonds,
+                      authenticatedUser.unlockedItems,
+                      authenticatedUser.selectedFrame,
+                      authenticatedUser.unlockedFrames,
+                      authenticatedUser.selectedSkin,
+                      authenticatedUser.equippedTitle,
+                      authenticatedUser.equippedCheckmateEffect,
+                      authenticatedUser.customStatus,
+                      authenticatedUser.unlockedSkins,
+                      authenticatedUser.unlockedTitles,
+                      authenticatedUser.unlockedCheckmateEffects,
+                      authenticatedUser.unlockedThemes,
+                      authenticatedUser.elo,
+                      authenticatedUser.xp,
+                      authenticatedUser.onlineHistory,
+                      authenticatedUser.chess_transaction_history,
+                      authenticatedUser.pinned_medals_ids,
+                      authenticatedUser.blockedUsers,
+                      authenticatedUser.streak,
+                      authenticatedUser.peakXp,
+                      authenticatedUser.winStreak,
+                      authenticatedUser.longestDefense,
+                      authenticatedUser.likesCount,
+                      authenticatedUser.likedBy
+                    );
+
                     setShowAuthModal(false);
                     triggerReward(0, `Selamat Datang, ${authenticatedUser.username}! Berhasil masuk via Google.`, 'success_no_xp');
                   } catch (err: any) {
@@ -8816,10 +9076,11 @@ export default function App() {
                         unlockedFrames: unlockedFrames || ['none'],
                         onlineHistory: onlineHistory || [],
                         pinned_medals_ids: parseJSON('pinned_medals_ids', []),
-                        seasonal_event_score: Number(localStorage.getItem('seasonal_event_score') || 0),
-                        seasonal_completed_quests: parseJSON('seasonal_completed_quests', []),
-                        seasonal_answered_quizzes: parseJSON('seasonal_answered_quizzes', []),
-                        seasonal_completed_milestones: parseJSON('seasonal_completed_milestones', []),
+                        seasonal_event_score: 0,
+                        seasonal_completed_quests: [],
+                        seasonal_answered_quizzes: [],
+                        seasonal_completed_milestones: [],
+                        solved_nodes: [],
                         blockedUsers: []
                       };
                   const response = await fetchWithTimeout(endpoint, {
@@ -8884,11 +9145,25 @@ export default function App() {
                       likesCount: typeof data.user.likesCount === 'number' ? data.user.likesCount : (data.user.likes || 0),
                       likedBy: Array.isArray(data.user.likedBy) ? data.user.likedBy : [],
                       onlineHistory: data.user.onlineHistory || [],
-                      chess_transaction_history: data.user.chess_transaction_history || []
+                      chess_transaction_history: data.user.chess_transaction_history || [],
+                      googleLinkedEmail: data.user.googleLinkedEmail,
+                      googleLinkedUid: data.user.googleLinkedUid
                     };
                     isResettingRef.current = true;
                     restoreGuildFromUser(authenticatedUser);
                     setUser(authenticatedUser);
+                    if (data.user.googleLinkedEmail) {
+                      setGoogleLinkedEmail(data.user.googleLinkedEmail);
+                      localStorage.setItem('google_linked_email', data.user.googleLinkedEmail);
+                    } else {
+                      setGoogleLinkedEmail('');
+                      localStorage.removeItem('google_linked_email');
+                    }
+                    if (data.user.googleLinkedUid) {
+                      localStorage.setItem('google_linked_uid', data.user.googleLinkedUid);
+                    } else {
+                      localStorage.removeItem('google_linked_uid');
+                    }
                     setProfileEditingBio(authenticatedUser.profileBio);
                     setClaimedAchievements(authenticatedUser.claimedAchievements);
                     localStorage.setItem('user', JSON.stringify(authenticatedUser));
@@ -12541,10 +12816,21 @@ export default function App() {
                       </div>
                       <button
                         type="button"
-                        onClick={() => {
+                        onClick={async () => {
                           setGoogleLinkedEmail('');
                           localStorage.removeItem('google_linked_email');
                           localStorage.removeItem('google_linked_uid');
+                          if (user) {
+                            setUser((prev: any) => prev ? { ...prev, googleLinkedEmail: undefined, googleLinkedUid: undefined } : prev);
+                            await fetchWithTimeout('/api/auth/link-google', {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                username: user.username,
+                                unlink: true
+                              })
+                            }, 3000).catch(() => null);
+                          }
                           triggerAudio('move');
                           showLocalToast('Tautan Google dilepaskan');
                         }}
@@ -16242,6 +16528,20 @@ export default function App() {
                 
                 {/* COLUMN LEFT: INTERACTIVE CHESS BOARD LAYER */}
                 <div className="lg:col-span-7 flex flex-col items-center">
+                  
+                  {/* REAL-TIME CLOCK WARNING NOTIFICATION BUBBLE */}
+                  {timeWarningBubble && (
+                    <div className="w-full max-w-md mb-3 p-3 bg-red-600 text-white rounded-2xl shadow-lg border border-red-400 flex items-center justify-between gap-2 animate-bounce">
+                      <div className="flex items-center gap-2 text-xs font-black uppercase">
+                        <AlertCircle className="w-4 h-4 text-yellow-300 shrink-0" />
+                        <span>{timeWarningBubble}</span>
+                      </div>
+                      <button onClick={() => setTimeWarningBubble(null)} className="text-white/80 hover:text-white font-bold text-xs cursor-pointer">
+                        ✕
+                      </button>
+                    </div>
+                  )}
+
                   <div className={`w-full max-w-md p-3.5 rounded-3xl border-4 ${activeThemeConfig.bgClass} shadow-xl relative`}>
                     
                     {/* OPPONENT TOP INFO CARD */}
@@ -16254,9 +16554,19 @@ export default function App() {
                           {onlineOpponent.name} ({onlineOpponent.elo} ELO)
                         </span>
                       </div>
-                      <span className="text-white/60 text-[10px] font-mono uppercase">
-                        {onlinePlayerColor === 'w' ? 'Bidak Hitam' : 'Bidak Putih'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <div className={`px-2 py-0.5 rounded-lg text-xs font-mono font-black flex items-center gap-1 ${
+                          (onlinePlayerColor === 'w' ? onlineBlackTime : onlineWhiteTime) <= 30
+                            ? 'bg-red-600/30 text-red-400 border border-red-500 animate-bounce'
+                            : 'bg-[#262421] text-[#bab9b8] border border-white/10'
+                        }`}>
+                          <Clock className="w-3.5 h-3.5" />
+                          {formatTime(onlinePlayerColor === 'w' ? onlineBlackTime : onlineWhiteTime)}
+                        </div>
+                        <span className="text-white/60 text-[10px] font-mono uppercase">
+                          {onlinePlayerColor === 'w' ? 'Hitam' : 'Putih'}
+                        </span>
+                      </div>
                     </div>
 
                     {/* MAIN CHESSBOARD GRID */}
@@ -16283,9 +16593,19 @@ export default function App() {
                           </span>
                         </div>
                       </div>
-                      <span className="text-white/60 text-[10px] font-mono uppercase">
-                        {onlinePlayerColor === 'w' ? 'Bidak Putih' : 'Bidak Hitam'}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <div className={`px-2 py-0.5 rounded-lg text-xs font-mono font-black flex items-center gap-1 ${
+                          (onlinePlayerColor === 'w' ? onlineWhiteTime : onlineBlackTime) <= 30
+                            ? 'bg-red-600/30 text-red-400 border border-red-500 animate-bounce'
+                            : 'bg-[#81b64c]/20 text-[#81b64c] border border-[#81b64c]/40'
+                        }`}>
+                          <Clock className="w-3.5 h-3.5" />
+                          {formatTime(onlinePlayerColor === 'w' ? onlineWhiteTime : onlineBlackTime)}
+                        </div>
+                        <span className="text-white/60 text-[10px] font-mono uppercase">
+                          {onlinePlayerColor === 'w' ? 'Putih' : 'Hitam'}
+                        </span>
+                      </div>
                     </div>
 
                   </div>
@@ -16295,7 +16615,7 @@ export default function App() {
                 <div className="lg:col-span-5 space-y-6">
                   
                   {/* TURN AND GAME STATUS HEADER */}
-                  <div className="bg-white rounded-3xl p-5 border-2 border-[#E5E5E5] shadow-xs flex items-center justify-between gap-4">
+                  <div className="bg-white rounded-3xl p-5 border-2 border-[#E5E5E5] shadow-xs flex items-center justify-between gap-3">
                     <div>
                       <span className="text-[10px] font-mono font-black text-[#777777] uppercase block">Giliran Bermain</span>
                       {chessRef.current.turn() === onlinePlayerColor ? (
@@ -16308,12 +16628,21 @@ export default function App() {
                         </span>
                       )}
                     </div>
-                    <button
-                      onClick={() => setResignConfirmTarget('online')}
-                      className="px-4 py-2 bg-red-50 text-[#FF4B4B] border-2 border-red-200 hover:bg-red-100 text-xs font-black uppercase rounded-xl transition-colors cursor-pointer"
-                    >
-                      Resign (Menyerah)
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <button
+                        onClick={() => setShowDrawConfirmModal(true)}
+                        className="px-3 py-2 bg-amber-50 text-amber-700 border-2 border-amber-200 hover:bg-amber-100 text-xs font-black uppercase rounded-xl transition-colors cursor-pointer flex items-center gap-1.5"
+                      >
+                        <Handshake className="w-3.5 h-3.5 text-amber-600" />
+                        Tawarkan Remis
+                      </button>
+                      <button
+                        onClick={() => setResignConfirmTarget('online')}
+                        className="px-3 py-2 bg-red-50 text-[#FF4B4B] border-2 border-red-200 hover:bg-red-100 text-xs font-black uppercase rounded-xl transition-colors cursor-pointer"
+                      >
+                        Resign
+                      </button>
+                    </div>
                   </div>
 
                   {/* CHAT COMM BOX */}
@@ -16327,22 +16656,59 @@ export default function App() {
                       </span>
                     </div>
 
+                    {/* DRAW PROPOSAL INTERACTIVE NOTIFICATION CARD */}
+                    {activeDrawOffer && activeDrawOffer.sender !== (username.trim() || 'Pecatur') && (
+                      <div className="m-3 p-3 bg-amber-50 border-2 border-amber-300 rounded-2xl shadow-sm flex flex-col gap-2">
+                        <div className="flex items-center gap-2 text-amber-800 font-black text-xs uppercase">
+                          <Handshake className="w-4 h-4 text-amber-600 shrink-0" />
+                          <span>Tawaran Remis dari {activeDrawOffer.sender}</span>
+                        </div>
+                        <p className="text-[11px] font-semibold text-amber-900 leading-snug">
+                          Lawan Anda menawarkan hasil pertandingan Seri (Remis). Apakah Anda setuju?
+                        </p>
+                        <div className="flex items-center gap-2 pt-1">
+                          <button
+                            onClick={handleAcceptDraw}
+                            className="flex-1 py-1.5 bg-green-600 hover:bg-green-700 text-white font-extrabold text-xs uppercase rounded-lg cursor-pointer"
+                          >
+                            Terima Remis
+                          </button>
+                          <button
+                            onClick={handleDeclineDraw}
+                            className="flex-1 py-1.5 bg-slate-200 hover:bg-slate-300 text-slate-700 font-extrabold text-xs uppercase rounded-lg cursor-pointer"
+                          >
+                            Tolak Remis
+                          </button>
+                        </div>
+                      </div>
+                    )}
+
                     {/* LIVE BUBBLES TRAILER PANEL */}
-                    <div className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#F9F9F9]">
+                    <div ref={chatContainerRef} className="flex-1 p-4 overflow-y-auto space-y-3 bg-[#F9F9F9]">
                       {onlineChats.length === 0 ? (
                         <div className="h-full flex items-center justify-center text-[#777777]/60 italic text-xs">
                           Belum ada obrolan. Kirim salam sapa ke lawanmu!
                         </div>
                       ) : (
                         onlineChats.map((c: any, index: number) => {
-                          const isMe = c.sender === (username.trim() || 'Pecatur') || c.sender === username;
-                          const isSystem = c.sender === 'Sistem';
+                          const myName = (username.trim() || 'Pecatur');
+                          const isMe = (c.sender && c.sender.trim() === myName) || c.sender === username;
+                          const isSystem = c.sender === 'Sistem' || c.sender === 'System';
+                          
+                          let cleanText = c.text || '';
+                          if (cleanText.includes('[DRAW_OFFER]')) {
+                            cleanText = cleanText.replace(/\[DRAW_OFFER\]\s*/, '🤝 ');
+                          } else if (cleanText.includes('[DRAW_ACCEPTED]')) {
+                            cleanText = cleanText.replace(/\[DRAW_ACCEPTED\]\s*/, '✅ ');
+                          } else if (cleanText.includes('[DRAW_DECLINED]')) {
+                            cleanText = cleanText.replace(/\[DRAW_DECLINED\]\s*/, '❌ ');
+                          }
                           
                           if (isSystem) {
                             return (
-                              <div key={index} className="text-center">
-                                <span className="inline-block px-3 py-1 bg-slate-100 text-[#777777] font-bold text-[9px] rounded-md uppercase border border-slate-200">
-                                  {c.text}
+                              <div key={index} className="text-center my-1">
+                                <span className="inline-block px-3 py-1 bg-amber-50 text-amber-800 font-bold text-[10px] rounded-lg uppercase border border-amber-200/80 shadow-2xs">
+                                  {cleanText}
                                 </span>
                               </div>
                             );
@@ -16358,7 +16724,7 @@ export default function App() {
                                   ? 'bg-[#DDF4FF] text-[#1CB0F6] rounded-tr-none border border-blue-200' 
                                   : 'bg-white text-[#4B4B4B] rounded-tl-none border border-slate-200 shadow-sm'
                               }`}>
-                                {c.text}
+                                {cleanText}
                               </div>
                             </div>
                           );
@@ -16895,13 +17261,7 @@ export default function App() {
                     <div className="flex items-center gap-2.5 text-xs text-slate-200 font-bold">
                       <Check className="w-4 h-4 text-[#81b64c] shrink-0" />
                       <span className="flex items-center gap-1.5">
-                        <Award className="w-4 h-4 text-yellow-500 shrink-0" /> {prefLang === 'en' ? 'Special Title: ' : 'Gelar Khusus: '} <span className="text-yellow-400 font-black font-mono font-bold">{prefLang === 'en' ? 'Pioneer Knight' : 'Ksatria Perintis'}</span>
-                      </span>
-                    </div>
-                    <div className="flex items-center gap-2.5 text-xs text-slate-200 font-bold">
-                      <Check className="w-4 h-4 text-[#81b64c] shrink-0" />
-                      <span className="flex items-center gap-1.5">
-                        <Gem className="w-4 h-4 text-cyan-400 shrink-0" /> {prefLang === 'en' ? 'Savings: ' : 'Tabungan: '} <span className="text-cyan-400 font-black font-mono font-bold">+75 Diamonds</span>
+                        <Gem className="w-4 h-4 text-cyan-400 shrink-0" /> {prefLang === 'en' ? 'Bonus Diamonds: ' : 'Bonus Berlian: '} <span className="text-cyan-400 font-black font-mono font-bold">+100 Diamonds</span>
                       </span>
                     </div>
                     <div className="flex items-center gap-2.5 text-xs text-slate-200 font-bold">
@@ -16919,7 +17279,7 @@ export default function App() {
                     <div className="flex items-center gap-2.5 text-xs text-slate-200 font-bold">
                       <Check className="w-4 h-4 text-[#81b64c] shrink-0" />
                       <span className="flex items-center gap-1.5">
-                        <Sparkles className="w-4 h-4 text-amber-500 shrink-0" /> {prefLang === 'en' ? 'Experience: ' : 'Pengalaman: '} <span className="text-purple-400 font-black font-mono font-bold">+250 XP Level-Up</span>
+                        <Sparkles className="w-4 h-4 text-amber-500 shrink-0" /> {prefLang === 'en' ? 'Experience: ' : 'Pengalaman: '} <span className="text-purple-400 font-black font-mono font-bold">+350 XP Level-Up</span>
                       </span>
                     </div>
                   </div>
@@ -18675,6 +19035,56 @@ export default function App() {
                   className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white font-black text-xs uppercase rounded-xl shadow-lg shadow-red-900/30 cursor-pointer transition-colors"
                 >
                   Ya, Saya Menyerah
+                </button>
+              </div>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* DRAW OFFER CONFIRMATION MODAL */}
+      <AnimatePresence>
+        {showDrawConfirmModal && (
+          <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm select-none">
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.9, opacity: 0 }}
+              className="bg-[#262421] border-2 border-amber-500/40 rounded-3xl p-6 max-w-md w-full shadow-2xl text-center space-y-4"
+            >
+              <div className="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-500/40 flex items-center justify-center mx-auto text-amber-400">
+                <Handshake className="w-8 h-8 animate-pulse" />
+              </div>
+
+              <div>
+                <h3 className="text-lg font-black text-white uppercase tracking-wide">Konfirmasi Ajukan Remis</h3>
+                <p className="text-xs font-semibold text-[#bab9b8] mt-1">
+                  Apakah Anda yakin ingin mengajukan tawaran hasil pertandingan Seri (Remis) kepada lawan?
+                </p>
+              </div>
+
+              <div className="p-3 bg-amber-950/40 border border-amber-800/40 rounded-2xl text-amber-300 text-xs font-bold text-left flex items-start gap-2">
+                <AlertCircle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <span>Tawaran remis akan dikirimkan ke lawan. Jika lawan menerima, permainan berakhir seri tanpa kehilangan poin besar.</span>
+              </div>
+
+              <div className="flex items-center gap-3 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowDrawConfirmModal(false)}
+                  className="flex-1 py-3 bg-[#312e2b] hover:bg-[#3c3934] text-white font-extrabold text-xs uppercase rounded-xl border border-[#3c3934] cursor-pointer transition-colors"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowDrawConfirmModal(false);
+                    handleProposeDraw();
+                  }}
+                  className="flex-1 py-3 bg-amber-600 hover:bg-amber-700 text-white font-black text-xs uppercase rounded-xl shadow-lg shadow-amber-900/30 cursor-pointer transition-colors"
+                >
+                  Ya, Ajukan Remis
                 </button>
               </div>
             </motion.div>

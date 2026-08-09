@@ -561,7 +561,10 @@ export async function handleQuizSubmission(params: {
       if (nextScore >= 40) milestones.push("Milestone I");
       if (nextScore >= 120) milestones.push("Target");
 
+      const scope = (username || 'guest').trim().toLowerCase();
       // Update local storage
+      localStorage.setItem(`seasonal_answered_quizzes:${scope}`, JSON.stringify(nextQuizzes));
+      localStorage.setItem(`seasonal_event_score:${scope}`, String(nextScore));
       localStorage.setItem('seasonal_answered_quizzes', JSON.stringify(nextQuizzes));
       localStorage.setItem('seasonal_event_score', String(nextScore));
       localStorage.setItem('seasonal_completed_milestones', JSON.stringify(milestones));
@@ -591,6 +594,9 @@ export async function handleQuizSubmission(params: {
       if (nextScore >= 40) milestones.push("Milestone I");
       if (nextScore >= 120) milestones.push("Target");
 
+      const guestScope = (username || 'guest').trim().toLowerCase();
+      localStorage.setItem(`seasonal_answered_quizzes:${guestScope}`, JSON.stringify(nextQuizzes));
+      localStorage.setItem(`seasonal_event_score:${guestScope}`, String(nextScore));
       localStorage.setItem('seasonal_answered_quizzes', JSON.stringify(nextQuizzes));
       localStorage.setItem('seasonal_event_score', String(nextScore));
       localStorage.setItem('seasonal_completed_milestones', JSON.stringify(milestones));

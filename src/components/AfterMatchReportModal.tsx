@@ -16,7 +16,10 @@ import {
   RotateCcw, 
   Search,
   Sparkles,
-  Swords
+  Swords,
+  Share2,
+  Copy,
+  Check
 } from 'lucide-react';
 
 export interface MoveAnalysisItem {
@@ -99,6 +102,8 @@ export const AfterMatchReportModal: React.FC<AfterMatchReportModalProps> = ({
 
   const totalMovesCount = moveHistory.length > 0 ? Math.ceil(moveHistory.length / 2) : Math.max(whiteMoves.length, blackMoves.length);
 
+  const [isCopied, setIsCopied] = React.useState(false);
+
   // Derive outcome description without any emojis
   const getOutcomeText = () => {
     if (isWin) {
@@ -118,6 +123,27 @@ export const AfterMatchReportModal: React.FC<AfterMatchReportModalProps> = ({
     if (isTimeOut) return "Kehabisan Waktu";
     if (gameOutcome === 'win' || gameOutcome === 'lose') return "Skakmat / Menyerah";
     return "Draw / Remis";
+  };
+
+  const handleShareMatch = () => {
+    const modeText = mode === 'online-match' ? 'Online Match' : mode === 'local-friend' ? 'Lokal Teman' : 'Bermain AI';
+    const outcomeSummary = isWin ? 'Kemenangan' : isLose ? 'Kekalahan' : 'Seri (Remis)';
+    const shareText = `[Laporan Hasil Pertandingan Pal Mate Chess]
+Mode: ${modeText}
+Hasil: ${outcomeSummary}
+Pemain Putih: ${whitePlayer.name} (Akurasi: ${whiteAccuracy}%)
+Pemain Hitam: ${blackPlayer.name} (Akurasi: ${blackAccuracy}%)
+Total Langkah: ${totalMovesCount}
+Sistem Pembukaan: ${openingName || 'Standard'}
+Sebab Selesai: ${getEndReasonLabel()}
+Mainkan catur gratis di Pal Mate Chess!`;
+
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(shareText).then(() => {
+        setIsCopied(true);
+        setTimeout(() => setIsCopied(false), 2500);
+      }).catch(() => {});
+    }
   };
 
   return (
@@ -341,6 +367,15 @@ export const AfterMatchReportModal: React.FC<AfterMatchReportModalProps> = ({
 
           {/* ACTION BUTTONS */}
           <div className="flex flex-col sm:flex-row items-center gap-2.5 pt-2">
+            <button
+              type="button"
+              onClick={handleShareMatch}
+              className="w-full sm:flex-1 py-3 px-4 bg-[#2b2824] hover:bg-[#38342f] text-cyan-400 hover:text-cyan-300 font-extrabold text-xs uppercase rounded-xl border border-cyan-500/30 cursor-pointer transition-all flex items-center justify-center gap-2"
+            >
+              {isCopied ? <Check className="w-4 h-4 text-green-400" /> : <Share2 className="w-4 h-4 text-cyan-400" />}
+              {isCopied ? "Tersalin ke Clipboard" : "Bagikan Hasil"}
+            </button>
+
             {onAnalyzeBoard && (
               <button
                 type="button"
@@ -351,7 +386,7 @@ export const AfterMatchReportModal: React.FC<AfterMatchReportModalProps> = ({
                 className="w-full sm:flex-1 py-3 px-4 bg-[#81b64c] hover:bg-[#6f9e41] text-slate-950 font-black text-xs uppercase rounded-xl shadow-lg cursor-pointer transition-all flex items-center justify-center gap-2"
               >
                 <Search className="w-4 h-4" />
-                Tinjau Analisis Papan
+                Tinjau Analisis
               </button>
             )}
 
@@ -372,7 +407,7 @@ export const AfterMatchReportModal: React.FC<AfterMatchReportModalProps> = ({
             <button
               type="button"
               onClick={onClose}
-              className="w-full sm:w-auto py-3 px-5 bg-transparent hover:bg-white/5 text-slate-400 hover:text-white font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
+              className="w-full sm:w-auto py-3 px-4 bg-transparent hover:bg-white/5 text-slate-400 hover:text-white font-bold text-xs uppercase rounded-xl transition-all cursor-pointer"
             >
               Tutup
             </button>
