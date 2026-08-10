@@ -26,7 +26,157 @@ export function AdminStaffConsole({
   showLocalToast,
   askConfirmation
 }: AdminStaffConsoleProps) {
-  const [activeTab, setActiveTab] = useState<'reports' | 'events' | 'staff' | 'tickets' | 'elo' | 'news'>('news');
+  const [activeTab, setActiveTab] = useState<'reports' | 'events' | 'staff' | 'tickets' | 'elo' | 'news' | 'leaderboard_mod'>('news');
+
+  // Leaderboard Moderation State
+  const [nationalLeaderboardList, setNationalLeaderboardList] = useState<any[]>([]);
+  const [clanLeaderboardList, setClanLeaderboardList] = useState<any[]>([]);
+  const [hiddenUsersList, setHiddenUsersList] = useState<any[]>([]);
+  const [hiddenClansList, setHiddenClansList] = useState<any[]>([]);
+  const [modSearchUser, setModSearchUser] = useState('');
+  const [modSearchClan, setModSearchClan] = useState('');
+  const [modRemovalReason, setModRemovalReason] = useState('Pelanggaran aturan fair play / moderasi klan');
+  const [isLoadingModLeaderboard, setIsLoadingModLeaderboard] = useState(false);
+
+  const fetchModLeaderboardData = async () => {
+    setIsLoadingModLeaderboard(true);
+    try {
+      const [userRes, clanRes, hiddenRes] = await Promise.all([
+        fetch('/api/online/leaderboard'),
+        fetch('/api/guilds/leaderboard'),
+        fetch('/api/admin/leaderboard/hidden')
+      ]);
+      if (userRes.ok) {
+        const uData = await userRes.json();
+        setNationalLeaderboardList(Array.isArray(uData) ? uData : []);
+      }
+      if (clanRes.ok) {
+        const cData = await clanRes.json();
+        setClanLeaderboardList(cData.guilds || []);
+      }
+      if (hiddenRes.ok) {
+        const hData = await hiddenRes.json();
+        setHiddenUsersList(hData.users || []);
+        setHiddenClansList(hData.clans || []);
+      }
+    } catch (err) {
+      showLocalToast("Gagal memuat data papan peringkat untuk moderasi", "error");
+    } finally {
+      setIsLoadingModLeaderboard(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === 'leaderboard_mod') {
+      fetchModLeaderboardData();
+    }
+  }, [activeTab]);
+
+  const handleHideUser = async (targetUsername: string) => {
+    confirmAction(
+      'Hapus Akun dari Papan Peringkat?',
+      `Apakah Anda yakin ingin menghapus akun @${targetUsername} dari Papan Peringkat Nasional? Akun ini tidak akan muncul lagi di publik.`,
+      async () => {
+        try {
+          const res = await fetch('/api/admin/leaderboard/hide-user', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              username: targetUsername,
+              moderator: user?.username,
+              reason: modRemovalReason
+            })
+          });
+          const data = await res.json();
+          if (data.success) {
+            triggerAudio('win');
+            showLocalToast(data.message, "success");
+            fetchModLeaderboardData();
+          } else {
+            showLocalToast(data.error || "Gagal menghapus user", "error");
+          }
+        } catch (err) {
+          showLocalToast("Koneksi server gagal", "error");
+        }
+      }
+    );
+  };
+
+  const handleUnhideUser = async (targetUsername: string) => {
+    try {
+      const res = await fetch('/api/admin/leaderboard/unhide-user', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          username: targetUsername,
+          moderator: user?.username
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerAudio('win');
+        showLocalToast(data.message, "success");
+        fetchModLeaderboardData();
+      } else {
+        showLocalToast(data.error || "Gagal memulihkan user", "error");
+      }
+    } catch (err) {
+      showLocalToast("Koneksi server gagal", "error");
+    }
+  };
+
+  const handleHideClan = async (targetClanName: string) => {
+    confirmAction(
+      'Hapus Klan dari Papan Statistik?',
+      `Apakah Anda yakin ingin menghapus klan "${targetClanName}" dari Papan Statistik Utama Club? Klan ini tidak akan muncul lagi di peringkat publik.`,
+      async () => {
+        try {
+          const res = await fetch('/api/admin/leaderboard/hide-clan', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              clanName: targetClanName,
+              moderator: user?.username,
+              reason: modRemovalReason
+            })
+          });
+          const data = await res.json();
+          if (data.success) {
+            triggerAudio('win');
+            showLocalToast(data.message, "success");
+            fetchModLeaderboardData();
+          } else {
+            showLocalToast(data.error || "Gagal menghapus klan", "error");
+          }
+        } catch (err) {
+          showLocalToast("Koneksi server gagal", "error");
+        }
+      }
+    );
+  };
+
+  const handleUnhideClan = async (targetClanName: string) => {
+    try {
+      const res = await fetch('/api/admin/leaderboard/unhide-clan', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          clanName: targetClanName,
+          moderator: user?.username
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        triggerAudio('win');
+        showLocalToast(data.message, "success");
+        fetchModLeaderboardData();
+      } else {
+        showLocalToast(data.error || "Gagal memulihkan klan", "error");
+      }
+    } catch (err) {
+      showLocalToast("Koneksi server gagal", "error");
+    }
+  };
 
   // Account Restoration state
   const [eloTargetUsername, setEloTargetUsername] = useState('');
@@ -549,6 +699,7 @@ export function AdminStaffConsole({
           { id: 'events', label: 'Jadwalkan Event', icon: Calendar },
           { id: 'tickets', label: 'Dukungan Tiket', icon: Shield },
           { id: 'elo', label: 'Pemulihan ELO', icon: Award },
+          { id: 'leaderboard_mod', label: 'Moderasi Peringkat', icon: Trash2 },
           isAdmin && { id: 'staff', label: 'Rekrut Staff Baru', icon: UserPlus }
         ].filter(Boolean).map((tb: any) => (
           <button
@@ -1507,6 +1658,193 @@ export function AdminStaffConsole({
                   <p className="text-[11px] font-black uppercase tracking-wider">Detail akun akan ditampilkan di sini setelah dicari</p>
                 </div>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {activeTab === 'leaderboard_mod' && (
+        <div className="space-y-6">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-[#3c3934] pb-3">
+            <div>
+              <h4 className="text-xs font-black text-slate-200 uppercase tracking-widest flex items-center gap-1.5">
+                <Trash2 className="w-4 h-4 text-rose-500" /> Moderator Console: Hapus Akun & Klan dari Leaderboard
+              </h4>
+              <p className="text-[10px] text-slate-400 font-semibold mt-0.5">
+                Moderator & Staff dapat menyembunyikan/menghapus akun nakal atau klan bermasalah dari Papan Peringkat Nasional dan Papan Statistik Club.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={fetchModLeaderboardData}
+              className="px-3 py-1.5 bg-[#1e1c1a] border border-[#3c3934] hover:border-[#81b64c] text-slate-300 rounded-lg text-[10px] font-black uppercase tracking-wider flex items-center gap-1 cursor-pointer transition-all shrink-0"
+            >
+              <RefreshCw className={`w-3.5 h-3.5 ${isLoadingModLeaderboard ? 'animate-spin' : ''}`} /> Segarkan Data
+            </button>
+          </div>
+
+          {/* Reason Input */}
+          <div className="bg-[#1e1c1a] border border-[#3c3934] p-3.5 rounded-2xl">
+            <label className="block text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1.5">
+              Alasan Tindakan Moderasi (Akan dicatat di Log Sensus Server):
+            </label>
+            <input
+              type="text"
+              value={modRemovalReason}
+              onChange={(e) => setModRemovalReason(e.target.value)}
+              placeholder="Misal: Pelanggaran botting / cheater / klan bermasalah"
+              className="w-full bg-[#262421] border border-[#3c3934] focus:border-[#81b64c] text-slate-200 text-xs px-3 py-2 rounded-xl outline-none"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* 1. NATIONAL LEADERBOARD MODERATION */}
+            <div className="bg-[#1e1c1a] border border-[#3c3934] p-4 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between border-b border-[#3c3934]/60 pb-2">
+                <h5 className="text-xs font-black text-amber-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Star className="w-3.5 h-3.5 text-amber-400" /> Papan Peringkat Nasional (Akun Individual)
+                </h5>
+                <span className="text-[9px] font-mono text-slate-500 font-extrabold">{nationalLeaderboardList.length} Akun Aktif</span>
+              </div>
+
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  value={modSearchUser}
+                  onChange={(e) => setModSearchUser(e.target.value)}
+                  placeholder="Cari username..."
+                  className="w-full bg-[#262421] border border-[#3c3934] text-slate-200 text-xs pl-8 pr-3 py-1.5 rounded-xl outline-none"
+                />
+              </div>
+
+              <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
+                {nationalLeaderboardList
+                  .filter((p: any) => p.name && p.name.toLowerCase().includes(modSearchUser.toLowerCase()))
+                  .map((player: any, idx: number) => (
+                    <div key={idx} className="p-2.5 bg-[#262421] border border-[#3c3934] rounded-xl flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                          <span>@{player.name}</span>
+                          <span className="text-[9px] px-1.5 py-0.5 bg-slate-800 text-amber-400 rounded font-mono font-bold">{player.elo || 400} ELO</span>
+                        </div>
+                        <div className="text-[9px] text-slate-400 font-medium">{player.badge}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleHideUser(player.name)}
+                        className="px-2.5 py-1.5 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/60 text-rose-300 text-[9px] font-black uppercase rounded-lg cursor-pointer transition-all flex items-center gap-1 shrink-0"
+                      >
+                        <Trash2 className="w-3 h-3" /> Hapus dari Leaderboard
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            </div>
+
+            {/* 2. CLUB / CLAN LEADERBOARD MODERATION */}
+            <div className="bg-[#1e1c1a] border border-[#3c3934] p-4 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between border-b border-[#3c3934]/60 pb-2">
+                <h5 className="text-xs font-black text-cyan-400 uppercase tracking-wider flex items-center gap-1.5">
+                  <Shield className="w-3.5 h-3.5 text-cyan-400" /> Papan Statistik Utama Club (Klan)
+                </h5>
+                <span className="text-[9px] font-mono text-slate-500 font-extrabold">{clanLeaderboardList.length} Klan Aktif</span>
+              </div>
+
+              <div className="relative">
+                <Search className="w-3.5 h-3.5 text-slate-500 absolute left-3 top-2.5" />
+                <input
+                  type="text"
+                  value={modSearchClan}
+                  onChange={(e) => setModSearchClan(e.target.value)}
+                  placeholder="Cari nama klan..."
+                  className="w-full bg-[#262421] border border-[#3c3934] text-slate-200 text-xs pl-8 pr-3 py-1.5 rounded-xl outline-none"
+                />
+              </div>
+
+              <div className="max-h-64 overflow-y-auto space-y-2 pr-1">
+                {clanLeaderboardList
+                  .filter((g: any) => g.name && g.name.toLowerCase().includes(modSearchClan.toLowerCase()))
+                  .map((guild: any, idx: number) => (
+                    <div key={idx} className="p-2.5 bg-[#262421] border border-[#3c3934] rounded-xl flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-xs font-bold text-slate-200 flex items-center gap-1.5">
+                          <span>[{guild.tag}] {guild.name}</span>
+                          <span className="text-[9px] px-1.5 py-0.5 bg-slate-800 text-cyan-400 rounded font-mono font-bold">Lvl {guild.level}</span>
+                        </div>
+                        <div className="text-[9px] text-slate-400 font-medium">Ketua: @{guild.leader} | Elo Total: {guild.totalElo}</div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => handleHideClan(guild.name)}
+                        className="px-2.5 py-1.5 bg-rose-950/40 hover:bg-rose-900/60 border border-rose-800/60 text-rose-300 text-[9px] font-black uppercase rounded-lg cursor-pointer transition-all flex items-center gap-1 shrink-0"
+                      >
+                        <Trash2 className="w-3 h-3" /> Hapus Klan
+                      </button>
+                    </div>
+                  ))}
+              </div>
+            </div>
+          </div>
+
+          {/* 3. LIST OF CURRENTLY HIDDEN ITEMS WITH RESTORE OPTION */}
+          <div className="bg-[#1e1c1a] border border-[#3c3934] p-4 rounded-2xl space-y-4">
+            <h5 className="text-xs font-black text-rose-400 uppercase tracking-wider flex items-center gap-1.5 border-b border-[#3c3934]/60 pb-2">
+              <AlertTriangle className="w-4 h-4 text-rose-500" /> Daftar Akun & Klan Yang Sedang Dihapus / Disembunyikan oleh Moderator
+            </h5>
+
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+              {/* Hidden Users */}
+              <div className="space-y-2">
+                <h6 className="text-[10px] font-extrabold text-slate-400 uppercase">Akun Dihapus ({hiddenUsersList.length})</h6>
+                {hiddenUsersList.length === 0 ? (
+                  <p className="text-[10px] text-slate-500 italic">Tidak ada akun yang sedang disembunyikan.</p>
+                ) : (
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                    {hiddenUsersList.map((hu: any, idx: number) => (
+                      <div key={idx} className="p-2 bg-[#262421] border border-rose-900/40 rounded-xl flex items-center justify-between gap-2">
+                        <div>
+                          <div className="text-xs font-bold text-rose-200">@{hu.username}</div>
+                          <div className="text-[8.5px] text-slate-400">Oleh: @{hu.moderator} | Alasan: {hu.reason}</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleUnhideUser(hu.username)}
+                          className="px-2 py-1 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/60 text-emerald-300 text-[9px] font-bold uppercase rounded cursor-pointer shrink-0"
+                        >
+                          Pulihkan
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {/* Hidden Clans */}
+              <div className="space-y-2">
+                <h6 className="text-[10px] font-extrabold text-slate-400 uppercase">Klan Dihapus ({hiddenClansList.length})</h6>
+                {hiddenClansList.length === 0 ? (
+                  <p className="text-[10px] text-slate-500 italic">Tidak ada klan yang sedang disembunyikan.</p>
+                ) : (
+                  <div className="space-y-1.5 max-h-40 overflow-y-auto pr-1">
+                    {hiddenClansList.map((hc: any, idx: number) => (
+                      <div key={idx} className="p-2 bg-[#262421] border border-rose-900/40 rounded-xl flex items-center justify-between gap-2">
+                        <div>
+                          <div className="text-xs font-bold text-rose-200">{hc.clanName}</div>
+                          <div className="text-[8.5px] text-slate-400">Oleh: @{hc.moderator} | Alasan: {hc.reason}</div>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => handleUnhideClan(hc.clanName)}
+                          className="px-2 py-1 bg-emerald-950/40 hover:bg-emerald-900/60 border border-emerald-800/60 text-emerald-300 text-[9px] font-bold uppercase rounded cursor-pointer shrink-0"
+                        >
+                          Pulihkan
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
             </div>
           </div>
         </div>

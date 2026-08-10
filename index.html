@@ -15,88 +15,104 @@
     <!-- ===== STUDIO SPLASH — OG Studio ===== -->
     <div id="studio-splash" style="position:fixed;inset:0;z-index:10000;background:#0A0C07;display:flex;align-items:center;justify-content:center;transition:opacity 0.5s ease;overflow:hidden;">
       <div style="text-align:center;">
-          <img id="ogLogo" src="/og-studio-logo-1.png" alt="OG Studio" style="width:min(48vw,300px);opacity:0;transform:scale(0.7);transition:opacity 0.6s ease, transform 0.6s cubic-bezier(.34,1.56,.64,1);" />
-              <div id="ogCaption" style="margin-top:18px;opacity:0;transition:opacity 0.5s ease;">
-                    <div style="font-family:sans-serif;font-weight:700;font-size:min(4.5vw,26px);color:#F3EFE1;">Orang Ganteng</div>
-                          <div style="font-family:sans-serif;font-weight:700;font-size:min(2.6vw,16px);letter-spacing:5px;color:#A6E065;margin-top:4px;">STUDIO</div>
-                              </div>
-                                </div>
-                                </div>
+        <img id="ogLogo" src="/og-studio-logo-1.png" alt="OG Studio" style="width:min(48vw,300px);opacity:0;transform:scale(0.7);transition:opacity 0.6s ease, transform 0.6s cubic-bezier(.34,1.56,.64,1);" />
+        <div id="ogCaption" style="margin-top:18px;opacity:0;transition:opacity 0.5s ease;">
+          <div style="font-family:sans-serif;font-weight:700;font-size:min(4.5vw,26px);color:#F3EFE1;">Orang Ganteng</div>
+          <div style="font-family:sans-serif;font-weight:700;font-size:min(2.6vw,16px);letter-spacing:5px;color:#A6E065;margin-top:4px;">STUDIO</div>
+        </div>
+      </div>
+    </div>
 
-                                <!-- ===== SPLASH — Pal Mate ===== -->
-                                <div id="splash-screen" style="position:fixed;inset:0;z-index:9999;background:#0A0C07;display:flex;align-items:center;justify-content:center;transition:opacity 0.5s ease;overflow:hidden;">
-                                  <div id="splashRow" style="display:flex;align-items:center;">
-                                      <img id="splashLogo" src="/palmate-logo.png" alt="Pal Mate" style="width:96px;height:96px;border-radius:22px;box-shadow:0 14px 34px rgba(0,0,0,0.45);opacity:0;transform:scale(0.6);transition:opacity 0.6s ease, transform 0.6s cubic-bezier(.34,1.56,.64,1);flex-shrink:0;" />
-                                          <div id="splashText" style="padding-left:20px;white-space:nowrap;opacity:0;transition:opacity 0.6s ease;">
-                                                <span style="font-family:sans-serif;font-weight:800;font-size:38px;">
-                                                        <span style="color:#F3EFE1;">Pal </span><span style="color:#A6E065;">Mate</span>
-                                                              </span>
-                                                                  </div>
-                                                                    </div>
-                                                                    </div>
+    <!-- ===== SPLASH — Pal Mate ===== -->
+    <div id="splash-screen" style="position:fixed;inset:0;z-index:9999;background:#0A0C07;display:flex;align-items:center;justify-content:center;transition:opacity 0.5s ease;overflow:hidden;">
+      <div id="splashRow" style="display:flex;align-items:center;">
+        <img id="splashLogo" src="/palmate-logo.png" alt="Pal Mate" style="width:96px;height:96px;border-radius:22px;box-shadow:0 14px 34px rgba(0,0,0,0.45);opacity:0;transform:scale(0.6);transition:opacity 0.6s ease, transform 0.6s cubic-bezier(.34,1.56,.64,1);flex-shrink:0;" />
+        <div id="splashText" style="padding-left:20px;white-space:nowrap;opacity:0;transition:opacity 0.6s ease;">
+          <span style="font-family:sans-serif;font-weight:800;font-size:38px;">
+            <span style="color:#F3EFE1;">Pal </span><span style="color:#A6E065;">Mate</span>
+          </span>
+        </div>
+      </div>
+    </div>
 
-                                                                    <script>
-                                                                      // ===== Jalankan OG Studio dulu =====
-                                                                        window.__studioSplashDone = new Promise(function (resolve) {
-                                                                            var splash = document.getElementById('studio-splash');
-                                                                                var logo = document.getElementById('ogLogo');
-                                                                                    var caption = document.getElementById('ogCaption');
+    <script>
+      // ===== Jalankan OG Studio dulu =====
+      window.__studioSplashDone = new Promise(function (resolve) {
+        var splash = document.getElementById('studio-splash');
+        var logo = document.getElementById('ogLogo');
+        var caption = document.getElementById('ogCaption');
 
-                                                                                        requestAnimationFrame(function () {
-                                                                                              requestAnimationFrame(function () {
-                                                                                                      logo.style.opacity = '1';
-                                                                                                              logo.style.transform = 'scale(1)';
-                                                                                                                    });
-                                                                                                                        });
+        if (!logo || !splash) {
+          resolve();
+          return;
+        }
 
-                                                                                                                            setTimeout(function () { caption.style.opacity = '1'; }, 550);
+        requestAnimationFrame(function () {
+          requestAnimationFrame(function () {
+            if (logo) {
+              logo.style.opacity = '1';
+              logo.style.transform = 'scale(1)';
+            }
+          });
+        });
 
-                                                                                                                                setTimeout(function () {
-                                                                                                                                      splash.style.opacity = '0';
-                                                                                                                                            setTimeout(function () {
-                                                                                                                                                    splash.remove();
-                                                                                                                                                            resolve();
-                                                                                                                                                                  }, 600);
-                                                                                                                                                                      }, 2600);
-                                                                                                                                                                        });
+        setTimeout(function () { if (caption) caption.style.opacity = '1'; }, 550);
 
-                                                                                                                                                                          // ===== Baru Pal Mate, NUNGGU OG selesai dulu =====
-                                                                                                                                                                            window.__splashReady = new Promise(function (resolve) { window.__resolveSplash = resolve; });
+        setTimeout(function () {
+          if (splash) splash.style.opacity = '0';
+          setTimeout(function () {
+            if (splash && splash.parentNode) splash.remove();
+            resolve();
+          }, 600);
+        }, 2200);
+      });
 
-                                                                                                                                                                              (function () {
-                                                                                                                                                                                  var row = document.getElementById('splashRow');
-                                                                                                                                                                                      var logo = document.getElementById('splashLogo');
-                                                                                                                                                                                          var text = document.getElementById('splashText');
+      // ===== Baru Pal Mate, NUNGGU OG selesai dulu =====
+      window.__splashReady = new Promise(function (resolve) { window.__resolveSplash = resolve; });
 
-                                                                                                                                                                                              var shift = text.offsetWidth / 2;
-                                                                                                                                                                                                  row.style.transform = 'translateX(' + shift + 'px)';
+      (function () {
+        var row = document.getElementById('splashRow');
+        var logo = document.getElementById('splashLogo');
+        var text = document.getElementById('splashText');
 
-                                                                                                                                                                                                      window.__studioSplashDone.then(function () {
-                                                                                                                                                                                                            requestAnimationFrame(function () {
-                                                                                                                                                                                                                    requestAnimationFrame(function () {
-                                                                                                                                                                                                                              row.style.transition = 'transform 0.8s cubic-bezier(.22,.61,.36,1)';
-                                                                                                                                                                                                                                        logo.style.opacity = '1';
-                                                                                                                                                                                                                                                  logo.style.transform = 'scale(1)';
-                                                                                                                                                                                                                                                          });
-                                                                                                                                                                                                                                                                });
+        if (row && text) {
+          var shift = text.offsetWidth / 2;
+          row.style.transform = 'translateX(' + shift + 'px)';
+        }
 
-                                                                                                                                                                                                                                                                      setTimeout(function () {
-                                                                                                                                                                                                                                                                              row.style.transform = 'translateX(0)';
-                                                                                                                                                                                                                                                                                      text.style.opacity = '1';
-                                                                                                                                                                                                                                                                                            }, 1000);
+        window.__studioSplashDone.then(function () {
+          requestAnimationFrame(function () {
+            requestAnimationFrame(function () {
+              if (row && logo) {
+                row.style.transition = 'transform 0.8s cubic-bezier(.22,.61,.36,1)';
+                logo.style.opacity = '1';
+                logo.style.transform = 'scale(1)';
+              }
+            });
+          });
 
-                                                                                                                                                                                                                                                                                                  setTimeout(function () {
-                                                                                                                                                                                                                                                                                                          if (window.__resolveSplash) window.__resolveSplash();
-                                                                                                                                                                                                                                                                                                                }, 2200);
-                                                                                                                                                                                                                                                                                                                    });
-                                                                                                                                                                                                                                                                                                                      })();
-                                                                                                                                                                                                                                                                                                                      </script>
+          setTimeout(function () {
+            if (row && text) {
+              row.style.transform = 'translateX(0)';
+              text.style.opacity = '1';
+            }
+          }, 800);
 
-                                                                                                                                                                                                                                                                                                                        <div id="root"></div>
-                                                                                                                                                                                                                                                                                                                        <script type="module" src="/src/main.tsx"></script>
-                                                                                                                                                                                                                                                                                                                          <script type="module" src="/src/main.tsx"></script>
-                                                                                                                                                                                                                                                                                                                          </body>
-                                                                                                                                                                                                                                                                                                                          </html>
+          setTimeout(function () {
+            if (window.__resolveSplash) window.__resolveSplash();
+          }, 1800);
+        }).catch(function () {
+          if (window.__resolveSplash) window.__resolveSplash();
+        });
+      })();
 
+      // Absolute safety fallback: ensure resolveSplash is called after 4s
+      setTimeout(function () {
+        if (window.__resolveSplash) window.__resolveSplash();
+      }, 4000);
+    </script>
+
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
 </html>
-

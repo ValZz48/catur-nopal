@@ -89,6 +89,35 @@ async function startServer() {
     }
   };
 
+  const hiddenUsersFile = path.join(dataDir, "hidden_leaderboard_users.json");
+  const hiddenClansFile = path.join(dataDir, "hidden_leaderboard_clans.json");
+
+  let hiddenLeaderboardUsers: Record<string, { username: string; moderator: string; reason: string; date: string }> = {};
+  let hiddenLeaderboardClans: Record<string, { clanName: string; moderator: string; reason: string; date: string }> = {};
+
+  if (fs.existsSync(hiddenUsersFile)) {
+    try {
+      hiddenLeaderboardUsers = JSON.parse(fs.readFileSync(hiddenUsersFile, "utf8"));
+    } catch (e) {
+      hiddenLeaderboardUsers = {};
+    }
+  }
+
+  if (fs.existsSync(hiddenClansFile)) {
+    try {
+      hiddenLeaderboardClans = JSON.parse(fs.readFileSync(hiddenClansFile, "utf8"));
+    } catch (e) {
+      hiddenLeaderboardClans = {};
+    }
+  }
+
+  const saveHiddenLeaderboards = () => {
+    try {
+      fs.writeFileSync(hiddenUsersFile, JSON.stringify(hiddenLeaderboardUsers, null, 2), "utf8");
+      fs.writeFileSync(hiddenClansFile, JSON.stringify(hiddenLeaderboardClans, null, 2), "utf8");
+    } catch (e) {}
+  };
+
   const saveReports = () => {
     try {
       fs.writeFileSync(reportsFile, JSON.stringify(adminReports, null, 2), "utf8");
@@ -2604,6 +2633,132 @@ async function startServer() {
     }
   });
 
+  // --- LEADERBOARD MODERATION ENDPOINTS ---
+  app.get("/api/admin/leaderboard/hidden", (req, res) => {
+    return res.json({
+      users: Object.values(hiddenLeaderboardUsers),
+      clans: Object.values(hiddenLeaderboardClans)
+    });
+  });
+
+  app.post("/api/admin/leaderboard/hide-user", (req, res) => {
+    try {
+      const { username, moderator, reason } = req.body;
+      if (!username || !moderator) {
+        return res.status(400).json({ error: "Parameter tidak lengkap!" });
+      }
+      const lowerMod = moderator.trim().toLowerCase();
+      const modUser = usersDb[lowerMod];
+      const isModAdmin = lowerMod === "almaira" || lowerMod === "nopal" || (modUser && (modUser.isAdmin || modUser.isStaff));
+      if (!isModAdmin) {
+        return res.status(403).json({ error: "Akses ditolak. Anda bukan staff/moderator!" });
+      }
+
+      const key = username.trim().toLowerCase();
+      hiddenLeaderboardUsers[key] = {
+        username: username.trim(),
+        moderator: moderator.trim(),
+        reason: reason || "Dihapus dari papan peringkat nasional oleh moderator",
+        date: new Date().toLocaleDateString("id-ID")
+      };
+
+      if (usersDb[key]) {
+        usersDb[key].hiddenFromLeaderboard = true;
+      }
+
+      saveHiddenLeaderboards();
+      return res.json({ success: true, message: `Akun @${username} berhasil dihapus dari Papan Peringkat Nasional!` });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/admin/leaderboard/unhide-user", (req, res) => {
+    try {
+      const { username, moderator } = req.body;
+      if (!username || !moderator) {
+        return res.status(400).json({ error: "Parameter tidak lengkap!" });
+      }
+      const lowerMod = moderator.trim().toLowerCase();
+      const modUser = usersDb[lowerMod];
+      const isModAdmin = lowerMod === "almaira" || lowerMod === "nopal" || (modUser && (modUser.isAdmin || modUser.isStaff));
+      if (!isModAdmin) {
+        return res.status(403).json({ error: "Akses ditolak. Anda bukan staff/moderator!" });
+      }
+
+      const key = username.trim().toLowerCase();
+      delete hiddenLeaderboardUsers[key];
+
+      if (usersDb[key]) {
+        usersDb[key].hiddenFromLeaderboard = false;
+      }
+
+      saveHiddenLeaderboards();
+      return res.json({ success: true, message: `Akun @${username} berhasil dipulihkan ke Papan Peringkat Nasional!` });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/admin/leaderboard/hide-clan", (req, res) => {
+    try {
+      const { clanName, moderator, reason } = req.body;
+      if (!clanName || !moderator) {
+        return res.status(400).json({ error: "Parameter tidak lengkap!" });
+      }
+      const lowerMod = moderator.trim().toLowerCase();
+      const modUser = usersDb[lowerMod];
+      const isModAdmin = lowerMod === "almaira" || lowerMod === "nopal" || (modUser && (modUser.isAdmin || modUser.isStaff));
+      if (!isModAdmin) {
+        return res.status(403).json({ error: "Akses ditolak. Anda bukan staff/moderator!" });
+      }
+
+      const key = clanName.trim().toLowerCase();
+      hiddenLeaderboardClans[key] = {
+        clanName: clanName.trim(),
+        moderator: moderator.trim(),
+        reason: reason || "Klan dihapus dari papan statistik utama club oleh moderator",
+        date: new Date().toLocaleDateString("id-ID")
+      };
+
+      if (guildsDb[key]) {
+        guildsDb[key].hiddenFromLeaderboard = true;
+      }
+
+      saveHiddenLeaderboards();
+      return res.json({ success: true, message: `Klan "${clanName}" berhasil dihapus dari Papan Statistik Utama Club!` });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
+  app.post("/api/admin/leaderboard/unhide-clan", (req, res) => {
+    try {
+      const { clanName, moderator } = req.body;
+      if (!clanName || !moderator) {
+        return res.status(400).json({ error: "Parameter tidak lengkap!" });
+      }
+      const lowerMod = moderator.trim().toLowerCase();
+      const modUser = usersDb[lowerMod];
+      const isModAdmin = lowerMod === "almaira" || lowerMod === "nopal" || (modUser && (modUser.isAdmin || modUser.isStaff));
+      if (!isModAdmin) {
+        return res.status(403).json({ error: "Akses ditolak. Anda bukan staff/moderator!" });
+      }
+
+      const key = clanName.trim().toLowerCase();
+      delete hiddenLeaderboardClans[key];
+
+      if (guildsDb[key]) {
+        guildsDb[key].hiddenFromLeaderboard = false;
+      }
+
+      saveHiddenLeaderboards();
+      return res.json({ success: true, message: `Klan "${clanName}" berhasil dipulihkan ke Papan Statistik Utama Club!` });
+    } catch (e: any) {
+      return res.status(500).json({ error: e.message });
+    }
+  });
+
   // --- SUPPORT TICKET & AI CUSTOMER SERVICE ROUTES ---
   app.post("/api/support/tickets/create", (req, res) => {
     try {
@@ -3454,22 +3609,37 @@ ATURAN OBROLAN LIVE CHAT CATUR ONLINE (HARUS SANGAT NATURAL, MANUSIAWI & LANGSUN
 
   // Seeded Online leaderboard merged with real registered user accounts
   app.get("/api/online/leaderboard", (req, res) => {
-    const seed: any[] = [];
-    
     try {
-      const realUsers = Object.values(usersDb).map(user => ({
-        name: user.username,
-        elo: user.elo || 400,
-        badge: (user.elo || 400) >= 2000 ? "Grandmaster" :
-               (user.elo || 400) >= 1650 ? "Master Nasional" :
-               (user.elo || 400) >= 1200 ? "Pakar" : "Pecatur Berbakat"
-      }));
+      const realUsers = Object.values(usersDb)
+        .filter((user: any) => {
+          if (!user || !user.username) return false;
+          const key = user.username.trim().toLowerCase();
+          if (hiddenLeaderboardUsers[key] || user.hiddenFromLeaderboard) return false;
+          return true;
+        })
+        .map((user: any) => {
+          const elo = user.elo || 400;
+          let badge = "Pion Pemula";
+          if (elo >= 2000) badge = "Grandmaster Legendaris";
+          else if (elo >= 1700) badge = "Raja Master Catur";
+          else if (elo >= 1400) badge = "Menteri Ahli Strategi";
+          else if (elo >= 1100) badge = "Benteng Pengawal";
+          else if (elo >= 800) badge = "Gajah Cendekia";
+          else if (elo >= 500) badge = "Kuda Magang";
 
-      const combined = [...realUsers];
-      combined.sort((a, b) => b.elo - a.elo);
-      return res.json(combined);
+          return {
+            name: user.username,
+            elo,
+            badge,
+            avatar: user.profileAvatar || user.avatar || '',
+            bio: user.profileBio || user.bio || ''
+          };
+        });
+
+      realUsers.sort((a, b) => b.elo - a.elo);
+      return res.json(realUsers);
     } catch (e) {
-      return res.json(seed);
+      return res.json([]);
     }
   });
 
@@ -3765,7 +3935,7 @@ ATURAN OBROLAN LIVE CHAT CATUR ONLINE (HARUS SANGAT NATURAL, MANUSIAWI & LANGSUN
       Object.values(guildsDb).forEach((g: any) => {
         if (g && g.name) {
           const key = g.name.trim().toLowerCase();
-          if (disbandedGuilds.has(key)) return; // Skip disbanded
+          if (disbandedGuilds.has(key) || hiddenLeaderboardClans[key] || g.hiddenFromLeaderboard) return; // Skip disbanded/hidden
           const members = Array.isArray(g.members) ? g.members : [];
           if (members.length > 0 || Number(g.membersCount) > 0) {
             const calcElo = members.length > 0
@@ -3799,7 +3969,7 @@ ATURAN OBROLAN LIVE CHAT CATUR ONLINE (HARUS SANGAT NATURAL, MANUSIAWI & LANGSUN
           const guildName = String(prof.name).trim();
           if (guildName) {
             const key = guildName.toLowerCase();
-            if (disbandedGuilds.has(key)) return; // CRITICAL: SKIP DISBANDED CLANS!
+            if (disbandedGuilds.has(key) || hiddenLeaderboardClans[key]) return; // CRITICAL: SKIP DISBANDED/HIDDEN CLANS!
             if (!u.guild_has_owner) return;
             const mems = u.guild_members || [];
             if (mems.length > 0) {
