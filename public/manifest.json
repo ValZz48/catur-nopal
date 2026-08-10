@@ -4,13 +4,13 @@
   "description": "Aplikasi Arena Catur Digital, Widget Streak Harian & Komunitas Catur Pal Mate",
   "icons": [
     {
-      "src": "/assets/images/avatar_martin_1779709510230.png",
+      "src": "/icon-192.png",
       "type": "image/png",
       "sizes": "192x192",
       "purpose": "any maskable"
     },
     {
-      "src": "/assets/images/avatar_martin_1779709510230.png",
+      "src": "/icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
       "purpose": "any maskable"
@@ -27,14 +27,14 @@
       "short_name": "Check-In",
       "description": "Check-in absensi harian dan klaim hadiah streak",
       "url": "/?action=checkin",
-      "icons": [{ "src": "/assets/images/avatar_martin_1779709510230.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon-shortcut.png", "sizes": "192x192", "type": "image/png" }]
     },
     {
       "name": "Teka-teki Catur",
       "short_name": "Puzzle",
       "description": "Selesaikan teka-teki taktik catur hari ini",
       "url": "/?action=puzzle",
-      "icons": [{ "src": "/assets/images/avatar_martin_1779709510230.png", "sizes": "192x192" }]
+      "icons": [{ "src": "/icon-shortcut.png", "sizes": "192x192", "type": "image/png" }]
     }
   ]
 }

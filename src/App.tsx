@@ -106,6 +106,7 @@ import { StreakWidgetModal } from './components/StreakWidgetModal';
 import { BetaTrialAlertModal } from './components/BetaTrialAlertModal';
 import { SeasonResetRewardModal, SeasonResetDetails } from './components/SeasonResetRewardModal';
 import { SeasonStatsProfileCard } from './components/SeasonStatsProfileCard';
+import { CreditsPage } from './components/CreditsPage';
 import { registerServiceWorker, scheduleStreakReminderCheck, requestNotificationPermission } from './utils/notification';
 import { getGlobalSeasonInfo } from './utils/season';
 
@@ -1514,8 +1515,8 @@ export default function App() {
   });
 
   // --- SERVER TIME & DATE STATES (TO ENFORCE COMPLIANCE & AVOID DATE MANIPULATION) ---
-  const [serverDate, setServerDate] = useState<string>("");
-  const [serverEpochDays, setServerEpochDays] = useState<number>(0);
+  const [serverDate, setServerDate] = useState<string>(() => new Date().toLocaleDateString('en-CA'));
+  const [serverEpochDays, setServerEpochDays] = useState<number>(() => Math.floor(Date.now() / (1000 * 60 * 60 * 24)));
 
   const [selectedFrame, setSelectedFrame] = useState<string>(() => {
     const actUser = getActiveUsername();
@@ -2128,7 +2129,20 @@ export default function App() {
     }
   }, [board, queuedPremove, premoveEnabled, mode, onlinePlayerColor, aiMatchPlayerColor, gameResult, onlineGameResult]);
   const [username, setUsername] = useState(() => {
-    return localStorage.getItem('username') || `Pecatur_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
+    const savedUser = localStorage.getItem('user');
+    if (savedUser) {
+      try {
+        const parsed = JSON.parse(savedUser);
+        if (parsed && parsed.username && !parsed.username.toLowerCase().startsWith('pecatur_')) {
+          return parsed.username;
+        }
+      } catch (_) {}
+    }
+    const savedName = localStorage.getItem('username');
+    if (savedName && !savedName.toLowerCase().startsWith('pecatur_')) {
+      return savedName;
+    }
+    return savedName || `Pecatur_${Math.random().toString(36).substring(2, 6).toUpperCase()}`;
   });
 
   const [pinnedMedalsIds, setPinnedMedalsIds] = useState<string[]>(() => {
@@ -5114,6 +5128,12 @@ export default function App() {
         }
       } catch (err) {
         console.warn("Failed to retrieve un-manipulated server date, using system clock fallback:", err);
+        if (isMounted) {
+          const fallbackDate = new Date().toLocaleDateString('en-CA');
+          const fallbackEpoch = Math.floor(Date.now() / (1000 * 60 * 60 * 24));
+          setServerDate(fallbackDate);
+          setServerEpochDays(fallbackEpoch);
+        }
       }
     };
     
@@ -5129,14 +5149,18 @@ export default function App() {
       const res = await fetchWithTimeout('/api/online/leaderboard', {}, 2000);
       if (res.ok) {
         const seedData = await res.json();
-        // Exclude the current username from the database entries to prevent duplicate ranking rows
+        const pNameNormalized = (username || (user ? user.username : '') || '').trim().toLowerCase();
+        // Exclude current user from database entries to prevent duplicate ranking rows, and filter out pecatur_ temporary accounts
         const cleanSeedData = (seedData || []).filter((player: any) => {
           if (!player || !player.name) return false;
           const playerNormalized = player.name.replace(/\s*\(Kamu\)\s*/gi, '').trim().toLowerCase();
-          const pNameNormalized = (username || '').trim().toLowerCase();
-          return playerNormalized !== pNameNormalized && playerNormalized !== 'pecatur';
+          return playerNormalized !== pNameNormalized && 
+                 playerNormalized !== 'pecatur_53du' && 
+                 !playerNormalized.startsWith('pecatur_') && 
+                 playerNormalized !== 'guest' && 
+                 playerNormalized !== 'pecatur';
         });
-        const allRanks = [...cleanSeedData, { name: `${username.trim() || 'Pecatur'} (Kamu)`, elo: onlineRating, badge: getRatingBadge(onlineRating), isUser: true }]
+        const allRanks = [...cleanSeedData, { name: `${(username || 'Pecatur').trim()} (Kamu)`, elo: onlineRating, badge: getRatingBadge(onlineRating), isUser: true }]
           .sort((a, b) => b.elo - a.elo);
         setRankingList(allRanks);
       } else {
@@ -5145,12 +5169,15 @@ export default function App() {
     } catch (err) {
       console.warn("Gagal mengambil peringkat leaderboard, memuat ranking lokal:", err);
       const offlineRanks: any[] = [];
+      const pNameNormalized = (username || (user ? user.username : '') || '').trim().toLowerCase();
       const cleanOffline = offlineRanks.filter((player: any) => {
         const playerNormalized = player.name.replace(/\s*\(Kamu\)\s*/gi, '').trim().toLowerCase();
-        const pNameNormalized = (username || '').trim().toLowerCase();
-        return playerNormalized !== pNameNormalized;
+        return playerNormalized !== pNameNormalized && 
+               playerNormalized !== 'pecatur_53du' && 
+               !playerNormalized.startsWith('pecatur_') && 
+               playerNormalized !== 'guest';
       });
-      const allRanks = [...cleanOffline, { name: `${username.trim() || 'Pecatur'} (Kamu)`, elo: onlineRating, badge: getRatingBadge(onlineRating), isUser: true }]
+      const allRanks = [...cleanOffline, { name: `${(username || 'Pecatur').trim()} (Kamu)`, elo: onlineRating, badge: getRatingBadge(onlineRating), isUser: true }]
         .sort((a, b) => b.elo - a.elo);
       setRankingList(allRanks);
     }
@@ -5212,6 +5239,7 @@ export default function App() {
             setActiveDrawOffer(null);
             setLastMove(null);
             setMoveHistory([]);
+            setAnalysisHistory([]);
             
             chessRef.current = new Chess();
             setBoardWithTracking(chessRef.current.board());
@@ -5261,6 +5289,7 @@ export default function App() {
       setActiveDrawOffer(null);
       setLastMove(null);
       setMoveHistory([]);
+      setAnalysisHistory([]);
       
       chessRef.current = new Chess();
       setBoardWithTracking(chessRef.current.board());
@@ -5333,6 +5362,17 @@ export default function App() {
                     to: movedObj.to,
                     type: q
                   });
+                  setAnalysisHistory(aprev => [
+                    ...aprev,
+                    {
+                      fen: chessRef.current.fen(),
+                      san: movedObj.san,
+                      from: movedObj.from,
+                      to: movedObj.to,
+                      type: q as any,
+                      color: movedObj.color as any
+                    }
+                  ]);
                 } else if (data.moves && data.moves.length > 0) {
                   const lastMoveStr = data.moves[data.moves.length - 1];
                   const parts = lastMoveStr.split('-');
@@ -5427,6 +5467,17 @@ export default function App() {
                 to: moveRes.to,
                 type: q
               });
+              setAnalysisHistory(aprev => [
+                ...aprev,
+                {
+                  fen: chess.fen(),
+                  san: moveRes.san,
+                  from: moveRes.from,
+                  to: moveRes.to,
+                  type: q as any,
+                  color: moveRes.color as any
+                }
+              ]);
               return currentHistory;
             });
             
@@ -5798,6 +5849,17 @@ export default function App() {
           to: moveResult.to,
           type: q
         });
+        setAnalysisHistory(aprev => [
+          ...aprev,
+          {
+            fen: chess.fen(),
+            san: moveResult.san,
+            from: moveResult.from,
+            to: moveResult.to,
+            type: q as any,
+            color: moveResult.color as any
+          }
+        ]);
         return currentHistory;
       });
 
@@ -8826,17 +8888,6 @@ export default function App() {
                 >
                   Mantap! Lanjutkan Latihan
                 </button>
-
-                <button
-                  onClick={() => {
-                    setIsStreakModalOpen(false);
-                    setIsStreakWidgetModalOpen(true);
-                  }}
-                  className="w-full py-2.5 bg-[#203344] hover:bg-[#2b445a] border border-[#2c4052] text-amber-400 hover:text-amber-300 font-extrabold text-xs uppercase rounded-xl flex items-center justify-center gap-2 transition-all cursor-pointer"
-                >
-                  <Smartphone className="w-4 h-4 text-amber-400" />
-                  Pasang Widget HP & Notifikasi
-                </button>
               </div>
             </motion.div>
           </div>
@@ -8918,13 +8969,34 @@ export default function App() {
                       data = await response.json().catch(() => null);
                     }
 
-                    if (!data || !data.success || !data.user) {
-                      setAuthError((data && data.error) || 'Gagal masuk dengan Google.');
+                    let authenticatedUser = data && data.user ? data.user : null;
+                    
+                    // Fallback for client-only / Vercel static deployment when backend API is unreachable
+                    if (!authenticatedUser && googleUser.email) {
+                      const cleanName = (googleUser.displayName || googleUser.email.split('@')[0] || `Pecatur_${googleUser.uid.substring(0, 5)}`).trim();
+                      authenticatedUser = {
+                        username: cleanName,
+                        email: googleUser.email,
+                        googleLinkedEmail: googleUser.email,
+                        googleLinkedUid: googleUser.uid,
+                        profileAvatar: googleUser.photoURL || undefined,
+                        elo: 400,
+                        coins: 500,
+                        diamonds: 20,
+                        xp: 0,
+                        streak: 1,
+                        unlockedThemes: ['classic'],
+                        unlockedFrames: ['none'],
+                        selectedFrame: 'none'
+                      };
+                      data = { isNew: false, serverDate: new Date().toLocaleDateString('en-CA') };
+                    }
+
+                    if (!authenticatedUser) {
+                      setAuthError('Gagal masuk dengan Google.');
                       setAuthLoading(false);
                       return;
                     }
-
-                    const authenticatedUser = data.user;
                     isResettingRef.current = true;
                     setUser(authenticatedUser);
                     restoreGuildFromUser(authenticatedUser);
@@ -12766,6 +12838,24 @@ export default function App() {
               {/* LEFT COLUMN: CONTROL PREFERENCES */}
               <div className="md:col-span-6 space-y-6">
 
+                {/* FEATURE: KREDIT PENGEMBANG (AUTO-SCROLLING CREDITS) */}
+                <div className="p-5 bg-gradient-to-r from-[#211f1d] to-[#2c2926] rounded-3xl border border-[#3c3934] shadow-md flex items-center justify-between">
+                  <div>
+                    <h4 className="font-extrabold text-white text-xs flex items-center gap-2">
+                      <Heart className="w-4 h-4 text-red-500 fill-red-500/20" /> Kredit Pengembang Catur
+                    </h4>
+                    <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Lihat jajaran tim pencipta, atribusi audio, & ucapan terima kasih</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setMode('credits'); triggerAudio('win'); }}
+                    className="px-3.5 py-2 bg-[#81b64c] hover:bg-[#72a343] text-white font-black text-xs rounded-xl shadow-md cursor-pointer transition-all flex items-center gap-1.5 shrink-0"
+                  >
+                    <span>Buka Kredit</span>
+                    <ChevronRight className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+
                 {/* FEATURE: GANTI NICKNAME CATUR */}
                 <div className="p-6 bg-[#312e2b] rounded-3xl border border-[#3c3934] shadow-md space-y-3">
                   <div>
@@ -12785,10 +12875,31 @@ export default function App() {
                     <button
                       type="button"
                       onClick={() => {
+                        const oldName = username;
                         const trimmed = (nicknameSettingInput || username).trim();
                         if (!trimmed) return;
                         setUsername(trimmed);
                         localStorage.setItem('username', trimmed);
+                        const updatedUser = user ? { ...user, username: trimmed } : { username: trimmed, elo: onlineRating, xp: 0 };
+                        setUser(updatedUser);
+                        localStorage.setItem('user', JSON.stringify(updatedUser));
+                        fetchWithTimeout('/api/auth/change-username', {
+                          method: 'POST',
+                          headers: { 'Content-Type': 'application/json' },
+                          body: JSON.stringify({ oldUsername: oldName, newUsername: trimmed, email: user?.email })
+                        }, 3000).then(async (res) => {
+                          if (res.ok) {
+                            const data = await res.json().catch(() => null);
+                            if (data && data.user) {
+                              setUser(data.user);
+                              localStorage.setItem('user', JSON.stringify(data.user));
+                            }
+                          }
+                          fetchRankings();
+                        }).catch(() => {
+                          fetchRankings();
+                        });
+                        setNicknameSettingInput('');
                         triggerAudio('win');
                         showLocalToast('Nickname catur berhasil diperbarui!');
                       }}
@@ -13627,6 +13738,13 @@ export default function App() {
               />
             )}
           </div>
+        )}
+
+        {/* =========================================
+             0.8 CREDITS PAGE VIEW (AUTO-SCROLLING)
+           ========================================= */}
+        {mode === 'credits' && (
+          <CreditsPage onBack={() => setMode('settings')} prefLang={prefLang} />
         )}
 
         {/* =========================================
@@ -18558,6 +18676,16 @@ export default function App() {
                       action: () => { setMode('settings'); setSettingsSubTab('preferences'); },
                       tags: ['pengaturan', 'settings', 'suara', 'bahasa', 'lang', 'audio', 'tema', 'tutorial'],
                       isActive: mode === 'settings' && settingsSubTab !== 'help'
+                    },
+
+                    // --- KREDIT PENGEMBANG ---
+                    {
+                      id: 'credits',
+                      label: prefLang === 'en' ? 'Credits' : 'Kredit Pengembang',
+                      Icon: Heart,
+                      action: () => { setMode('credits'); },
+                      tags: ['kredit', 'credits', 'pengembang', 'developer', 'tim', 'creator', 'nopal', 'almaira'],
+                      isActive: mode === 'credits'
                     }
                   ];
 

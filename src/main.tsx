@@ -27,8 +27,8 @@ function hideSplash() {
   }
 }
 
-// Guaranteed safety fallback: remove splash screens after max 2.5 seconds
-const fallbackTimer = setTimeout(hideSplash, 2500);
+// Guaranteed safety fallback: remove splash screens after max 5.5 seconds
+const fallbackTimer = setTimeout(hideSplash, 5500);
 
 Promise.all([
   new Promise((resolve) => {
@@ -42,7 +42,7 @@ Promise.all([
   (window as any).__splashReady || Promise.resolve()
 ]).then(() => {
   clearTimeout(fallbackTimer);
-  setTimeout(hideSplash, 100);
+  setTimeout(hideSplash, 800);
 }).catch(() => {
   clearTimeout(fallbackTimer);
   hideSplash();

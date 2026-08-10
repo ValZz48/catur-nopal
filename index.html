@@ -8,7 +8,8 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Pal Mate" />
     <link rel="manifest" href="/manifest.json" />
-    <link rel="apple-touch-icon" href="/assets/images/avatar_martin_1779709510230.png" />
+    <link rel="icon" type="image/png" href="/icon-192.png" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
     <title>Pal Mate - Arena Catur Digital</title>
   </head>
   <body>
@@ -114,7 +115,7 @@
             setTimeout(function () {
               if (window.__resolveSplash) window.__resolveSplash();
               dismissSplash('splash-screen');
-            }, 1800);
+            }, 3500);
           }).catch(function () {
             if (window.__resolveSplash) window.__resolveSplash();
             dismissSplash('splash-screen');
@@ -126,12 +127,12 @@
         if (window.__resolveSplash) window.__resolveSplash();
       }
 
-      // Absolute safety fallback: guarantee removal of all splash overlays after 3 seconds
+      // Absolute safety fallback: guarantee removal of all splash overlays after 5.5 seconds
       setTimeout(function () {
         dismissSplash('studio-splash');
         dismissSplash('splash-screen');
         if (window.__resolveSplash) window.__resolveSplash();
-      }, 3000);
+      }, 5500);
     </script>
 
     <div id="root"></div>

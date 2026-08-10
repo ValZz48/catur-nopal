@@ -38,6 +38,17 @@ async function startServer() {
   if (fs.existsSync(usersFilePath)) {
     try {
       usersDb = JSON.parse(fs.readFileSync(usersFilePath, 'utf8'));
+      // Clean up legacy temporary pecatur_ entries from usersDb
+      let cleanedKeysCount = 0;
+      Object.keys(usersDb).forEach(key => {
+        if (key.startsWith('pecatur_') || key === 'guest') {
+          delete usersDb[key];
+          cleanedKeysCount++;
+        }
+      });
+      if (cleanedKeysCount > 0) {
+        fs.writeFileSync(usersFilePath, JSON.stringify(usersDb, null, 2), 'utf8');
+      }
     } catch (e) {
       console.error("Error reading users db, resetting:", e);
       usersDb = {};
@@ -1003,6 +1014,61 @@ async function startServer() {
       });
     } catch (err: any) {
       return res.status(500).json({ error: err.message || "Gagal masuk dengan Google" });
+    }
+  });
+
+  app.post("/api/auth/change-username", async (req, res) => {
+    try {
+      const { oldUsername, newUsername, email } = req.body;
+      if (!newUsername || !newUsername.trim()) {
+        return res.status(400).json({ error: "Nickname baru tidak boleh kosong." });
+      }
+      const cleanNew = newUsername.trim();
+      const cleanNewKey = cleanNew.toLowerCase();
+      const cleanOldKey = (oldUsername || '').trim().toLowerCase();
+
+      // Clean up legacy pecatur_ entries
+      Object.keys(usersDb).forEach(k => {
+        if (k.startsWith('pecatur_') || k === 'guest') {
+          delete usersDb[k];
+        }
+      });
+
+      let targetUser: any = null;
+      if (cleanOldKey && usersDb[cleanOldKey]) {
+        targetUser = usersDb[cleanOldKey];
+        delete usersDb[cleanOldKey];
+      } else if (email) {
+        const emailMatch = Object.values(usersDb).find((u: any) => u.email && u.email.toLowerCase() === email.toLowerCase());
+        if (emailMatch) {
+          targetUser = emailMatch;
+          const oldKey = targetUser.username ? targetUser.username.trim().toLowerCase() : '';
+          if (oldKey && usersDb[oldKey]) delete usersDb[oldKey];
+        }
+      }
+
+      if (!targetUser) {
+        targetUser = {
+          username: cleanNew,
+          elo: 400,
+          xp: 0,
+          coins: 500,
+          diamonds: 20,
+          email: email || `${cleanNewKey}@palmate.app`,
+          unlockedThemes: ['classic'],
+          unlockedFrames: ['none'],
+          selectedFrame: 'none'
+        };
+      } else {
+        targetUser.username = cleanNew;
+      }
+
+      usersDb[cleanNewKey] = targetUser;
+      saveUsersDb();
+
+      return res.json({ success: true, user: targetUser });
+    } catch (err: any) {
+      return res.status(500).json({ error: err?.message || 'Gagal mengubah username.' });
     }
   });
 
@@ -3615,6 +3681,7 @@ ATURAN OBROLAN LIVE CHAT CATUR ONLINE (HARUS SANGAT NATURAL, MANUSIAWI & LANGSUN
           if (!user || !user.username) return false;
           const key = user.username.trim().toLowerCase();
           if (hiddenLeaderboardUsers[key] || user.hiddenFromLeaderboard) return false;
+          if (key.startsWith('pecatur_') || key === 'guest' || key === 'pecatur') return false;
           return true;
         })
         .map((user: any) => {
