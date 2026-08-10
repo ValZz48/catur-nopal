@@ -13,7 +13,7 @@
   </head>
   <body>
     <!-- ===== STUDIO SPLASH — OG Studio ===== -->
-    <div id="studio-splash" style="position:fixed;inset:0;z-index:10000;background:#0A0C07;display:flex;align-items:center;justify-content:center;transition:opacity 0.5s ease;overflow:hidden;">
+    <div id="studio-splash" style="position:fixed;inset:0;z-index:10000;background:#0A0C07;display:flex;align-items:center;justify-content:center;transition:opacity 0.5s ease;overflow:hidden;pointer-events:auto;">
       <div style="text-align:center;">
         <img id="ogLogo" src="/og-studio-logo-1.png" alt="OG Studio" style="width:min(48vw,300px);opacity:0;transform:scale(0.7);transition:opacity 0.6s ease, transform 0.6s cubic-bezier(.34,1.56,.64,1);" />
         <div id="ogCaption" style="margin-top:18px;opacity:0;transition:opacity 0.5s ease;">
@@ -24,7 +24,7 @@
     </div>
 
     <!-- ===== SPLASH — Pal Mate ===== -->
-    <div id="splash-screen" style="position:fixed;inset:0;z-index:9999;background:#0A0C07;display:flex;align-items:center;justify-content:center;transition:opacity 0.5s ease;overflow:hidden;">
+    <div id="splash-screen" style="position:fixed;inset:0;z-index:9999;background:#0A0C07;display:flex;align-items:center;justify-content:center;transition:opacity 0.5s ease;overflow:hidden;pointer-events:auto;">
       <div id="splashRow" style="display:flex;align-items:center;">
         <img id="splashLogo" src="/palmate-logo.png" alt="Pal Mate" style="width:96px;height:96px;border-radius:22px;box-shadow:0 14px 34px rgba(0,0,0,0.45);opacity:0;transform:scale(0.6);transition:opacity 0.6s ease, transform 0.6s cubic-bezier(.34,1.56,.64,1);flex-shrink:0;" />
         <div id="splashText" style="padding-left:20px;white-space:nowrap;opacity:0;transition:opacity 0.6s ease;">
@@ -37,88 +37,101 @@
 
     <script>
       function dismissSplash(id) {
-        var el = document.getElementById(id);
-        if (el) {
-          el.style.opacity = '0';
-          setTimeout(function () { if (el && el.parentNode) el.remove(); }, 500);
-        }
+        try {
+          var el = document.getElementById(id);
+          if (el && id !== 'root') {
+            el.style.pointerEvents = 'none';
+            el.style.opacity = '0';
+            setTimeout(function () {
+              try {
+                if (el && el.parentNode && id !== 'root') el.remove();
+              } catch (err) {}
+            }, 500);
+          }
+        } catch (e) {}
       }
 
-      // ===== Jalankan OG Studio dulu =====
-      window.__studioSplashDone = new Promise(function (resolve) {
-        var splash = document.getElementById('studio-splash');
-        var logo = document.getElementById('ogLogo');
-        var caption = document.getElementById('ogCaption');
+      try {
+        // ===== Jalankan OG Studio dulu =====
+        window.__studioSplashDone = new Promise(function (resolve) {
+          var splash = document.getElementById('studio-splash');
+          var logo = document.getElementById('ogLogo');
+          var caption = document.getElementById('ogCaption');
 
-        if (!logo || !splash) {
-          resolve();
-          return;
-        }
+          if (!logo || !splash) {
+            resolve();
+            return;
+          }
 
-        requestAnimationFrame(function () {
-          requestAnimationFrame(function () {
-            if (logo) {
-              logo.style.opacity = '1';
-              logo.style.transform = 'scale(1)';
-            }
-          });
-        });
-
-        setTimeout(function () { if (caption) caption.style.opacity = '1'; }, 550);
-
-        setTimeout(function () {
-          dismissSplash('studio-splash');
-          resolve();
-        }, 2000);
-      });
-
-      // ===== Baru Pal Mate, NUNGGU OG selesai dulu =====
-      window.__splashReady = new Promise(function (resolve) { window.__resolveSplash = resolve; });
-
-      (function () {
-        var row = document.getElementById('splashRow');
-        var logo = document.getElementById('splashLogo');
-        var text = document.getElementById('splashText');
-
-        if (row && text) {
-          var shift = text.offsetWidth / 2;
-          row.style.transform = 'translateX(' + shift + 'px)';
-        }
-
-        window.__studioSplashDone.then(function () {
           requestAnimationFrame(function () {
             requestAnimationFrame(function () {
-              if (row && logo) {
-                row.style.transition = 'transform 0.8s cubic-bezier(.22,.61,.36,1)';
+              if (logo) {
                 logo.style.opacity = '1';
                 logo.style.transform = 'scale(1)';
               }
             });
           });
 
-          setTimeout(function () {
-            if (row && text) {
-              row.style.transform = 'translateX(0)';
-              text.style.opacity = '1';
-            }
-          }, 700);
+          setTimeout(function () { if (caption) caption.style.opacity = '1'; }, 550);
 
           setTimeout(function () {
+            dismissSplash('studio-splash');
+            resolve();
+          }, 2000);
+        });
+
+        // ===== Baru Pal Mate, NUNGGU OG selesai dulu =====
+        window.__splashReady = new Promise(function (resolve) { window.__resolveSplash = resolve; });
+
+        (function () {
+          var row = document.getElementById('splashRow');
+          var logo = document.getElementById('splashLogo');
+          var text = document.getElementById('splashText');
+
+          if (row && text) {
+            var shift = text.offsetWidth / 2;
+            row.style.transform = 'translateX(' + shift + 'px)';
+          }
+
+          window.__studioSplashDone.then(function () {
+            requestAnimationFrame(function () {
+              requestAnimationFrame(function () {
+                if (row && logo) {
+                  row.style.transition = 'transform 0.8s cubic-bezier(.22,.61,.36,1)';
+                  logo.style.opacity = '1';
+                  logo.style.transform = 'scale(1)';
+                }
+              });
+            });
+
+            setTimeout(function () {
+              if (row && text) {
+                row.style.transform = 'translateX(0)';
+                text.style.opacity = '1';
+              }
+            }, 700);
+
+            setTimeout(function () {
+              if (window.__resolveSplash) window.__resolveSplash();
+              dismissSplash('splash-screen');
+            }, 1800);
+          }).catch(function () {
             if (window.__resolveSplash) window.__resolveSplash();
             dismissSplash('splash-screen');
-          }, 1800);
-        }).catch(function () {
-          if (window.__resolveSplash) window.__resolveSplash();
-          dismissSplash('splash-screen');
-        });
-      })();
+          });
+        })();
+      } catch (err) {
+        dismissSplash('studio-splash');
+        dismissSplash('splash-screen');
+        if (window.__resolveSplash) window.__resolveSplash();
+      }
 
-      // Absolute safety fallback: guarantee removal of all splash overlays after 3.5 seconds
+      // Absolute safety fallback: guarantee removal of all splash overlays after 3 seconds
       setTimeout(function () {
         dismissSplash('studio-splash');
         dismissSplash('splash-screen');
         if (window.__resolveSplash) window.__resolveSplash();
-      }, 3500);
+      }, 3000);
     </script>
 
     <div id="root"></div>

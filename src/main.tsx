@@ -12,18 +12,20 @@ createRoot(document.getElementById('root')!).render(
 function hideSplash() {
   const splash = document.getElementById('splash-screen');
   if (splash) {
+    splash.style.pointerEvents = 'none';
     splash.style.opacity = '0';
-    setTimeout(() => { if (splash && splash.parentNode) splash.remove(); }, 500);
+    setTimeout(() => { if (splash && splash.parentNode && splash.id !== 'root') splash.remove(); }, 500);
   }
   const studioSplash = document.getElementById('studio-splash');
   if (studioSplash) {
+    studioSplash.style.pointerEvents = 'none';
     studioSplash.style.opacity = '0';
-    setTimeout(() => { if (studioSplash && studioSplash.parentNode) studioSplash.remove(); }, 500);
+    setTimeout(() => { if (studioSplash && studioSplash.parentNode && studioSplash.id !== 'root') studioSplash.remove(); }, 500);
   }
 }
 
-// Guaranteed safety fallback: remove splash screens after max 3.5 seconds
-const fallbackTimer = setTimeout(hideSplash, 3500);
+// Guaranteed safety fallback: remove splash screens after max 2.5 seconds
+const fallbackTimer = setTimeout(hideSplash, 2500);
 
 Promise.all([
   new Promise((resolve) => {
@@ -37,7 +39,7 @@ Promise.all([
   (window as any).__splashReady || Promise.resolve()
 ]).then(() => {
   clearTimeout(fallbackTimer);
-  setTimeout(hideSplash, 200);
+  setTimeout(hideSplash, 100);
 }).catch(() => {
   clearTimeout(fallbackTimer);
   hideSplash();
