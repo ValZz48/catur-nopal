@@ -1595,8 +1595,12 @@ export default function App() {
 
   // Game Logic States (AI Match)
   const [selectedCharacter, setSelectedCharacter] = useState<Character | null>(() => {
-    const saved = localStorage.getItem('selectedCharacter');
-    return saved ? JSON.parse(saved) : null;
+    try {
+      const saved = localStorage.getItem('selectedCharacter');
+      return saved ? JSON.parse(saved) : CHARACTERS[0];
+    } catch (e) {
+      return CHARACTERS[0];
+    }
   });
   const [aiMatchPlayerColor, setAiMatchPlayerColor] = useState<'w' | 'b'>('w');
   const [selectedRitualType, setSelectedRitualType] = useState<string>(() => {
@@ -5475,7 +5479,7 @@ export default function App() {
               }
               setOnlineChats(prev => [
                 ...prev,
-                { sender: onlineOpponent.name, text: friendlyMsg, time: Date.now() }
+                { sender: onlineOpponent?.name || 'Lawan', text: friendlyMsg, time: Date.now() }
               ]);
             }
 
@@ -5689,7 +5693,7 @@ export default function App() {
           setOnlineChats(prev => [...prev, acceptMsg]);
           finishOnlineGame('draw');
         } else {
-          const declineMsg = { sender: onlineOpponent.name, text: '[DRAW_DECLINED] Saya ingin terus bertanding! Tawaran remis ditolak.', time: Date.now() };
+          const declineMsg = { sender: onlineOpponent?.name || 'Lawan', text: '[DRAW_DECLINED] Saya ingin terus bertanding! Tawaran remis ditolak.', time: Date.now() };
           setOnlineChats(prev => [...prev, declineMsg]);
         }
       }, 1500);
@@ -5864,7 +5868,7 @@ export default function App() {
       }
     } else if (onlineOpponent?.isAi) {
       const currentSender = finalSender;
-      const currentOpponentName = onlineOpponent.name;
+      const currentOpponentName = onlineOpponent?.name || 'Lawan';
       try {
         fetch('/api/online/ai-chat-reply', {
           method: 'POST',
@@ -19109,12 +19113,12 @@ export default function App() {
         whitePlayer={
           mode === 'online-match'
             ? (onlinePlayerColor === 'w' ? { name: username.trim() || 'Kamu', elo: onlineRating } : { name: onlineOpponent?.name || 'Lawan Online', elo: onlineOpponent?.elo || 1200 })
-            : (aiMatchPlayerColor === 'w' ? { name: username.trim() || 'Kamu', elo: onlineRating } : { name: selectedCharacter.name + ' (AI)', elo: selectedCharacter.rating })
+            : (aiMatchPlayerColor === 'w' ? { name: username.trim() || 'Kamu', elo: onlineRating } : { name: (selectedCharacter?.name || 'Bot AI') + ' (AI)', elo: selectedCharacter?.rating || 1200 })
         }
         blackPlayer={
           mode === 'online-match'
             ? (onlinePlayerColor === 'b' ? { name: username.trim() || 'Kamu', elo: onlineRating } : { name: onlineOpponent?.name || 'Lawan Online', elo: onlineOpponent?.elo || 1200 })
-            : (aiMatchPlayerColor === 'b' ? { name: username.trim() || 'Kamu', elo: onlineRating } : { name: selectedCharacter.name + ' (AI)', elo: selectedCharacter.rating })
+            : (aiMatchPlayerColor === 'b' ? { name: username.trim() || 'Kamu', elo: onlineRating } : { name: (selectedCharacter?.name || 'Bot AI') + ' (AI)', elo: selectedCharacter?.rating || 1200 })
         }
         eloChange={onlineEloChange}
         analysisHistory={analysisHistory}

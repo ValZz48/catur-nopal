@@ -337,16 +337,16 @@ export const SukuDashboard: React.FC<SukuDashboardProps> = ({
           <div className="bg-[#262421] p-5 rounded-2xl border border-stone-800 flex flex-col gap-4">
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-[#1a1817] border-2 border-yellow-500 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden relative">
-                {renderGuildLogo(guildProfile.logo)}
+                {renderGuildLogo(guildProfile?.logo)}
               </div>
               <div>
                 <h4 className="text-lg font-black text-white uppercase tracking-wide flex items-center gap-2">
-                  {guildProfile.name}
+                  {guildProfile?.name || 'Suku Catur'}
                   <span className="text-[9px] font-black uppercase px-2 py-0.5 bg-yellow-500 text-slate-900 rounded-md">
                     LVL {guildLevel}
                   </span>
                 </h4>
-                <p className="text-xs text-slate-400 italic mt-0.5">"{guildProfile.description}"</p>
+                <p className="text-xs text-slate-400 italic mt-0.5">"{guildProfile?.description || 'Klub Catur'}"</p>
               </div>
             </div>
 
