@@ -36,6 +36,14 @@
     </div>
 
     <script>
+      function dismissSplash(id) {
+        var el = document.getElementById(id);
+        if (el) {
+          el.style.opacity = '0';
+          setTimeout(function () { if (el && el.parentNode) el.remove(); }, 500);
+        }
+      }
+
       // ===== Jalankan OG Studio dulu =====
       window.__studioSplashDone = new Promise(function (resolve) {
         var splash = document.getElementById('studio-splash');
@@ -59,12 +67,9 @@
         setTimeout(function () { if (caption) caption.style.opacity = '1'; }, 550);
 
         setTimeout(function () {
-          if (splash) splash.style.opacity = '0';
-          setTimeout(function () {
-            if (splash && splash.parentNode) splash.remove();
-            resolve();
-          }, 600);
-        }, 2200);
+          dismissSplash('studio-splash');
+          resolve();
+        }, 2000);
       });
 
       // ===== Baru Pal Mate, NUNGGU OG selesai dulu =====
@@ -96,20 +101,24 @@
               row.style.transform = 'translateX(0)';
               text.style.opacity = '1';
             }
-          }, 800);
+          }, 700);
 
           setTimeout(function () {
             if (window.__resolveSplash) window.__resolveSplash();
+            dismissSplash('splash-screen');
           }, 1800);
         }).catch(function () {
           if (window.__resolveSplash) window.__resolveSplash();
+          dismissSplash('splash-screen');
         });
       })();
 
-      // Absolute safety fallback: ensure resolveSplash is called after 4s
+      // Absolute safety fallback: guarantee removal of all splash overlays after 3.5 seconds
       setTimeout(function () {
+        dismissSplash('studio-splash');
+        dismissSplash('splash-screen');
         if (window.__resolveSplash) window.__resolveSplash();
-      }, 4000);
+      }, 3500);
     </script>
 
     <div id="root"></div>

@@ -22,18 +22,22 @@ function hideSplash() {
   }
 }
 
-// Guaranteed safety fallback: remove splash screens after max 4.5 seconds
-const fallbackTimer = setTimeout(hideSplash, 4500);
+// Guaranteed safety fallback: remove splash screens after max 3.5 seconds
+const fallbackTimer = setTimeout(hideSplash, 3500);
 
 Promise.all([
   new Promise((resolve) => {
-    if (document.readyState === 'complete') resolve(null);
-    else window.addEventListener('load', () => resolve(null));
+    if (document.readyState === 'complete' || document.readyState === 'interactive') {
+      resolve(null);
+    } else {
+      window.addEventListener('DOMContentLoaded', () => resolve(null));
+      window.addEventListener('load', () => resolve(null));
+    }
   }),
   (window as any).__splashReady || Promise.resolve()
 ]).then(() => {
   clearTimeout(fallbackTimer);
-  setTimeout(hideSplash, 250);
+  setTimeout(hideSplash, 200);
 }).catch(() => {
   clearTimeout(fallbackTimer);
   hideSplash();
