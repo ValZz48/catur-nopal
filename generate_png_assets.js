@@ -154,31 +154,36 @@ async function main() {
   // 1. icon-192.png (192x192 PNG)
   await sharp(Buffer.from(iconSvg))
     .resize(192, 192)
-    .png({ compressionLevel: 9, quality: 100 })
+    .ensureAlpha()
+    .png({ palette: false, compressionLevel: 6 })
     .toFile(path.join(publicDir, 'icon-192.png'));
 
   // 2. icon-512.png (512x512 PNG)
   await sharp(Buffer.from(iconSvg))
     .resize(512, 512)
-    .png({ compressionLevel: 9, quality: 100 })
+    .ensureAlpha()
+    .png({ palette: false, compressionLevel: 6 })
     .toFile(path.join(publicDir, 'icon-512.png'));
 
   // 3. icon-shortcut.png (192x192 PNG)
   await sharp(Buffer.from(shortcutSvg))
     .resize(192, 192)
-    .png({ compressionLevel: 9, quality: 100 })
+    .ensureAlpha()
+    .png({ palette: false, compressionLevel: 6 })
     .toFile(path.join(publicDir, 'icon-shortcut.png'));
 
   // 4. screenshot-narrow.png (540x960 PNG)
   await sharp(Buffer.from(narrowScreenshotSvg))
     .resize(540, 960)
-    .png({ compressionLevel: 8, quality: 100 })
+    .ensureAlpha()
+    .png({ palette: false, compressionLevel: 6 })
     .toFile(path.join(publicDir, 'screenshot-narrow.png'));
 
   // 5. screenshot-wide.png (1280x720 PNG)
   await sharp(Buffer.from(wideScreenshotSvg))
     .resize(1280, 720)
-    .png({ compressionLevel: 8, quality: 100 })
+    .ensureAlpha()
+    .png({ palette: false, compressionLevel: 6 })
     .toFile(path.join(publicDir, 'screenshot-wide.png'));
 
   console.log('All PNG assets successfully generated!');
