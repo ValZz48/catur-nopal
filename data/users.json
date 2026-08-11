@@ -96,8 +96,8 @@
     "username": "nopal",
     "friendRequests": [],
     "matchesPlayed": 306,
-    "elo": 2713,
-    "xp": 97908,
+    "elo": 2730,
+    "xp": 98083,
     "selectedFrame": "gold",
     "unlockedFrames": [
       "none",
@@ -170,7 +170,7 @@
     "isAdmin": true,
     "isStaff": false,
     "coins": 71380,
-    "diamonds": 2953,
+    "diamonds": 2963,
     "selectedSkin": "crystal",
     "unlockedSkins": [
       "standard",
@@ -293,6 +293,27 @@
       }
     ],
     "chess_transaction_history": [
+      {
+        "id": "tx-coin-1786370543772-269",
+        "timestamp": 1786370543772,
+        "type": "coin",
+        "amount": -25,
+        "desc": "Membelanjakan Koin"
+      },
+      {
+        "id": "tx-diamond-1786370214771-90",
+        "timestamp": 1786370214771,
+        "type": "diamond",
+        "amount": 2943,
+        "desc": "Menerima Berlian"
+      },
+      {
+        "id": "tx-coin-1786370214762-489",
+        "timestamp": 1786370214762,
+        "type": "coin",
+        "amount": 70880,
+        "desc": "Menerima Koin"
+      },
       {
         "id": "tx-coin-1786091738910-650",
         "timestamp": 1786091738910,
@@ -4278,22 +4299,22 @@
       "leader": "nopal",
       "ownerUsername": "nopal",
       "level": 6,
-      "totalElo": 2692,
+      "totalElo": 2730,
       "membersCount": 1,
       "maxMembers": 30,
       "motto": "Markas para ksatria papan hitam putih taktis Indonesia!",
       "logo": "perisai",
       "treasury": 7250,
-      "updatedAt": "2026-08-10T13:18:53.595Z"
+      "updatedAt": "2026-08-11T07:40:06.619Z"
     },
     "guild_members": [
       {
         "name": "nopal",
         "role": "Founder",
-        "rating": 2702,
+        "rating": 2730,
         "status": "Online",
         "contribution": 6500,
-        "level": 91
+        "level": 92
       }
     ],
     "guild_lvl": 6,
@@ -4367,9 +4388,9 @@
       "PecaturToxic69",
       "BotsSpammer2024"
     ],
-    "streak": 16,
+    "streak": 2,
     "peakXp": 100,
-    "winStreak": 4,
+    "winStreak": 7,
     "longestDefense": 71,
     "lastActiveAt": 1785745049806,
     "user_clan_contribution": 6500
