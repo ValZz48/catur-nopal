@@ -7,10 +7,11 @@
   "dir": "ltr",
   "start_url": "/",
   "scope": "/",
-  "display": "standalone",
+  "display": "fullscreen",
+  "display_override": ["fullscreen", "standalone", "minimal-ui"],
   "orientation": "portrait",
   "background_color": "#121110",
-  "theme_color": "#81b64c",
+  "theme_color": "#121110",
   "categories": ["games", "entertainment"],
   "prefer_related_applications": false,
   "icons": [
