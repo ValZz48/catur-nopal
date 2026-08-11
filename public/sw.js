@@ -53,8 +53,8 @@ self.addEventListener('push', (event) => {
 
   const options = {
     body: data.body,
-    icon: '/assets/images/avatar_martin_1779709510230.png',
-    badge: '/assets/images/avatar_martin_1779709510230.png',
+    icon: '/icon-192.png',
+    badge: '/icon-192.png',
     vibrate: [100, 50, 100],
     data: {
       dateOfArrival: Date.now(),
@@ -104,8 +104,8 @@ self.addEventListener('message', (event) => {
     const title = event.data.title || 'Pengingat Streak Catur Pal Mate';
     const options = {
       body: event.data.body || 'Jangan biarkan streak-mu padam! Check-in dan mainkan catur hari ini!',
-      icon: '/assets/images/avatar_martin_1779709510230.png',
-      badge: '/assets/images/avatar_martin_1779709510230.png',
+      icon: '/icon-192.png',
+      badge: '/icon-192.png',
       vibrate: [200, 100, 200],
       tag: 'streak-reminder-notification',
       renotify: true,
