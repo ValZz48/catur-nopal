@@ -8322,13 +8322,13 @@ export default function App() {
         className={`sticky top-0 z-40 border-b shadow-md select-none flex items-center px-2 sm:px-4 transition-colors duration-300 w-full max-w-full overflow-hidden ${
           prefTheme === 'light' 
             ? 'bg-[#EDE4D3] text-[#201B15] border-[#C9B89A]' 
-            : 'bg-[#262421] hover:bg-[#2f2c28] border-[#3c3934]'
+            : 'bg-[#201b15] hover:bg-[#2b251e] border-[#3c3934]'
         }`} 
         style={{ 
           minHeight: '3.75rem', 
           paddingTop: 'calc(0.25rem + env(safe-area-inset-top, 0px))', 
           paddingBottom: '0.25rem', 
-          backgroundColor: prefTheme === 'light' ? '#EDE4D3' : '#262421',
+          backgroundColor: prefTheme === 'light' ? '#EDE4D3' : '#201b15',
           borderColor: prefTheme === 'light' ? '#C9B89A' : '#3c3934',
           color: prefTheme === 'light' ? '#201B15' : undefined
         }}
@@ -18305,7 +18305,7 @@ export default function App() {
               className="fixed right-0 top-0 bottom-0 z-55 w-80 max-w-[90vw] bg-[#1e1c1b] border-l border-[#3c3934] shadow-2xl flex flex-col font-sans"
             >
               {/* Drawer Header */}
-              <div className="p-5 border-b border-[#3c3934] flex items-center justify-between bg-[#262421]">
+              <div className="p-5 border-b border-[#3c3934] flex items-center justify-between bg-[#201b15]">
                 <div className="flex flex-col gap-1 items-start justify-center">
                   <div className="w-44 h-9 overflow-hidden rounded-lg relative flex items-center justify-start">
                     <img 
